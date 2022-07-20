@@ -1,4 +1,6 @@
 #pragma once
+#include <string>
+#include <vector>
 
 enum class EngineSettingsTemplate
 {
@@ -13,6 +15,12 @@ enum EngineThreadingMode
 	kEngineMultiThreaded
 };
 
+struct EngineGraphicsSettings
+{
+	std::vector<const char*> requiredExtensions;
+	bool validationLayersEnabled;
+};
+
 // engine settings used for initialization
 // can configure everything yourself or use a predefined template configured by EngineSettingsTemplate
 struct EngineSettings
@@ -21,5 +29,6 @@ struct EngineSettings
 	EngineSettings(EngineSettingsTemplate settingsTemplate);
 	
 	EngineThreadingMode threadingMode;
+	EngineGraphicsSettings gfxSettings;
 };
 

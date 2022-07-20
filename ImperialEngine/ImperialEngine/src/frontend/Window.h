@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <vector>
 
 struct GLFWwindow;
 
@@ -12,6 +13,7 @@ namespace imp
 
 		int Initialize(const std::string& name, int width, int height);
 		void Update();
+		std::vector<const char*> GetRequiredExtensions();
 
 		bool ShouldClose() const;
 

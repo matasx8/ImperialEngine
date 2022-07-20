@@ -3,16 +3,17 @@
 namespace imp
 {
 	Engine::Engine()
-		: m_Entities(), m_Q(nullptr), m_Worker(nullptr), m_EngineSettings(), m_Window()
+		: m_Entities(), m_Q(nullptr), m_Worker(nullptr), m_EngineSettings(), m_Window(), m_Gfx()
 	{
 	}
 
 	bool Engine::Initialize(EngineSettings settings)
 	{
-		InitThreading(settings.threadingMode);
-		InitWindow();
-
 		m_EngineSettings = settings;
+		InitThreading(m_EngineSettings.threadingMode);
+		InitWindow();
+		InitGraphics();
+
 		return true;
 	}
 
@@ -57,6 +58,13 @@ namespace imp
 		m_Window.Initialize(windowName, 800, 600);
 	}
 
+	void Engine::InitGraphics()
+	{
+		// Get required VK extensions
+		m_EngineSettings.gfxSettings.requiredExtensions = m_Window.GetRequiredExtensions();
+		m_Q->add(std::mem_fn(&Engine::Cmd_InitGraphics), std::shared_ptr<void>());
+	}
+
 	void Engine::CleanUpThreading()
 	{
 		if (m_EngineSettings.threadingMode == kEngineMultiThreaded)
@@ -71,6 +79,10 @@ namespace imp
 	void Engine::CleanUpWindow()
 	{
 		m_Window.Close();
+	}
+
+	void Engine::CleanUpGraphics()
+	{
 	}
 
 }

@@ -1,4 +1,5 @@
 #include "Window.h"
+#include <assert.h>
 #include "extern/GLFW/glfw3.h"
 
 imp::Window::Window()
@@ -23,6 +24,15 @@ int imp::Window::Initialize(const std::string& name, int width, int height)
 void imp::Window::Update()
 {
 	glfwPollEvents();
+}
+
+std::vector<const char*> imp::Window::GetRequiredExtensions()
+{
+	uint32_t glfwExtensionCount = 0;
+	const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+	assert(glfwExtensionCount);
+
+	return std::vector<const char*>(glfwExtensions, glfwExtensions + glfwExtensionCount);
 }
 
 bool imp::Window::ShouldClose() const
