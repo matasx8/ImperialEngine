@@ -3,13 +3,14 @@
 namespace imp
 {
 	Engine::Engine()
-		: m_Entities(), m_Q(nullptr), m_Worker(nullptr), m_EngineSettings()
+		: m_Entities(), m_Q(nullptr), m_Worker(nullptr), m_EngineSettings(), m_Window()
 	{
 	}
 
 	bool Engine::Initialize(EngineSettings settings)
 	{
 		InitThreading(settings.threadingMode);
+		InitWindow();
 
 		m_EngineSettings = settings;
 		return true;
@@ -17,10 +18,17 @@ namespace imp
 
 	void Engine::Update()
 	{
+		m_Window.Update();
+
 	}
 
 	void Engine::Render()
 	{
+	}
+
+	bool Engine::ShouldClose() const
+	{
+		return m_Window.ShouldClose();
 	}
 
 	void Engine::ShutDown()
@@ -43,6 +51,12 @@ namespace imp
 		}
 	}
 
+	void Engine::InitWindow()
+	{
+		const std::string windowName = "TestWindow";
+		m_Window.Initialize(windowName, 800, 600);
+	}
+
 	void Engine::CleanUpThreading()
 	{
 		if (m_EngineSettings.threadingMode == kEngineMultiThreaded)
@@ -52,6 +66,11 @@ namespace imp
 			delete m_Worker;
 		}
 		delete m_Q;
+	}
+
+	void Engine::CleanUpWindow()
+	{
+		m_Window.Close();
 	}
 
 }

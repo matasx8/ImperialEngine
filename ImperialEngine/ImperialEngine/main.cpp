@@ -17,10 +17,7 @@ int main()
 	if (!engine.Initialize(settings))
 		return 1;
 
-	// insert 'shouldclose' or something like that
-	// should leave somekind of input interface so user can decide when to close
-	int iterations = 1234;
-	while (iterations--)
+	while (!engine.ShouldClose())
 	{
 		engine.Update();
 		engine.Render();
