@@ -23,3 +23,26 @@ bool imp::GraphicsCaps::ValidationLayersSupported()
     printf("Warning: No available and suitable validaiton layers found!\n");
     return false;
 }
+
+bool imp::GraphicsCaps::IsDeviceSuitable(VkPhysicalDevice device)
+{
+    VkPhysicalDeviceProperties deviceProperties;
+    vkGetPhysicalDeviceProperties(device, &deviceProperties);
+
+    VkPhysicalDeviceFeatures deviceFeatures;
+    vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+    QueueFamilyIndices indices = getQueueFamilies(device);
+
+    bool extensSupported = checkDeviceExtensionSupport(device);
+
+    bool swapChainValid = false;
+
+    if (extensSupported)
+    {
+        SwapChainDetails swapChainDetails = getSwapChainDetails(device);
+        swapChainValid = !swapChainDetails.presentationModes.empty() && !swapChainDetails.formats.empty();
+    }
+
+    return indices.isValid() && extensSupported && swapChainValid && deviceFeatures.samplerAnisotropy;
+}

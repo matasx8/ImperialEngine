@@ -8,6 +8,7 @@ namespace imp
 		GraphicsCaps();
 
 		bool ValidationLayersSupported();
+		bool IsDeviceSuitable(VkPhysicalDevice device);
 
 		const char* validationLayerName = "VK_LAYER_KHRONOS_validation";
 	private:
