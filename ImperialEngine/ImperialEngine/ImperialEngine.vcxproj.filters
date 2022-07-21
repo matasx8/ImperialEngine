@@ -36,6 +36,9 @@
     <ClCompile Include="src\backend\graphics\GraphicsCaps.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\backend\graphics\VkDebug.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\frontend\Engine.h">
@@ -72,6 +75,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\frontend\Debug.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\backend\graphics\VkDebug.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

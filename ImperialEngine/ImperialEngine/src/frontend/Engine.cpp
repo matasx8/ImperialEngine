@@ -35,6 +35,8 @@ namespace imp
 	void Engine::ShutDown()
 	{
 		CleanUpThreading();
+		CleanUpWindow();
+		CleanUpGraphics();
 	}
 
 	void Engine::InitThreading(EngineThreadingMode mode)
@@ -83,6 +85,7 @@ namespace imp
 
 	void Engine::CleanUpGraphics()
 	{
+		m_Gfx.Destroy();
 	}
 
 }

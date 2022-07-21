@@ -218,6 +218,7 @@
     <ClCompile Include="src\backend\EngineCommands.cpp" />
     <ClCompile Include="src\backend\graphics\Graphics.cpp" />
     <ClCompile Include="src\backend\graphics\GraphicsCaps.cpp" />
+    <ClCompile Include="src\backend\graphics\VkDebug.cpp" />
     <ClCompile Include="src\frontend\EngineSettings.cpp" />
     <ClCompile Include="src\frontend\Engine.cpp" />
     <ClCompile Include="main.cpp" />
@@ -226,6 +227,7 @@
   <ItemGroup>
     <ClInclude Include="src\backend\graphics\Graphics.h" />
     <ClInclude Include="src\backend\graphics\GraphicsCaps.h" />
+    <ClInclude Include="src\backend\graphics\VkDebug.h" />
     <ClInclude Include="src\frontend\Debug.h" />
     <ClInclude Include="src\frontend\EngineSettings.h" />
     <ClInclude Include="src\backend\parallel\ConsumerBase.h" />

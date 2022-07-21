@@ -9,7 +9,7 @@ namespace imp
 
 		bool ValidationLayersSupported();
 
-		const char* validationLayerName = "sVK_LAYER_KHRONOS_validation";
+		const char* validationLayerName = "VK_LAYER_KHRONOS_validation";
 	private:
 
 

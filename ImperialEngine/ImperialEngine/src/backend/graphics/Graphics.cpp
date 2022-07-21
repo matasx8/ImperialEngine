@@ -2,7 +2,7 @@
 #include <vector>
 #include <stdexcept>
 
-imp::Graphics::Graphics() : m_Settings(), m_GfxCaps()
+imp::Graphics::Graphics() : m_Settings(), m_GfxCaps(), m_ValidationLayers()
 {
 }
 
@@ -31,11 +31,31 @@ void imp::Graphics::Initialize(const EngineGraphicsSettings& settings)
     createInfo.enabledLayerCount = m_Settings.validationLayersEnabled ? 1 : 0;
     createInfo.ppEnabledLayerNames = &m_GfxCaps.validationLayerName;
 
+    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
+    if (m_Settings.validationLayersEnabled)
+    {
+        debugCreateInfo = ValidationLayers::CreateDebugMessengerCreateInfo(m_Settings);
+        createInfo.pNext = &debugCreateInfo;
+    }
+
     VkResult result = vkCreateInstance(&createInfo, nullptr, &m_VkInstance);
     if (result != VK_SUCCESS)
         throw std::runtime_error("Failed to create a Vulkan instance");
+
+    printf("Vulkan Instance created successfully\n");
+    if (m_Settings.validationLayersEnabled)
+    {
+        m_ValidationLayers.EnableCallback(m_VkInstance, m_Settings);
+        printf("Vulkan Validation layers enabled!\n");
+    }
     else
-        printf("Vulkan Instance created successfully\n");
+        printf("Vulkan Validation layers disabled!\n");
+}
+
+void imp::Graphics::Destroy()
+{
+    m_ValidationLayers.Destroy(m_VkInstance);
+    vkDestroyInstance(m_VkInstance, nullptr);
 }
 
 bool imp::Graphics::CheckExtensionsSupported(std::vector<const char*> extensions)
