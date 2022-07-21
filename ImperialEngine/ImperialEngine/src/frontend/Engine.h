@@ -9,7 +9,6 @@
 
 // No Vulkan stuff here
 // use registry from EnTT for commands and their memory?
-// use VULKAN_SDK path to include libraries
 
 namespace imp
 {

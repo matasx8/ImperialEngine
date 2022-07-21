@@ -1,21 +1,37 @@
 #include "backend/graphics/Graphics.h"
+#include "frontend/Window.h"
 #include <vector>
 #include <stdexcept>
 
-imp::Graphics::Graphics() : m_Settings(), m_GfxCaps(), m_ValidationLayers()
+imp::Graphics::Graphics() : m_Settings(), m_GfxCaps(), m_ValidationLayers(), m_Window()
 {
 }
 
-void imp::Graphics::Initialize(const EngineGraphicsSettings& settings)
+void imp::Graphics::Initialize(const EngineGraphicsSettings& settings, Window* window)
 {
 	m_Settings = settings;
+    CreateInstance();
+    CreateVkWindow();
+    CreatePhysicalDevice();
+    CreateLogicalDevice();
+}
+
+void imp::Graphics::Destroy()
+{
+    m_Window.Destroy(m_VkInstance);
+    m_ValidationLayers.Destroy(m_VkInstance);
+    vkDestroyInstance(m_VkInstance, nullptr);
+}
+
+void imp::Graphics::CreateInstance()
+{
     m_Settings.validationLayersEnabled = m_Settings.validationLayersEnabled ? m_GfxCaps.ValidationLayersSupported() : false;
-    if(m_Settings.validationLayersEnabled)
+    if (m_Settings.validationLayersEnabled)
         m_Settings.requiredExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
     VkApplicationInfo appInfo = {};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.pApplicationName = "Imperial Engine"; //custom name of the app
+    appInfo.pApplicationName = "Imperial Engine";
     appInfo.applicationVersion = 1;
     appInfo.apiVersion = VK_MAKE_VERSION(1, 3, 0);
 
@@ -52,10 +68,38 @@ void imp::Graphics::Initialize(const EngineGraphicsSettings& settings)
         printf("Vulkan Validation layers disabled!\n");
 }
 
-void imp::Graphics::Destroy()
+void imp::Graphics::CreatePhysicalDevice()
 {
-    m_ValidationLayers.Destroy(m_VkInstance);
-    vkDestroyInstance(m_VkInstance, nullptr);
+    uint32_t deviceCount = 0;
+    vkEnumeratePhysicalDevices(m_VkInstance, &deviceCount, nullptr);
+
+    if (deviceCount == 0)
+        throw std::runtime_error("Can't find GPUs that support Vulkan instance");
+
+    std::vector<VkPhysicalDevice> devices(deviceCount);
+    vkEnumeratePhysicalDevices(m_VkInstance, &deviceCount, devices.data());
+
+    for (const auto& device : devices)
+    {
+        if (m_GfxCaps.IsDeviceSuitable(device)) // continue here
+        {
+            mainDevice.physicalDevice = device;
+            break;
+        }
+    }
+
+    // get properties of our new device
+    VkPhysicalDeviceProperties deviceProperties;
+    vkGetPhysicalDeviceProperties(mainDevice.physicalDevice, &deviceProperties);
+}
+
+void imp::Graphics::CreateLogicalDevice()
+{
+}
+
+void imp::Graphics::CreateVkWindow()
+{
+    m_Window.CreateWindowSurface(m_VkInstance);
 }
 
 bool imp::Graphics::CheckExtensionsSupported(std::vector<const char*> extensions)

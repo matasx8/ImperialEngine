@@ -14,6 +14,9 @@ namespace imp
 		int Initialize(const std::string& name, int width, int height);
 		void Update();
 		std::vector<const char*> GetRequiredExtensions();
+		GLFWwindow* const GetWindowPtr() const;
+		int GetWidth() const;
+		int GetHeight() const;
 
 		bool ShouldClose() const;
 

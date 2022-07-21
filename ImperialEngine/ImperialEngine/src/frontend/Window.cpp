@@ -35,6 +35,21 @@ std::vector<const char*> imp::Window::GetRequiredExtensions()
 	return std::vector<const char*>(glfwExtensions, glfwExtensions + glfwExtensionCount);
 }
 
+GLFWwindow* const imp::Window::GetWindowPtr() const
+{
+	return m_WindowPtr;
+}
+
+int imp::Window::GetWidth() const
+{
+	return m_Width
+}
+
+int imp::Window::GetHeight() const
+{
+	return m_Height;
+}
+
 bool imp::Window::ShouldClose() const
 {
 	return glfwWindowShouldClose(m_WindowPtr);

@@ -1,4 +1,5 @@
 #include "Engine.h"
+#include "backend/EngineCommandResources.h"
 
 namespace imp
 {
@@ -64,7 +65,7 @@ namespace imp
 	{
 		// Get required VK extensions
 		m_EngineSettings.gfxSettings.requiredExtensions = m_Window.GetRequiredExtensions();
-		m_Q->add(std::mem_fn(&Engine::Cmd_InitGraphics), std::shared_ptr<void>());
+		m_Q->add(std::mem_fn(&Engine::Cmd_InitGraphics), std::make_shared<Window>(m_Window));
 	}
 
 	void Engine::CleanUpThreading()
