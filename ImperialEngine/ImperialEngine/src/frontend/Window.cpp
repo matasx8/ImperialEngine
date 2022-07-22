@@ -42,7 +42,7 @@ GLFWwindow* const imp::Window::GetWindowPtr() const
 
 int imp::Window::GetWidth() const
 {
-	return m_Width
+	return m_Width;
 }
 
 int imp::Window::GetHeight() const

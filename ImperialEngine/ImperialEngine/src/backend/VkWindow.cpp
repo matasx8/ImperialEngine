@@ -24,6 +24,11 @@ void imp::VkWindow::CreateWindowSurface(VkInstance instance)
 		throw std::runtime_error("Failed to create a surface!");
 }
 
+VkSurfaceKHR imp::VkWindow::GetWindowSurface() const
+{
+	return m_Surface;
+}
+
 void imp::VkWindow::Destroy(VkInstance instance)
 {
 	vkDestroySurfaceKHR(instance, m_Surface, nullptr);

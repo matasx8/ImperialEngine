@@ -2,6 +2,8 @@
 #include "frontend/Window.h"
 #include <vector>
 #include <stdexcept>
+#include <set>
+#include <cassert>
 
 imp::Graphics::Graphics() : m_Settings(), m_GfxCaps(), m_ValidationLayers(), m_Window()
 {
@@ -11,13 +13,16 @@ void imp::Graphics::Initialize(const EngineGraphicsSettings& settings, Window* w
 {
 	m_Settings = settings;
     CreateInstance();
-    CreateVkWindow();
-    CreatePhysicalDevice();
+    CreateVkWindow(window);
+    FindPhysicalDevice();
     CreateLogicalDevice();
 }
 
 void imp::Graphics::Destroy()
 {
+    vkDeviceWaitIdle(m_LogicalDevice);
+
+    vkDestroyDevice(m_LogicalDevice, nullptr);
     m_Window.Destroy(m_VkInstance);
     m_ValidationLayers.Destroy(m_VkInstance);
     vkDestroyInstance(m_VkInstance, nullptr);
@@ -68,7 +73,7 @@ void imp::Graphics::CreateInstance()
         printf("Vulkan Validation layers disabled!\n");
 }
 
-void imp::Graphics::CreatePhysicalDevice()
+void imp::Graphics::FindPhysicalDevice()
 {
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(m_VkInstance, &deviceCount, nullptr);
@@ -79,26 +84,74 @@ void imp::Graphics::CreatePhysicalDevice()
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(m_VkInstance, &deviceCount, devices.data());
 
+    bool foundSuitableDevice = false;
     for (const auto& device : devices)
     {
-        if (m_GfxCaps.IsDeviceSuitable(device)) // continue here
+        if (m_GfxCaps.IsDeviceSuitable(device, m_Window.GetWindowSurface()) && m_GfxCaps.CheckDeviceExtensionSupport(device, m_Settings.requiredDeviceExtensions))
         {
-            mainDevice.physicalDevice = device;
+            m_PhysicalDevice = device;
+            foundSuitableDevice = true;
             break;
         }
     }
 
-    // get properties of our new device
-    VkPhysicalDeviceProperties deviceProperties;
-    vkGetPhysicalDeviceProperties(mainDevice.physicalDevice, &deviceProperties);
+    if (!foundSuitableDevice)
+        throw std::runtime_error("Vulkan Error! Didn't find a suitable physical device!");
 }
 
 void imp::Graphics::CreateLogicalDevice()
 {
+    QueueFamilyIndices indices = m_GfxCaps.GetQueueFamilies(m_PhysicalDevice, m_Window.GetWindowSurface());
+
+    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+    std::set<int> queueFamilyIndices = { indices.graphicsFamily, indices.presentationFamily };
+
+    for (int queueFamilyIndex : queueFamilyIndices)
+    {
+        VkDeviceQueueCreateInfo queueCreateInfo = {};
+        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreateInfo.queueFamilyIndex = queueFamilyIndex; // index of the graphics family to create a queue from
+        queueCreateInfo.queueCount = 1;
+        float priority = 1.0f;
+        queueCreateInfo.pQueuePriorities = &priority; // vulkan needs to know multiple queues
+        queueCreateInfos.push_back(queueCreateInfo);
+    }
+
+    // TODO: Nsight...
+    VkDeviceDiagnosticsConfigCreateInfoNV dci = {};
+    dci.sType = VK_STRUCTURE_TYPE_DEVICE_DIAGNOSTICS_CONFIG_CREATE_INFO_NV;
+    dci.flags = VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_RESOURCE_TRACKING_BIT_NV |      // Enable tracking of resources.
+        VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_AUTOMATIC_CHECKPOINTS_BIT_NV |  // Capture call stacks for all draw calls, compute dispatches, and resource copies.
+        VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_SHADER_DEBUG_INFO_BIT_NV;
+
+    //information to create logical device
+    VkDeviceCreateInfo deviceCreateInfo = {};
+    deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()); //number of queue create infos
+    deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
+    deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(m_Settings.requiredDeviceExtensions.size());
+    deviceCreateInfo.ppEnabledExtensionNames = m_Settings.requiredDeviceExtensions.data();
+    deviceCreateInfo.pNext = &dci;
+
+    VkPhysicalDeviceFeatures devicefeatures = {};
+    devicefeatures.samplerAnisotropy = VK_TRUE;
+
+    deviceCreateInfo.pEnabledFeatures = &devicefeatures;
+
+    VkResult result = vkCreateDevice(m_PhysicalDevice, &deviceCreateInfo, nullptr, &m_LogicalDevice);
+    if (result != VK_SUCCESS)
+        throw std::runtime_error("Failed to create a logical device!");
+    printf("Vulkan Logical device successfully created!\n"); // TODO: log more stuff, like extensions used and etc.
+
+    // TODO: Make system for multiple queues when needed
+    vkGetDeviceQueue(m_LogicalDevice, indices.graphicsFamily, 0, &m_GfxQueue);
+    vkGetDeviceQueue(m_LogicalDevice, indices.presentationFamily, 0, &m_PresentationQueue);
 }
 
-void imp::Graphics::CreateVkWindow()
+void imp::Graphics::CreateVkWindow(Window* window)
 {
+    assert(window);
+    m_Window = VkWindow(*window);
     m_Window.CreateWindowSurface(m_VkInstance);
 }
 

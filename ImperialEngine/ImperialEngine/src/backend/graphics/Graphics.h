@@ -19,9 +19,9 @@ namespace imp
 	private:
 
 		void CreateInstance();
-		void CreatePhysicalDevice();
+		void FindPhysicalDevice();
 		void CreateLogicalDevice();
-		void CreateVkWindow();
+		void CreateVkWindow(Window* window);
 
 		bool CheckExtensionsSupported(std::vector<const char*> extensions);
 
@@ -32,6 +32,10 @@ namespace imp
 		VkInstance m_VkInstance;
 		VkPhysicalDevice m_PhysicalDevice;
 		VkDevice m_LogicalDevice;
+
+		// These are here for now
+		VkQueue m_GfxQueue;
+		VkQueue m_PresentationQueue;
 
 		VkWindow m_Window;
 	};

@@ -1,4 +1,5 @@
 #include "EngineSettings.h"
+#include <vulkan_core.h>
 
 EngineSettings::EngineSettings()
 	: threadingMode(kEngineSingleThreaded)
@@ -26,4 +27,10 @@ EngineSettings::EngineSettings(EngineSettingsTemplate settingsTemplate)
 	}
 
 	// common
+	gfxSettings.requiredDeviceExtensions = 
+	{
+	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+	VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME,	// TODO: Add some system that removes nsight if not available
+	VK_NV_DEVICE_DIAGNOSTICS_CONFIG_EXTENSION_NAME
+	};
 }

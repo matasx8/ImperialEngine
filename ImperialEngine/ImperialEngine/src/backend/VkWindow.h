@@ -14,7 +14,7 @@ namespace imp
 		VkWindow(const Window& window);
 
 		void CreateWindowSurface(VkInstance instance);
-
+		VkSurfaceKHR GetWindowSurface() const;
 
 		void Destroy(VkInstance instance);
 	private:

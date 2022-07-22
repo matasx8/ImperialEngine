@@ -18,6 +18,7 @@ enum EngineThreadingMode
 struct EngineGraphicsSettings
 {
 	std::vector<const char*> requiredExtensions;
+	std::vector<const char*> requiredDeviceExtensions;
 	bool validationLayersEnabled;
 };
 
