@@ -1,5 +1,6 @@
 #pragma once
 #include "backend/graphics/GraphicsCaps.h"
+#include "backend/graphics/Swapchain.h"
 #include "backend/graphics/VkDebug.h"
 #include "backend/VkWindow.h"
 #include "Utils/NonCopyable.h"
@@ -22,6 +23,7 @@ namespace imp
 		void FindPhysicalDevice();
 		void CreateLogicalDevice();
 		void CreateVkWindow(Window* window);
+		void CreateSwapchain();
 
 		bool CheckExtensionsSupported(std::vector<const char*> extensions);
 
@@ -36,6 +38,8 @@ namespace imp
 		// These are here for now
 		VkQueue m_GfxQueue;
 		VkQueue m_PresentationQueue;
+
+		Swapchain m_Swapchain;
 
 		VkWindow m_Window;
 	};

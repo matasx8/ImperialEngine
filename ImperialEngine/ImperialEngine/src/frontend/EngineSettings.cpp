@@ -33,4 +33,6 @@ EngineSettings::EngineSettings(EngineSettingsTemplate settingsTemplate)
 	VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME,	// TODO: Add some system that removes nsight if not available
 	VK_NV_DEVICE_DIAGNOSTICS_CONFIG_EXTENSION_NAME
 	};
+	gfxSettings.swapchainImageCount = kEngineSwapchainTripleBuffering;
+	gfxSettings.preferredPresentModes = { kEnginePresentMailbox, kEnginePresentFifo };
 }

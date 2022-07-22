@@ -1,4 +1,5 @@
 #include "backend/graphics/GraphicsCaps.h"
+#include "backend/EnumTranslator.h"
 #include <vector>
 
 imp::GraphicsCaps::GraphicsCaps()
@@ -53,6 +54,61 @@ imp::QueueFamilyIndices imp::GraphicsCaps::GetQueueFamilies(VkPhysicalDevice dev
     return indices;
 }
 
+const imp::PhysicalDeviceSurfaceCaps& imp::GraphicsCaps::GetPhysicalDeviceSurfaceCaps() const
+{
+    return m_DeviceSurfaceCaps;
+}
+
+VkSurfaceFormatKHR imp::GraphicsCaps::ChooseBestSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats)
+{
+    if (formats.size() == 1 && formats[0].format == VK_FORMAT_UNDEFINED)
+    {
+        return { VK_FORMAT_R8G8B8A8_UNORM,  VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
+    }
+
+    for (const auto& format : formats)
+    {
+        if ((format.format == VK_FORMAT_R8G8B8A8_UNORM || format.format == VK_FORMAT_B8G8R8A8_UNORM)
+            && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+        {
+            return format;
+        }
+    }
+
+    return formats[0];
+}
+
+VkPresentModeKHR imp::GraphicsCaps::ChooseBestPresentationMode(const std::vector<VkPresentModeKHR>& presentationModes, const EngineGraphicsSettings& settings)
+{
+    for (const auto& preferred : settings.preferredPresentModes)
+        for (const auto& presentationMode : presentationModes)
+            if (presentationMode == TranslatePresentMode(preferred))
+                return presentationMode;
+
+    return VK_PRESENT_MODE_FIFO_KHR;
+}
+
+VkExtent2D imp::GraphicsCaps::ChooseBestExtent(VkSurfaceCapabilitiesKHR surfaceCaps, VkExtent2D preferredExtent)
+{
+    // if current extent is at numeric limits, then extent can vary
+    if (surfaceCaps.currentExtent.width != std::numeric_limits<uint32_t>::max())
+        return surfaceCaps.currentExtent;
+    else
+    {
+        preferredExtent.width = std::max(surfaceCaps.minImageExtent.width, std::min(surfaceCaps.maxImageExtent.width, preferredExtent.width));
+        preferredExtent.height = std::max(surfaceCaps.minImageExtent.height, std::min(surfaceCaps.maxImageExtent.height, preferredExtent.height));
+
+        return preferredExtent;
+    }
+}
+
+uint32_t imp::GraphicsCaps::ChooseSwapchainImageCount(VkSurfaceCapabilitiesKHR surfaceCaps, uint32_t preferred)
+{
+    if (surfaceCaps.maxImageCount == 0)
+        return std::max(surfaceCaps.minImageCount, preferred);
+    return std::max(surfaceCaps.minImageCount, std::min(surfaceCaps.maxImageCount, preferred));
+}
+
 bool imp::GraphicsCaps::IsDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
     VkPhysicalDeviceProperties deviceProperties;
@@ -97,24 +153,23 @@ bool imp::GraphicsCaps::CheckDeviceExtensionSupport(VkPhysicalDevice device, con
 
 bool imp::GraphicsCaps::CheckDeviceHasAnySwapchainSupport(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &m_DeviceSurfaceCaps.surfaceCapabilities);
+
     uint32_t formatCount = 0;
     vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
-
-    std::vector<VkSurfaceFormatKHR> formats;
     if (formatCount != 0)
     {
-        formats.resize(formatCount);
-        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, formats.data());
+        m_DeviceSurfaceCaps.formats.resize(formatCount);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, m_DeviceSurfaceCaps.formats.data());
     }
 
     uint32_t presentationCount = 0;
     vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentationCount, nullptr);
-
-    std::vector<VkPresentModeKHR> presentationModes;
     if (presentationCount != 0)
     {
-        presentationModes.resize(presentationCount);
-        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentationCount, presentationModes.data());
+        m_DeviceSurfaceCaps.presentationModes.resize(presentationCount);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentationCount, m_DeviceSurfaceCaps.presentationModes.data());
     }
-    return presentationModes.size() && formats.size();
+
+    return m_DeviceSurfaceCaps.presentationModes.size() && m_DeviceSurfaceCaps.formats.size();
 }

@@ -1,6 +1,7 @@
 #pragma once
 #include <vulkan.h>
 #include <vector>
+#include "frontend/EngineSettings.h"
 
 namespace imp
 {
@@ -16,6 +17,13 @@ namespace imp
 		}
 	};
 
+	struct PhysicalDeviceSurfaceCaps
+	{
+		VkSurfaceCapabilitiesKHR surfaceCapabilities;
+		std::vector<VkSurfaceFormatKHR> formats;
+		std::vector<VkPresentModeKHR> presentationModes;
+	};
+
 	class GraphicsCaps
 	{
 	public:
@@ -28,11 +36,18 @@ namespace imp
 		bool IsDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface);
 		bool CheckDeviceExtensionSupport(VkPhysicalDevice device, const std::vector<const char*>& requiredExtens);
 		bool CheckDeviceHasAnySwapchainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);
-		QueueFamilyIndices GetQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);
+		const PhysicalDeviceSurfaceCaps& GetPhysicalDeviceSurfaceCaps() const;
+
+		static QueueFamilyIndices GetQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);
+		static VkSurfaceFormatKHR ChooseBestSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
+		static VkPresentModeKHR ChooseBestPresentationMode(const std::vector<VkPresentModeKHR>& presentationModes, const EngineGraphicsSettings& settings);
+		static VkExtent2D ChooseBestExtent(VkSurfaceCapabilitiesKHR surfaceCaps, VkExtent2D preferredExtent);
+		static uint32_t ChooseSwapchainImageCount(VkSurfaceCapabilitiesKHR surfaceCaps, uint32_t preferred);
 
 		const char* validationLayerName = "VK_LAYER_KHRONOS_validation";
 	private:
 
+		PhysicalDeviceSurfaceCaps m_DeviceSurfaceCaps;
 	};
 
 
