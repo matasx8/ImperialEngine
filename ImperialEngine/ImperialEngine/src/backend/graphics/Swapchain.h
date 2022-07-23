@@ -17,7 +17,7 @@ namespace imp
 
 		void Present();
 
-		void Destroy();
+		void Destroy(VkDevice device);
 	private:
 
 		void PopulateNewSwapchainImages(VkDevice device);

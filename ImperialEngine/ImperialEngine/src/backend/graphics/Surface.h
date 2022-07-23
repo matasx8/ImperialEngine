@@ -27,7 +27,7 @@ namespace imp
 	{
 	public:
 		Surface();
-		Surface(Image img, SurfaceDesc& desc, uint64_t frameLastUsed);
+		Surface(Image& img, SurfaceDesc& desc, uint64_t frameLastUsed);
 
 		Image GetImage() const;
 		const SurfaceDesc& GetDesc() const;

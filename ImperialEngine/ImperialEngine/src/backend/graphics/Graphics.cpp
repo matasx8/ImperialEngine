@@ -23,6 +23,7 @@ void imp::Graphics::Destroy()
 {
     vkDeviceWaitIdle(m_LogicalDevice);
 
+    m_Swapchain.Destroy(m_LogicalDevice);
     vkDestroyDevice(m_LogicalDevice, nullptr);
     m_Window.Destroy(m_VkInstance);
     m_ValidationLayers.Destroy(m_VkInstance);

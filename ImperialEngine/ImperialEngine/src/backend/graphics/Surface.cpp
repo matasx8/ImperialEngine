@@ -4,13 +4,14 @@ imp::Surface::Surface()
 {
 }
 
-imp::Surface::Surface(Image img, SurfaceDesc& desc, uint64_t frameLastUsed)
+imp::Surface::Surface(Image& img, SurfaceDesc& desc, uint64_t frameLastUsed)
+	: m_Image(img), m_SurfaceDesc(desc), m_FrameLastUsed(frameLastUsed)
 {
 }
 
 imp::Image imp::Surface::GetImage() const
 {
-	return Image();
+	return m_Image;
 }
 
 const imp::SurfaceDesc& imp::Surface::GetDesc() const

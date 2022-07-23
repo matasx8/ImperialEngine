@@ -58,22 +58,29 @@ void imp::Swapchain::Create(VkPhysicalDevice physicalDevice, VkDevice device, Vk
     PopulateNewSwapchainImages(device);
 }
 
+void imp::Swapchain::Destroy(VkDevice device)
+{
+    for (auto& image : m_SwapchainImages)
+        vkDestroyImageView(device, image.GetImage().GetImageView(), nullptr);
+    vkDestroySwapchainKHR(device, m_Swapchain, nullptr);
+}
+
 void imp::Swapchain::PopulateNewSwapchainImages(VkDevice device)
 {
     std::array<VkImage, kEngineSwapchainExclusiveMax - 1> images;
     uint32_t count;
     VkResult result = vkGetSwapchainImagesKHR(device, m_Swapchain, &count, images.data());
-    if(result != VK_SUCCESS)
+    if(result != VK_SUCCESS && count != m_ImageCount)
         throw std::runtime_error("Failed to get Swapchain Images!");
 
     int i = 0;
     for (VkImage image : images)
     {
-        VkImageView imageView = Image::createImageView(image, m_Format.format, VK_IMAGE_ASPECT_COLOR_BIT, device);
-        Image img(image, imageView, 0); // continue here
+        VkImageView imageView = Image::CreateImageView(image, m_Format.format, VK_IMAGE_ASPECT_COLOR_BIT, device);
+        Image img(image, imageView, 0);
         const uint32_t numSamples = 1;
         SurfaceDesc desc = { m_Extent.width, m_Extent.height, m_Format.format, numSamples };
         const uint64_t frameLastUsed = ~0ull;
-        m_SwapchainImages[i++] = { img, desc, frameLastUsed };
+        m_SwapchainImages[i++] = Surface(img, desc, frameLastUsed);
     }
 }

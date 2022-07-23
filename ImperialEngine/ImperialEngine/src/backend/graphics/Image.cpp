@@ -3,22 +3,24 @@
 #include <stdexcept>
 
 imp::Image::Image()
+    : m_Image(), m_ImageView(), m_ImageMemory()
 {
 }
 
 imp::Image::Image(VkImage img, VkImageView imgView, VkDeviceMemory imgMem)
+    : m_Image(img), m_ImageView(imgView), m_ImageMemory(imgMem)
 {
 }
 
-void imp::Image::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags useFlags, VkSampleCountFlagBits numSamples, VkMemoryPropertyFlags propFlags, VkPhysicalDevice physicalDevice, VkDevice logicalDevice)
+void imp::Image::CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags useFlags, VkSampleCountFlagBits numSamples, VkMemoryPropertyFlags propFlags, VkPhysicalDevice physicalDevice, VkDevice logicalDevice)
 {
 }
 
-void imp::Image::createImageView(VkFormat format, VkImageAspectFlags aspectFlags, VkDevice logicalDevice)
+void imp::Image::CreateImageView(VkFormat format, VkImageAspectFlags aspectFlags, VkDevice logicalDevice)
 {
 }
 
-VkImageView imp::Image::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, VkDevice logicalDevice)
+VkImageView imp::Image::CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, VkDevice logicalDevice)
 {
     assert(image);
     VkImageView imageView;
@@ -47,6 +49,12 @@ VkImageView imp::Image::createImageView(VkImage image, VkFormat format, VkImageA
     return imageView;
 }
 
-void imp::Image::destroyImage(VkDevice logicalDevice)
+void imp::Image::DestroyImage(VkDevice logicalDevice)
 {
+    vkDestroyImageView(logicalDevice, m_ImageView, nullptr);
+    vkDestroyImage(logicalDevice, m_Image, nullptr);
+    //if (m_ImageMemory)
+        vkFreeMemory(logicalDevice, m_ImageMemory, nullptr);
+   // else
+     //   Debug::LogMsg("an Image was just destroyed that didn't have memory.. That's probably not right :)\0");
 }
