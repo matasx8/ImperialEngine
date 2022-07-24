@@ -18,6 +18,15 @@ void imp::Graphics::Initialize(const EngineGraphicsSettings& settings, Window* w
     CreateLogicalDevice();
     CreateSwapchain();
     CreateCommandBufferManager();
+
+    // create renderpass..
+    renderpass = new RenderPass();
+    renderpass->Create();
+}
+
+void imp::Graphics::PrototypeRenderPass()
+{
+    renderpass->Execute();
 }
 
 void imp::Graphics::Destroy()

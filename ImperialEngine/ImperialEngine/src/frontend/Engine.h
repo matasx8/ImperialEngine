@@ -19,8 +19,10 @@ namespace imp
 		Engine();
 		bool Initialize(EngineSettings settings);
 
+		void StartFrame();
 		void Update();
 		void Render();
+		void EndFrame();
 
 		bool ShouldClose() const;
 		void ShutDown();
@@ -32,6 +34,8 @@ namespace imp
 		void CleanUpThreading();
 		void CleanUpWindow();
 		void CleanUpGraphics();
+
+		void RenderCameras();
 
 		// entity stuff
 		entt::registry m_Entities;
@@ -49,6 +53,7 @@ namespace imp
 		EngineSettings m_EngineSettings;
 
 		void Cmd_InitGraphics(std::shared_ptr<void> rsc);
+		void Cmd_RenderCameras(std::shared_ptr<void> rsc);
 	};
 }
 

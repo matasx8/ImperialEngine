@@ -18,6 +18,11 @@ namespace imp
 		return true;
 	}
 
+	void Engine::StartFrame()
+	{
+		// sync point, copy stuff
+	}
+
 	void Engine::Update()
 	{
 		m_Window.Update();
@@ -25,6 +30,11 @@ namespace imp
 	}
 
 	void Engine::Render()
+	{
+		RenderCameras();
+	}
+
+	void Engine::EndFrame()
 	{
 	}
 
@@ -87,6 +97,11 @@ namespace imp
 	void Engine::CleanUpGraphics()
 	{
 		m_Gfx.Destroy();
+	}
+
+	void Engine::RenderCameras()
+	{
+		m_Q->add(std::mem_fn(&Engine::Cmd_RenderCameras), std::shared_ptr<void>());
 	}
 
 }

@@ -1,6 +1,7 @@
 #pragma once
 #include "backend/graphics/CommandBufferManager.h"
 #include "backend/graphics/GraphicsCaps.h"
+#include "backend/graphics/RenderPass.h"
 #include "backend/graphics/Swapchain.h"
 #include "backend/graphics/VkDebug.h"
 #include "backend/VkWindow.h"
@@ -15,6 +16,8 @@ namespace imp
 	public:
 		Graphics();
 		void Initialize(const EngineGraphicsSettings& settings, Window* window);
+
+		void PrototypeRenderPass();
 
 		void Destroy();
 
@@ -47,5 +50,9 @@ namespace imp
 		CommandBufferManager m_CbManager;
 
 		VkWindow m_Window;
+
+
+		// prototyping..
+		RenderPassBase* renderpass;
 	};
 }
