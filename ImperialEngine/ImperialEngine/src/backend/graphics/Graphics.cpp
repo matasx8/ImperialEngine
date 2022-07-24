@@ -17,12 +17,14 @@ void imp::Graphics::Initialize(const EngineGraphicsSettings& settings, Window* w
     FindPhysicalDevice();
     CreateLogicalDevice();
     CreateSwapchain();
+    CreateCommandBufferManager();
 }
 
 void imp::Graphics::Destroy()
 {
     vkDeviceWaitIdle(m_LogicalDevice);
 
+    m_CbManager.Destroy(m_LogicalDevice);
     m_Swapchain.Destroy(m_LogicalDevice);
     vkDestroyDevice(m_LogicalDevice, nullptr);
     m_Window.Destroy(m_VkInstance);
@@ -160,6 +162,11 @@ void imp::Graphics::CreateVkWindow(Window* window)
 void imp::Graphics::CreateSwapchain()
 {
     m_Swapchain.Create(m_PhysicalDevice, m_LogicalDevice, m_Window.GetWindowSurface(), m_Settings, m_GfxCaps.GetPhysicalDeviceSurfaceCaps(), m_Window.GetExtent());
+}
+
+void imp::Graphics::CreateCommandBufferManager()
+{
+    m_CbManager.Initialize();
 }
 
 bool imp::Graphics::CheckExtensionsSupported(std::vector<const char*> extensions)

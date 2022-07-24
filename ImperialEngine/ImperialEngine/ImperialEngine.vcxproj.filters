@@ -54,6 +54,12 @@
     <ClCompile Include="src\backend\graphics\Surface.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\backend\graphics\CommandBufferManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\backend\graphics\CommandBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\frontend\Engine.h">
@@ -114,6 +120,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\backend\graphics\Image.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\backend\graphics\CommandBufferManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\backend\graphics\CommandBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

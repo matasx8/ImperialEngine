@@ -9,6 +9,7 @@
 
 // No Vulkan stuff here
 // use registry from EnTT for commands and their memory?
+// https://zeux.io/2020/02/27/writing-an-efficient-vulkan-renderer/
 
 namespace imp
 {

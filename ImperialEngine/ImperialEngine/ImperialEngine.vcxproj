@@ -216,6 +216,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\backend\EngineCommands.cpp" />
+    <ClCompile Include="src\backend\graphics\CommandBuffer.cpp" />
+    <ClCompile Include="src\backend\graphics\CommandBufferManager.cpp" />
     <ClCompile Include="src\backend\graphics\Graphics.cpp" />
     <ClCompile Include="src\backend\graphics\GraphicsCaps.cpp" />
     <ClCompile Include="src\backend\graphics\Image.cpp" />
@@ -232,6 +234,8 @@
   <ItemGroup>
     <ClInclude Include="src\backend\EngineCommandResources.h" />
     <ClInclude Include="src\backend\EnumTranslator.h" />
+    <ClInclude Include="src\backend\graphics\CommandBuffer.h" />
+    <ClInclude Include="src\backend\graphics\CommandBufferManager.h" />
     <ClInclude Include="src\backend\graphics\Graphics.h" />
     <ClInclude Include="src\backend\graphics\GraphicsCaps.h" />
     <ClInclude Include="src\backend\graphics\Image.h" />

@@ -1,4 +1,5 @@
 #pragma once
+#include "backend/graphics/CommandBufferManager.h"
 #include "backend/graphics/GraphicsCaps.h"
 #include "backend/graphics/Swapchain.h"
 #include "backend/graphics/VkDebug.h"
@@ -24,6 +25,7 @@ namespace imp
 		void CreateLogicalDevice();
 		void CreateVkWindow(Window* window);
 		void CreateSwapchain();
+		void CreateCommandBufferManager();
 
 		bool CheckExtensionsSupported(std::vector<const char*> extensions);
 
@@ -36,10 +38,13 @@ namespace imp
 		VkDevice m_LogicalDevice;
 
 		// These are here for now
+		// should save the indices too
 		VkQueue m_GfxQueue;
 		VkQueue m_PresentationQueue;
 
 		Swapchain m_Swapchain;
+
+		CommandBufferManager m_CbManager;
 
 		VkWindow m_Window;
 	};

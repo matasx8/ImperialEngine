@@ -59,6 +59,11 @@ const imp::PhysicalDeviceSurfaceCaps& imp::GraphicsCaps::GetPhysicalDeviceSurfac
     return m_DeviceSurfaceCaps;
 }
 
+imp::QueueFamilyIndices imp::GraphicsCaps::GetQueueFamilies() const
+{
+    return m_QueueFamilyIndices;
+}
+
 VkSurfaceFormatKHR imp::GraphicsCaps::ChooseBestSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats)
 {
     if (formats.size() == 1 && formats[0].format == VK_FORMAT_UNDEFINED)

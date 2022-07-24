@@ -37,6 +37,7 @@ namespace imp
 		bool CheckDeviceExtensionSupport(VkPhysicalDevice device, const std::vector<const char*>& requiredExtens);
 		bool CheckDeviceHasAnySwapchainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);
 		const PhysicalDeviceSurfaceCaps& GetPhysicalDeviceSurfaceCaps() const;
+		QueueFamilyIndices GetQueueFamilies() const;
 
 		static QueueFamilyIndices GetQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);
 		static VkSurfaceFormatKHR ChooseBestSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
@@ -48,6 +49,7 @@ namespace imp
 	private:
 
 		PhysicalDeviceSurfaceCaps m_DeviceSurfaceCaps;
+		QueueFamilyIndices m_QueueFamilyIndices;
 	};
 
 
