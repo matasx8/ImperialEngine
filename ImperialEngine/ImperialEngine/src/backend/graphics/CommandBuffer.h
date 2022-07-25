@@ -7,6 +7,7 @@ namespace imp
 	{
 	public:
 		CommandBuffer();
+		CommandBuffer(VkCommandBuffer cb);
 
 		VkCommandBuffer cmb;
 	private:

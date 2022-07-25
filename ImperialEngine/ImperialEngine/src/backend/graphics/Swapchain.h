@@ -17,6 +17,8 @@ namespace imp
 
 		void Present();
 
+		SurfaceDesc GetSwapchainImageSurfaceDesc();
+
 		void Destroy(VkDevice device);
 	private:
 

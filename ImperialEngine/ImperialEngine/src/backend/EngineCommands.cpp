@@ -16,6 +16,9 @@ namespace imp
 		// Camera has a list of render passes
 		// render pass has info to start rp and bind framebuffer
 		// get all renderer components and draw them 
+		// --
+		// Surface manager will have to take and give surfaces
+		// camera with its stack of render passes will have to pass on surfaces to next render passes
 		m_Gfx.PrototypeRenderPass();
 
 		// idea is get a hardcoded rp in that does a clear command

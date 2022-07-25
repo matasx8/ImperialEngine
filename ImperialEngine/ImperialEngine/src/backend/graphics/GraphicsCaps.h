@@ -39,6 +39,8 @@ namespace imp
 		const PhysicalDeviceSurfaceCaps& GetPhysicalDeviceSurfaceCaps() const;
 		QueueFamilyIndices GetQueueFamilies() const;
 
+		void SetQueueFamilies(QueueFamilyIndices& fams);
+
 		static QueueFamilyIndices GetQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);
 		static VkSurfaceFormatKHR ChooseBestSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
 		static VkPresentModeKHR ChooseBestPresentationMode(const std::vector<VkPresentModeKHR>& presentationModes, const EngineGraphicsSettings& settings);

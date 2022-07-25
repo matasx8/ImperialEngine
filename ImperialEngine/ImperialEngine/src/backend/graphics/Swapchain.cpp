@@ -58,6 +58,18 @@ void imp::Swapchain::Create(VkPhysicalDevice physicalDevice, VkDevice device, Vk
     PopulateNewSwapchainImages(device);
 }
 
+imp::SurfaceDesc imp::Swapchain::GetSwapchainImageSurfaceDesc()
+{
+    SurfaceDesc desc;
+    desc.width = m_Extent.width;
+    desc.height = m_Extent.height;
+    desc.format = m_Format.format;
+    desc.msaaCount = 1;
+    desc.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    desc.isColor = true;
+    return desc;
+}
+
 void imp::Swapchain::Destroy(VkDevice device)
 {
     for (auto& image : m_SwapchainImages)

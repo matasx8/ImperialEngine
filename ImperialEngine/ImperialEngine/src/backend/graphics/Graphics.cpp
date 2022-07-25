@@ -21,7 +21,32 @@ void imp::Graphics::Initialize(const EngineGraphicsSettings& settings, Window* w
 
     // create renderpass..
     renderpass = new RenderPass();
-    renderpass->Create();
+    RenderPassDesc defaultpass =
+    {
+        1,	// msaaCount
+        1, // collor att count
+        VK_FORMAT_R8G8B8A8_UNORM,
+        kLoadOpClear,
+        kStoreOpStore,
+        VK_FORMAT_D32_SFLOAT,
+        kLoadOpClear,
+        kStoreOpDontCare
+    };
+    const SurfaceDesc colorDesc =  m_Swapchain.GetSwapchainImageSurfaceDesc();
+    const SurfaceDesc depthDesc = {
+        colorDesc.width,
+        colorDesc.height,
+        VK_FORMAT_D32_SFLOAT,
+        1,
+        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+        false
+    };
+
+    std::vector<SurfaceDesc> surfaceDescriptions;
+    std::vector<SurfaceDesc> resolveDescs;
+    surfaceDescriptions.push_back(colorDesc);
+    surfaceDescriptions.push_back(depthDesc);
+    renderpass->Create(m_LogicalDevice, defaultpass, surfaceDescriptions, resolveDescs);
 }
 
 void imp::Graphics::PrototypeRenderPass()
@@ -115,6 +140,7 @@ void imp::Graphics::FindPhysicalDevice()
 void imp::Graphics::CreateLogicalDevice()
 {
     QueueFamilyIndices indices = m_GfxCaps.GetQueueFamilies(m_PhysicalDevice, m_Window.GetWindowSurface());
+    m_GfxCaps.SetQueueFamilies(indices);
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     std::set<int> queueFamilyIndices = { indices.graphicsFamily, indices.presentationFamily };
@@ -175,7 +201,7 @@ void imp::Graphics::CreateSwapchain()
 
 void imp::Graphics::CreateCommandBufferManager()
 {
-    m_CbManager.Initialize();
+    m_CbManager.Initialize(m_LogicalDevice, m_GfxCaps.GetQueueFamilies(), m_Settings.swapchainImageCount);
 }
 
 bool imp::Graphics::CheckExtensionsSupported(std::vector<const char*> extensions)

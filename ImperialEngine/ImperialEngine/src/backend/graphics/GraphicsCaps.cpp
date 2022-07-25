@@ -64,6 +64,11 @@ imp::QueueFamilyIndices imp::GraphicsCaps::GetQueueFamilies() const
     return m_QueueFamilyIndices;
 }
 
+void imp::GraphicsCaps::SetQueueFamilies(QueueFamilyIndices& fams)
+{
+    m_QueueFamilyIndices = fams;
+}
+
 VkSurfaceFormatKHR imp::GraphicsCaps::ChooseBestSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats)
 {
     if (formats.size() == 1 && formats[0].format == VK_FORMAT_UNDEFINED)

@@ -10,7 +10,8 @@ namespace imp
 		uint32_t height;
 		VkFormat format;
 		uint32_t msaaCount;
-		uint32_t finalLyout;
+		uint32_t finalLayout;
+		bool isColor;
 
 		inline bool operator==(const SurfaceDesc& other) const noexcept
 		{

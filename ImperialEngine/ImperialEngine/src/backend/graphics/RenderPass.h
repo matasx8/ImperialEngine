@@ -3,12 +3,13 @@
 
 namespace imp
 {
+
 	class RenderPass : public RenderPassBase
 	{
 	public:
 		RenderPass();
 
-		void Execute() override;
+		void Execute(Graphics& gfx) override;
 	private:
 
 

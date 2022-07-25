@@ -3,14 +3,26 @@
 #include <vcruntime_string.h>
 #include <vulkan.h>
 #include <vector>
+#include <backend/graphics/Surface.h>
 
 namespace imp
 {
+	enum AttachmentLoadOp : uint8_t
+	{
+		kLoadOpLoad,
+		kLoadOpClear,
+		kLoadOpDontCare
+	};
+
+	enum AttachmentStoreOp : uint8_t
+	{
+		kStoreOpStore,
+		kStoreOpDontCare
+	};
+
 	struct RenderPassDesc
 	{
 		uint8_t msaaCount;
-		uint8_t renderpassPlace;
-		//uint8_t framebufferTarget;
 		uint8_t colorAttachmentCount;
 		uint8_t colorFormat;
 		uint8_t colorLoadOp;
@@ -25,20 +37,29 @@ namespace imp
 		}
 	};
 
+	class Graphics;
+
 	class RenderPassBase
 	{
 	public: 
 		RenderPassBase();
 
-		virtual void Create();
+		void Create(VkDevice device, RenderPassDesc& desc, std::vector<SurfaceDesc>& surfaceDescs, std::vector<SurfaceDesc>& resolveDescs);
 
-		virtual void Execute() = 0;
+		virtual void Execute(Graphics& gfx) = 0;
 
-		virtual void Destroy();
+		void Destroy(VkDevice device);
 
 	private:
+
+		void BeginRenderPass(Graphics& gfx);
+
+		std::vector<VkAttachmentDescription> CreateAttachmentDescs(const RenderPassDesc& desc, const std::vector<SurfaceDesc>& surfaceDescs) const;
+		std::vector<VkAttachmentDescription> CreateResolveAttachmentDescs(const RenderPassDesc& desc, const std::vector<SurfaceDesc>& surfaceDescs) const;
+
 		VkRenderPass m_RenderPass;
-		std::vector<std::pair<uint32_t, SurfaceDesc>> m_SurfaceDescriptions;
+		std::vector<SurfaceDesc> m_SurfaceDescriptions;
+		std::vector<SurfaceDesc> m_ResolveDescriptions;
 		RenderPassDesc m_Desc;
 	};
 }

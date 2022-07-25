@@ -1,5 +1,6 @@
 #pragma once
 #include "backend/graphics/CommandBufferManager.h"
+#include "backend/graphics/SurfaceManager.h"
 #include "backend/graphics/GraphicsCaps.h"
 #include "backend/graphics/RenderPass.h"
 #include "backend/graphics/Swapchain.h"
@@ -22,6 +23,7 @@ namespace imp
 		void Destroy();
 
 	private:
+
 
 		void CreateInstance();
 		void FindPhysicalDevice();
@@ -48,10 +50,12 @@ namespace imp
 		Swapchain m_Swapchain;
 
 		CommandBufferManager m_CbManager;
+		SurfaceManager m_SurfaceManager;
 
 		VkWindow m_Window;
 
-
+		friend class RenderPassBase;
+		friend class RenderPass;
 		// prototyping..
 		RenderPassBase* renderpass;
 	};

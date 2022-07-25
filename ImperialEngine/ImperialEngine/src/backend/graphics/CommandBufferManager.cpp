@@ -2,11 +2,13 @@
 #include <stdexcept>
 
 imp::CommandBufferManager::CommandBufferManager()
+    : m_BufferingMode(), m_FrameClock(), m_GfxCommandPools()
 {
 }
 
 void imp::CommandBufferManager::Initialize(VkDevice device, QueueFamilyIndices familyIndices, EngineSwapchainImageCount imageCount)
 {
+    m_BufferingMode = static_cast<uint32_t>(imageCount);
 	for (int i = 0; i < imageCount; i++)
 	{
         VkCommandPoolCreateInfo poolInfo;
@@ -39,6 +41,8 @@ std::vector<imp::CommandBuffer> imp::CommandBufferManager::AquireCommandBuffers(
 
 void imp::CommandBufferManager::Destroy(VkDevice device)
 {
+    for (auto& pool : m_GfxCommandPools)
+        vkDestroyCommandPool(device, pool.pool, nullptr);
 }
 
 std::vector<imp::CommandBuffer> imp::CommandPool::AquireCommandBuffers(VkDevice device, uint32_t count)
