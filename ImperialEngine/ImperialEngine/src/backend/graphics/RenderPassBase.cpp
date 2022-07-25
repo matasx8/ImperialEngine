@@ -78,6 +78,26 @@ void imp::RenderPassBase::Create(VkDevice device, RenderPassDesc& desc, std::vec
 		throw std::runtime_error("Failed to create a Render Pass");
 }
 
+bool imp::RenderPassBase::HasBackbuffer() const
+{
+	bool hasBB = false;
+	if (m_SurfaceDescriptions.size())
+		hasBB = m_SurfaceDescriptions[0].isBackbuffer;
+	if (m_ResolveDescriptions.size())
+		hasBB = m_ResolveDescriptions[0].isBackbuffer;
+	return hasBB;
+}
+
+const std::vector<imp::SurfaceDesc>& imp::RenderPassBase::GetSurfaceDescriptions() const
+{
+	return m_SurfaceDescriptions;
+}
+
+const std::vector<imp::SurfaceDesc>& imp::RenderPassBase::GetResolveSurfaceDescriptions() const
+{
+	return m_ResolveDescriptions;
+}
+
 void imp::RenderPassBase::Destroy(VkDevice device)
 {
 	vkDestroyRenderPass(device, m_RenderPass, nullptr);
@@ -85,8 +105,12 @@ void imp::RenderPassBase::Destroy(VkDevice device)
 
 void imp::RenderPassBase::BeginRenderPass(Graphics& gfx)
 {
-
-	gfx.m_SurfaceManager.GetFramebuffer(*this, gfx.m_LogicalDevice, gfx.m_Swapchain);
+	// check if framebuffer we have still is good
+	// 
+	// if yes carry on
+	// 
+	// if no create new framebuffer
+	m_Framebuffer = gfx.m_SurfaceManager.GetFramebuffer(*this, gfx.m_LogicalDevice, gfx.m_Swapchain);
 
 	std::array<VkClearValue, 2> clearValues = {};
 	clearValues[0].color = { 0.0f, 0.0f, 0.0f, 0.0f };

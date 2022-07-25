@@ -39,6 +39,7 @@ void imp::Graphics::Initialize(const EngineGraphicsSettings& settings, Window* w
         VK_FORMAT_D32_SFLOAT,
         1,
         VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+        false,
         false
     };
 
@@ -51,7 +52,7 @@ void imp::Graphics::Initialize(const EngineGraphicsSettings& settings, Window* w
 
 void imp::Graphics::PrototypeRenderPass()
 {
-    renderpass->Execute();
+    renderpass->Execute(*this);
 }
 
 void imp::Graphics::Destroy()

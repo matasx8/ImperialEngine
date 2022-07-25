@@ -19,8 +19,10 @@ int main()
 
 	while (!engine.ShouldClose())
 	{
+		engine.StartFrame();
 		engine.Update();
 		engine.Render();
+		engine.EndFrame();
 	}
 
 	engine.ShutDown();

@@ -1,6 +1,7 @@
 #pragma once
-#include <vector>
 #include "Surface.h"
+#include "backend/graphics/Framebuffer.h"
+#include <vector>
 #include <unordered_map>
 
 namespace imp
@@ -14,7 +15,8 @@ namespace imp
 		SurfaceManager();
 		void Initialize(VkDevice device);
 
-		VkFramebuffer GetFramebuffer(const RenderPassBase& rp, VkDevice device, Swapchain& swapchain);
+		Framebuffer GetFramebuffer(const RenderPassBase& rp, VkDevice device, Swapchain& swapchain);
+		Surface GetSurface(const SurfaceDesc& desc, VkDevice device);
 
 		void CombForUnusedSurfaces();
 
@@ -28,6 +30,6 @@ namespace imp
 		// I think it's important to have constant time search, so will pick this.
 		// Drawback is iteration over each surface each frame to see if surfaces are 
 		// not outdated and need to be thrown out.
-		std::unordered_map<uint32_t, Surface> m_SurfacePool;
+		std::unordered_map<SurfaceDesc, Surface> m_SurfacePool;
 	};
 }

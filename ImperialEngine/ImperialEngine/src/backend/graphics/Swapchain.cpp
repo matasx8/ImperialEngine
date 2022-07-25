@@ -67,6 +67,7 @@ imp::SurfaceDesc imp::Swapchain::GetSwapchainImageSurfaceDesc()
     desc.msaaCount = 1;
     desc.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     desc.isColor = true;
+    desc.isBackbuffer = true;
     return desc;
 }
 

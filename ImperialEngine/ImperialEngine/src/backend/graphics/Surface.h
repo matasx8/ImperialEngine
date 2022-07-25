@@ -1,6 +1,7 @@
 #pragma once
 #include "Image.h"
 #include <vcruntime_string.h>
+#include <functional>
 
 namespace imp
 {
@@ -12,6 +13,7 @@ namespace imp
 		uint32_t msaaCount;
 		uint32_t finalLayout;
 		bool isColor;
+		bool isBackbuffer;
 
 		inline bool operator==(const SurfaceDesc& other) const noexcept
 		{
@@ -40,3 +42,16 @@ namespace imp
 		uint64_t m_FrameLastUsed;
 	};
 }
+
+
+template <>
+struct std::hash<imp::SurfaceDesc>
+{
+	std::size_t operator()(const imp::SurfaceDesc& k) const
+	{
+		return (std::hash<uint32_t>()(k.width) ^ ((std::hash<uint32_t>()(k.height) << 1)) >> 1) ^
+			(std::hash<uint32_t>()(k.format) ^ ((std::hash<uint32_t>()(k.msaaCount) << 1)) >> 1) ^
+			(std::hash<uint32_t>()(k.finalLayout) ^ ((std::hash<bool>()(k.isColor) << 1)) >> 1) ^
+			(std::hash<bool>()(k.isBackbuffer) << 1);
+	}
+};

@@ -4,6 +4,7 @@
 #include <vulkan.h>
 #include <vector>
 #include <backend/graphics/Surface.h>
+#include "backend/graphics/Framebuffer.h"
 
 namespace imp
 {
@@ -48,6 +49,10 @@ namespace imp
 
 		virtual void Execute(Graphics& gfx) = 0;
 
+		bool HasBackbuffer() const;
+		const std::vector<SurfaceDesc>& GetSurfaceDescriptions() const;
+		const std::vector<SurfaceDesc>& GetResolveSurfaceDescriptions() const;
+
 		void Destroy(VkDevice device);
 
 	private:
@@ -61,5 +66,6 @@ namespace imp
 		std::vector<SurfaceDesc> m_SurfaceDescriptions;
 		std::vector<SurfaceDesc> m_ResolveDescriptions;
 		RenderPassDesc m_Desc;
+		Framebuffer m_Framebuffer;
 	};
 }
