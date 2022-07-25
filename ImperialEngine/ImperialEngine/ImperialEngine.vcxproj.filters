@@ -140,5 +140,8 @@
     <ClInclude Include="src\backend\graphics\RenderPass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\backend\graphics\Framebuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

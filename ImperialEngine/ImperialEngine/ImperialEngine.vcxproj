@@ -238,6 +238,7 @@
     <ClInclude Include="src\backend\EnumTranslator.h" />
     <ClInclude Include="src\backend\graphics\CommandBuffer.h" />
     <ClInclude Include="src\backend\graphics\CommandBufferManager.h" />
+    <ClInclude Include="src\backend\graphics\Framebuffer.h" />
     <ClInclude Include="src\backend\graphics\Graphics.h" />
     <ClInclude Include="src\backend\graphics\GraphicsCaps.h" />
     <ClInclude Include="src\backend\graphics\Image.h" />
