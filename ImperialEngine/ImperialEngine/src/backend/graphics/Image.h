@@ -1,5 +1,6 @@
 #pragma once
 #include <vulkan.h>
+#include <backend/graphics/GraphicsCaps.h>
 
 namespace imp
 {
@@ -8,7 +9,7 @@ namespace imp
 	public:
 		Image();
 		Image(VkImage img, VkImageView imgView, VkDeviceMemory imgMem);
-		void CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags useFlags, VkSampleCountFlagBits numSamples, VkMemoryPropertyFlags propFlags, VkPhysicalDevice physicalDevice, VkDevice logicalDevice);
+		void CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags useFlags, VkSampleCountFlagBits numSamples, MemoryProps memProps, VkMemoryPropertyFlags propFlags, VkDevice logicalDevice);
 		void CreateImageView(VkFormat format, VkImageAspectFlags aspectFlags, VkDevice logicalDevice);
 		static VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, VkDevice logicalDevice);
 

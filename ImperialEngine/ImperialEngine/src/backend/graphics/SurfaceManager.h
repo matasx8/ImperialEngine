@@ -1,6 +1,7 @@
 #pragma once
 #include "Surface.h"
 #include "backend/graphics/Framebuffer.h"
+#include "backend/graphics/GraphicsCaps.h"
 #include <vector>
 #include <unordered_map>
 
@@ -13,7 +14,7 @@ namespace imp
 	{
 	public:
 		SurfaceManager();
-		void Initialize(VkDevice device);
+		void Initialize(VkDevice device, MemoryProps deviceMemoryProps);
 
 		Framebuffer GetFramebuffer(const RenderPassBase& rp, VkDevice device, Swapchain& swapchain);
 		Surface GetSurface(const SurfaceDesc& desc, VkDevice device);
@@ -23,13 +24,11 @@ namespace imp
 		void Destroy(VkDevice device);
 	private:
 
-		std::vector<VkImageView> GetAndEnsureRequestedSurfacesesViews(const std::vector<std::pair<uint32_t, SurfaceDesc>>& requestedSurfaces, const RenderPass& rp, uint32_t swapchainIndex);
-		Surface CreateSurface(const SurfaceDesc& desc);
-		VkFramebuffer CreateFramebuffer(const std::vector<VkImageView>& imageViews, const RenderPass& rp);
+		//std::vector<VkImageView> GetAndEnsureRequestedSurfacesesViews(const std::vector<std::pair<uint32_t, SurfaceDesc>>& requestedSurfaces, const RenderPass& rp, uint32_t swapchainIndex);
+		Surface CreateSurface(const SurfaceDesc& desc, VkDevice device);
+		Framebuffer CreateFramebuffer(const RenderPassBase& rp, const std::vector<Surface>& surfaces, VkDevice device);
 
-		// I think it's important to have constant time search, so will pick this.
-		// Drawback is iteration over each surface each frame to see if surfaces are 
-		// not outdated and need to be thrown out.
 		std::unordered_map<SurfaceDesc, Surface> m_SurfacePool;
+		MemoryProps m_MemoryProps;
 	};
 }

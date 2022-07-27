@@ -52,6 +52,8 @@ namespace imp
 		bool HasBackbuffer() const;
 		const std::vector<SurfaceDesc>& GetSurfaceDescriptions() const;
 		const std::vector<SurfaceDesc>& GetResolveSurfaceDescriptions() const;
+		VkRenderPass GetVkRenderPass() const;
+		RenderPassDesc GetRenderPassDesc() const;
 
 		void Destroy(VkDevice device);
 

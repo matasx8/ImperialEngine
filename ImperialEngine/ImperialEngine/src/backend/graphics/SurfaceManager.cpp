@@ -1,27 +1,38 @@
 #include "SurfaceManager.h"
 #include "backend/graphics/RenderPassBase.h"
+#include "backend/graphics/Swapchain.h"
+#include <stdexcept>
 
 imp::SurfaceManager::SurfaceManager()
+    : m_SurfacePool(), m_MemoryProps()
 {
 }
 
-void imp::SurfaceManager::Initialize(VkDevice device)
+void imp::SurfaceManager::Initialize(VkDevice device, MemoryProps deviceMemoryProps)
 {
+    m_MemoryProps = deviceMemoryProps;
 }
 
 imp::Framebuffer imp::SurfaceManager::GetFramebuffer(const RenderPassBase& rp, VkDevice device, Swapchain& swapchain)
 {
+    std::vector<Surface> surfaces;
 	for (const auto& surfDesc : rp.GetSurfaceDescriptions())
 	{
-
+        //if(surfDesc.isBackbuffer)
+        //    swapchain.
+        surfaces.push_back(GetSurface(surfDesc, device)); // TODO: change to emplace?
 	}
-
+    // I'm not sure where to put the surfaces? Maybe dont extract but count references
+    // Can't carry on without finding out if binding surfaces needs much synch
+    auto fb = CreateFramebuffer(surfaces, device);
 }
 
 imp::Surface imp::SurfaceManager::GetSurface(const SurfaceDesc& desc, VkDevice device)
 {
-	// carry on here
-	const auto it = m_SurfacePool.find(desc);
+	const auto surf = m_SurfacePool.extract(desc);
+	if (surf.empty())
+		return CreateSurface(desc, device);
+	return surf.mapped();
 }
 
 void imp::SurfaceManager::CombForUnusedSurfaces()
@@ -31,4 +42,56 @@ void imp::SurfaceManager::CombForUnusedSurfaces()
 
 void imp::SurfaceManager::Destroy(VkDevice device)
 {
+}
+
+imp::Surface imp::SurfaceManager::CreateSurface(const SurfaceDesc& desc, VkDevice device)
+{
+    Image img;
+    VkImageUsageFlagBits attachmentBit = desc.isColor ? VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT : VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    VkImageAspectFlagBits aspectBit = desc.isColor ? VK_IMAGE_ASPECT_COLOR_BIT : VK_IMAGE_ASPECT_DEPTH_BIT;
+
+    if (desc.isColor)
+    {
+        img.CreateImage(desc.width, desc.height, desc.format,
+            VK_IMAGE_TILING_OPTIMAL, attachmentBit | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+            static_cast<VkSampleCountFlagBits>(desc.msaaCount), m_MemoryProps, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, device);
+    }
+    else
+        img.CreateImage(desc.width, desc.height, desc.format,
+            VK_IMAGE_TILING_OPTIMAL, attachmentBit,
+            static_cast<VkSampleCountFlagBits>(desc.msaaCount), m_MemoryProps, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, device);
+
+    // This is not good, now only creating one specific view
+    // when time comes improve this
+    img.CreateImageView(desc.format, aspectBit, device);
+
+    Surface surf(img, desc, 0ull);
+    return surf;
+}
+
+static std::vector<VkImageView> GetImageViews(const std::vector<imp::Surface>& surfaces)
+{
+    std::vector<VkImageView> views;
+    for (const auto& surf : surfaces)
+        views.emplace_back(surf.GetImage().GetImageView());
+    return views;
+}
+
+imp::Framebuffer imp::SurfaceManager::CreateFramebuffer(const RenderPassBase& rp, const std::vector<Surface>& surfaces, VkDevice device)
+{
+    const auto desc = rp.GetRenderPassDesc();
+    VkFramebufferCreateInfo framebufferCreateInfo = {};
+    framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    framebufferCreateInfo.renderPass = rp.GetVkRenderPass();
+    framebufferCreateInfo.attachmentCount = static_cast<uint32_t>(surfaces.size());
+    framebufferCreateInfo.pAttachments = GetImageViews(surfaces).data();
+    framebufferCreateInfo.width = surfaces[0].GetDesc().width;
+    framebufferCreateInfo.height = surfaces[0].GetDesc().height;
+    framebufferCreateInfo.layers = 1;
+
+    VkFramebuffer fb;
+    VkResult result = vkCreateFramebuffer(device, &framebufferCreateInfo, nullptr, &fb);
+    if (result != VK_SUCCESS)
+        throw std::runtime_error("Failed to create a Framebuffer");
+    return Framebuffer(fb);
 }

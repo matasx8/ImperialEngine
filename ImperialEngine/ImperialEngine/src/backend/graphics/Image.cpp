@@ -12,8 +12,39 @@ imp::Image::Image(VkImage img, VkImageView imgView, VkDeviceMemory imgMem)
 {
 }
 
-void imp::Image::CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags useFlags, VkSampleCountFlagBits numSamples, VkMemoryPropertyFlags propFlags, VkPhysicalDevice physicalDevice, VkDevice logicalDevice)
+void imp::Image::CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags useFlags, VkSampleCountFlagBits numSamples, MemoryProps memProps, VkMemoryPropertyFlags propFlags, VkDevice logicalDevice)
 {
+    VkImageCreateInfo imageCreateInfo = {};
+    imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+    imageCreateInfo.extent.width = width;
+    imageCreateInfo.extent.height = height;
+    imageCreateInfo.extent.depth = 1;
+    imageCreateInfo.mipLevels = 1;
+    imageCreateInfo.arrayLayers = 1;
+    imageCreateInfo.format = format;
+    imageCreateInfo.tiling = tiling;
+    imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    imageCreateInfo.usage = useFlags;
+    imageCreateInfo.samples = numSamples;
+    imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    VkResult result = vkCreateImage(logicalDevice, &imageCreateInfo, nullptr, &m_Image);
+    if (result != VK_SUCCESS)
+        throw std::runtime_error("Failed to create an image");
+
+    VkMemoryRequirements memoryRequirements;
+    vkGetImageMemoryRequirements(logicalDevice, m_Image, &memoryRequirements);
+
+    VkMemoryAllocateInfo memoryAllocInfo = {};
+    memoryAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    memoryAllocInfo.allocationSize = memoryRequirements.size;
+    memoryAllocInfo.memoryTypeIndex = memProps.FindMemoryTypeIndex(memoryRequirements.memoryTypeBits, propFlags);
+
+    result = vkAllocateMemory(logicalDevice, &memoryAllocInfo, nullptr, &m_ImageMemory);
+    if (result != VK_SUCCESS)
+        throw std::runtime_error("Failed to allocate memory for image!");
+    vkBindImageMemory(logicalDevice, m_Image, m_ImageMemory, 0);
 }
 
 void imp::Image::CreateImageView(VkFormat format, VkImageAspectFlags aspectFlags, VkDevice logicalDevice)

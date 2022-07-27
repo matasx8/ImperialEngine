@@ -24,6 +24,13 @@ namespace imp
 		std::vector<VkPresentModeKHR> presentationModes;
 	};
 
+	struct MemoryProps
+	{
+		VkPhysicalDeviceMemoryProperties memoryProperties;
+
+		uint32_t FindMemoryTypeIndex(uint32_t allowedTypes, VkMemoryPropertyFlags flags);
+	};
+
 	class GraphicsCaps
 	{
 	public:

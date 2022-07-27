@@ -98,6 +98,16 @@ const std::vector<imp::SurfaceDesc>& imp::RenderPassBase::GetResolveSurfaceDescr
 	return m_ResolveDescriptions;
 }
 
+VkRenderPass imp::RenderPassBase::GetVkRenderPass() const
+{
+	return m_RenderPass;
+}
+
+imp::RenderPassDesc imp::RenderPassBase::GetRenderPassDesc() const
+{
+	return m_Desc;
+}
+
 void imp::RenderPassBase::Destroy(VkDevice device)
 {
 	vkDestroyRenderPass(device, m_RenderPass, nullptr);

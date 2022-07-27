@@ -218,6 +218,7 @@
     <ClCompile Include="src\backend\EngineCommands.cpp" />
     <ClCompile Include="src\backend\graphics\CommandBuffer.cpp" />
     <ClCompile Include="src\backend\graphics\CommandBufferManager.cpp" />
+    <ClCompile Include="src\backend\graphics\Framebuffer.cpp" />
     <ClCompile Include="src\backend\graphics\Graphics.cpp" />
     <ClCompile Include="src\backend\graphics\GraphicsCaps.cpp" />
     <ClCompile Include="src\backend\graphics\Image.cpp" />

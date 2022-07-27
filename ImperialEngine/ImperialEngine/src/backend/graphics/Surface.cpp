@@ -4,7 +4,7 @@ imp::Surface::Surface()
 {
 }
 
-imp::Surface::Surface(Image& img, SurfaceDesc& desc, uint64_t frameLastUsed)
+imp::Surface::Surface(Image& img, const SurfaceDesc& desc, uint64_t frameLastUsed)
 	: m_Image(img), m_SurfaceDesc(desc), m_FrameLastUsed(frameLastUsed)
 {
 }

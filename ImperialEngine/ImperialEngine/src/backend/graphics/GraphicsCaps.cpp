@@ -183,3 +183,12 @@ bool imp::GraphicsCaps::CheckDeviceHasAnySwapchainSupport(VkPhysicalDevice devic
 
     return m_DeviceSurfaceCaps.presentationModes.size() && m_DeviceSurfaceCaps.formats.size();
 }
+
+uint32_t imp::MemoryProps::FindMemoryTypeIndex(uint32_t allowedTypes, VkMemoryPropertyFlags flags)
+{
+    // TODO: I'm not sure if this function makes much sense
+    for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++)
+        if ((allowedTypes & (1 << i)) && (memoryProperties.memoryTypes[i].propertyFlags & flags) == flags)
+            return i;
+    return ~0u;
+}
