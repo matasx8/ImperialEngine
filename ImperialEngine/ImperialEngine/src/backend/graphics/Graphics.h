@@ -32,6 +32,7 @@ namespace imp
 		void CreateVkWindow(Window* window);
 		void CreateSwapchain();
 		void CreateCommandBufferManager();
+		void CreateSurfaceManager();
 
 		bool CheckExtensionsSupported(std::vector<const char*> extensions);
 

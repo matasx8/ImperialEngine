@@ -63,6 +63,7 @@ void imp::Swapchain::Create(VkPhysicalDevice physicalDevice, VkDevice device, Vk
 
 void imp::Swapchain::Present(VkQueue presentQ, const std::vector<VkSemaphore>& semaphores)
 {
+    VkResult res;
     VkPresentInfoKHR presentInfo = {};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     presentInfo.waitSemaphoreCount = semaphores.size();
@@ -70,6 +71,7 @@ void imp::Swapchain::Present(VkQueue presentQ, const std::vector<VkSemaphore>& s
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = &m_Swapchain;
     presentInfo.pImageIndices = &m_SwapchainIndex;
+    presentInfo.pResults = &res;
 
     auto result = vkQueuePresentKHR(presentQ, &presentInfo);
     if (result != VK_SUCCESS)
@@ -83,7 +85,7 @@ void imp::Swapchain::Present(VkQueue presentQ, const std::vector<VkSemaphore>& s
 
 void imp::Swapchain::AcquireNextImage(VkDevice device)
 {
-    vkAcquireNextImageKHR(device, m_Swapchain, std::numeric_limits<uint64_t>::max(), m_Semaphores[m_FrameClock], VK_NULL_HANDLE, &m_SwapchainIndex);
+    assert(vkAcquireNextImageKHR(device, m_Swapchain, std::numeric_limits<uint64_t>::max(), m_Semaphores[m_FrameClock], VK_NULL_HANDLE, &m_SwapchainIndex) == VK_SUCCESS);
     m_SwapchainImages[m_SwapchainIndex].AddSemaphore(m_Semaphores[m_FrameClock]);
     m_NeedsAcquiring = false;
 }

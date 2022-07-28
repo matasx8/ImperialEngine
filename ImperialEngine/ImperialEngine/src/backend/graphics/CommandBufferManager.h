@@ -32,6 +32,7 @@ namespace imp
 		void Submit(VkQueue submitQueue, VkDevice device, std::vector<CommandBuffer> commandBuffers, std::vector<VkSemaphore> waitSemaphores);
 		void SignalFrameEnded();
 		std::vector<CommandBuffer> AquireCommandBuffers(VkDevice device, uint32_t count);
+		std::vector<VkSemaphore>& GetCommandExecSemaphores();
 
 		void Destroy(VkDevice device);
 	private:

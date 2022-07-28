@@ -16,5 +16,5 @@ void imp::RenderPass::Execute(Graphics& gfx)
 
 	EndRenderPass(gfx, cmb);
 	cmb.End();
-	gfx.m_CbManager.Submit(gfx.m_GfxQueue, gfx.m_LogicalDevice, cmbs, );
+	gfx.m_CbManager.Submit(gfx.m_GfxQueue, gfx.m_LogicalDevice, cmbs, GetSemaphoresToWaitOn());
 }

@@ -36,6 +36,7 @@ namespace imp
 		const SurfaceDesc& GetDesc() const;
 		void UpdateLastUsed(unsigned long long currFrame);
 		void AddSemaphore(VkSemaphore sem);
+		VkSemaphore GetSemaphore();
 
 	private:
 		Image m_Image;

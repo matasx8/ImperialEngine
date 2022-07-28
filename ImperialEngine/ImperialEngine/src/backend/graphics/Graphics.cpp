@@ -18,6 +18,7 @@ void imp::Graphics::Initialize(const EngineGraphicsSettings& settings, Window* w
     CreateLogicalDevice();
     CreateSwapchain();
     CreateCommandBufferManager();
+    CreateSurfaceManager();
 
     // create renderpass..
     renderpass = new RenderPass();
@@ -57,7 +58,8 @@ void imp::Graphics::PrototypeRenderPass()
 
 void imp::Graphics::EndFrame()
 {
-    m_Swapchain.Present();
+    m_Swapchain.Present(m_PresentationQueue, m_CbManager.GetCommandExecSemaphores());
+    m_CbManager.SignalFrameEnded();
 }
 
 void imp::Graphics::Destroy()
@@ -208,6 +210,16 @@ void imp::Graphics::CreateSwapchain()
 void imp::Graphics::CreateCommandBufferManager()
 {
     m_CbManager.Initialize(m_LogicalDevice, m_GfxCaps.GetQueueFamilies(), m_Settings.swapchainImageCount);
+}
+
+void imp::Graphics::CreateSurfaceManager()
+{
+    MemoryProps props;
+    VkPhysicalDeviceMemoryProperties memoryProperties;
+    vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &memoryProperties);
+    props.memoryProperties = memoryProperties;
+
+    m_SurfaceManager.Initialize(m_LogicalDevice, props);
 }
 
 bool imp::Graphics::CheckExtensionsSupported(std::vector<const char*> extensions)

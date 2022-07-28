@@ -49,6 +49,7 @@ void imp::Image::CreateImage(uint32_t width, uint32_t height, VkFormat format, V
 
 void imp::Image::CreateImageView(VkFormat format, VkImageAspectFlags aspectFlags, VkDevice logicalDevice)
 {
+    m_ImageView = Image::CreateImageView(m_Image, format, aspectFlags, logicalDevice);
 }
 
 VkImageView imp::Image::CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, VkDevice logicalDevice)

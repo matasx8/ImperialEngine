@@ -29,3 +29,8 @@ void imp::Surface::AddSemaphore(VkSemaphore sem)
 {
 	m_Semaphore = sem;
 }
+
+VkSemaphore imp::Surface::GetSemaphore()
+{
+	return m_Semaphore;
+}

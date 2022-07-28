@@ -72,5 +72,7 @@ namespace imp
 		std::vector<SurfaceDesc> m_ResolveDescriptions;
 		RenderPassDesc m_Desc;
 		Framebuffer m_Framebuffer;
+
+		std::vector<Surface> m_Surfaces;
 	};
 }
