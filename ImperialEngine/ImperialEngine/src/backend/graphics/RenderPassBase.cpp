@@ -108,22 +108,42 @@ imp::RenderPassDesc imp::RenderPassBase::GetRenderPassDesc() const
 	return m_Desc;
 }
 
+std::vector<VkSemaphore> imp::RenderPassBase::GetSemaphoresToWaitOn()
+{
+	std::vector<VkSemaphore> sems;
+	for(const auto& surf : m_)
+		// continue here..
+		// dont forget render passes should take input and attachments, also output same
+		
+}
+
 void imp::RenderPassBase::Destroy(VkDevice device)
 {
 	vkDestroyRenderPass(device, m_RenderPass, nullptr);
 }
 
-void imp::RenderPassBase::BeginRenderPass(Graphics& gfx)
+void imp::RenderPassBase::BeginRenderPass(Graphics& gfx, CommandBuffer cmb)
 {
+	// TODO: should somehow be able to get input surfaces
+	// and also attachments and map them to the surface descriptions
+	std::vector<Surface> surfaces;
+	for (const auto& surfDesc : GetSurfaceDescriptions())
+	{
+		if (surfDesc.isBackbuffer)
+			surfaces.push_back(gfx.m_Swapchain.GetSwapchainImageSurface(gfx.m_LogicalDevice));
+		else
+			surfaces.push_back(gfx.m_SurfaceManager.GetSurface(surfDesc, gfx.m_LogicalDevice)); // TODO: change to emplace?
+	}
 	// check if framebuffer we have still is good
-	// 
-	// if yes carry on
-	// 
-	// if no create new framebuffer
-	m_Framebuffer = gfx.m_SurfaceManager.GetFramebuffer(*this, gfx.m_LogicalDevice, gfx.m_Swapchain);
-
+	if (!m_Framebuffer.StillValid(surfaces))
+	{
+		m_Framebuffer.Destroy(gfx.m_LogicalDevice);
+		m_Framebuffer = gfx.m_SurfaceManager.CreateFramebuffer(*this, surfaces, gfx.m_LogicalDevice);
+	}
+	
+	// render pass should hold info for clears
 	std::array<VkClearValue, 2> clearValues = {};
-	clearValues[0].color = { 0.0f, 0.0f, 0.0f, 0.0f };
+	clearValues[0].color = { 0.0f, 1.0f, 0.0f, 0.0f };
 	clearValues[1].depthStencil.depth = 1.0f;
 
 	VkRenderPassBeginInfo renderPassBeginInfo = {};
@@ -131,6 +151,10 @@ void imp::RenderPassBase::BeginRenderPass(Graphics& gfx)
 	renderPassBeginInfo.renderPass = m_RenderPass;
 	renderPassBeginInfo.renderArea.offset = { 0, 0 };
 	renderPassBeginInfo.renderArea.extent = { m_SurfaceDescriptions[0].width, m_SurfaceDescriptions[0].height };
+	renderPassBeginInfo.pClearValues = clearValues.data();
+	renderPassBeginInfo.framebuffer = m_Framebuffer.GetVkFramebuffer();
+
+	vkCmdBeginRenderPass(cmb.cmb, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
 std::vector<VkAttachmentDescription> imp::RenderPassBase::CreateAttachmentDescs(const RenderPassDesc& desc, const std::vector<SurfaceDesc>& surfaceDescs) const

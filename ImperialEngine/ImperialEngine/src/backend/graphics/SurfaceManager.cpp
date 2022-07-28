@@ -13,19 +13,11 @@ void imp::SurfaceManager::Initialize(VkDevice device, MemoryProps deviceMemoryPr
     m_MemoryProps = deviceMemoryProps;
 }
 
-imp::Framebuffer imp::SurfaceManager::GetFramebuffer(const RenderPassBase& rp, VkDevice device, Swapchain& swapchain)
-{
-    std::vector<Surface> surfaces;
-	for (const auto& surfDesc : rp.GetSurfaceDescriptions())
-	{
-        //if(surfDesc.isBackbuffer)
-        //    swapchain.
-        surfaces.push_back(GetSurface(surfDesc, device)); // TODO: change to emplace?
-	}
-    // I'm not sure where to put the surfaces? Maybe dont extract but count references
-    // Can't carry on without finding out if binding surfaces needs much synch
-    auto fb = CreateFramebuffer(surfaces, device);
-}
+//imp::Framebuffer imp::SurfaceManager::GetFramebuffer(const RenderPassBase& rp, VkDevice device, const std::vector<Surface>& surfaces)
+//{
+//    auto fb = CreateFramebuffer(rp, surfaces, device);
+//    return fb;
+//}
 
 imp::Surface imp::SurfaceManager::GetSurface(const SurfaceDesc& desc, VkDevice device)
 {
@@ -80,11 +72,12 @@ static std::vector<VkImageView> GetImageViews(const std::vector<imp::Surface>& s
 imp::Framebuffer imp::SurfaceManager::CreateFramebuffer(const RenderPassBase& rp, const std::vector<Surface>& surfaces, VkDevice device)
 {
     const auto desc = rp.GetRenderPassDesc();
+    const auto views = GetImageViews(surfaces);
     VkFramebufferCreateInfo framebufferCreateInfo = {};
     framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     framebufferCreateInfo.renderPass = rp.GetVkRenderPass();
     framebufferCreateInfo.attachmentCount = static_cast<uint32_t>(surfaces.size());
-    framebufferCreateInfo.pAttachments = GetImageViews(surfaces).data();
+    framebufferCreateInfo.pAttachments = views.data();
     framebufferCreateInfo.width = surfaces[0].GetDesc().width;
     framebufferCreateInfo.height = surfaces[0].GetDesc().height;
     framebufferCreateInfo.layers = 1;

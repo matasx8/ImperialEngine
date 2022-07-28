@@ -27,4 +27,9 @@ namespace imp
 
 		// also do i need synch for non swapchain image surfaces?
 	}
+
+	void Engine::Cmd_EndFrame(std::shared_ptr<void> rsc)
+	{
+		m_Gfx.EndFrame();
+	}
 }

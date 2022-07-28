@@ -55,6 +55,11 @@ void imp::Graphics::PrototypeRenderPass()
     renderpass->Execute(*this);
 }
 
+void imp::Graphics::EndFrame()
+{
+    m_Swapchain.Present();
+}
+
 void imp::Graphics::Destroy()
 {
     vkDeviceWaitIdle(m_LogicalDevice);

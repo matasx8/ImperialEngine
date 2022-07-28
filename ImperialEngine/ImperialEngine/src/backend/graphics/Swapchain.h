@@ -15,9 +15,11 @@ namespace imp
 		Swapchain();
 		void Create(VkPhysicalDevice physicalDevice, VkDevice device, VkSurfaceKHR windowSurface, const EngineGraphicsSettings& gfxSettings, const PhysicalDeviceSurfaceCaps& surfaceCaps, VkExtent2D extent);
 
-		void Present();
+		void Present(VkQueue presentQ, const std::vector<VkSemaphore>& semaphores);
+		void AcquireNextImage(VkDevice device);
 
-		SurfaceDesc GetSwapchainImageSurfaceDesc();
+		SurfaceDesc GetSwapchainImageSurfaceDesc() const;
+		Surface GetSwapchainImageSurface(VkDevice device);
 
 		void Destroy(VkDevice device);
 	private:
@@ -29,7 +31,11 @@ namespace imp
 		VkExtent2D m_Extent;
 		VkPresentModeKHR m_PresentMode;
 		uint32_t m_ImageCount;
+		uint32_t m_SwapchainIndex;
+		uint32_t m_FrameClock;
+		bool m_NeedsAcquiring;
 
 		std::array<Surface, kEngineSwapchainExclusiveMax - 1> m_SwapchainImages;
+		std::array<VkSemaphore, kEngineSwapchainExclusiveMax - 1> m_Semaphores;
 	};
 }

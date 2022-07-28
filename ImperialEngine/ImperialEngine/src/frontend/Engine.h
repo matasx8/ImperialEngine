@@ -54,6 +54,7 @@ namespace imp
 
 		void Cmd_InitGraphics(std::shared_ptr<void> rsc);
 		void Cmd_RenderCameras(std::shared_ptr<void> rsc);
+		void Cmd_EndFrame(std::shared_ptr<void> rsc);
 	};
 }
 

@@ -36,6 +36,7 @@ namespace imp
 
 	void Engine::EndFrame()
 	{
+		m_Q->add(std::mem_fn(&Engine::Cmd_EndFrame), std::shared_ptr<void>());
 	}
 
 	bool Engine::ShouldClose() const

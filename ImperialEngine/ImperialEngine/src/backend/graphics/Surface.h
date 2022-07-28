@@ -35,11 +35,13 @@ namespace imp
 		Image GetImage() const;
 		const SurfaceDesc& GetDesc() const;
 		void UpdateLastUsed(unsigned long long currFrame);
+		void AddSemaphore(VkSemaphore sem);
 
 	private:
 		Image m_Image;
 		SurfaceDesc m_SurfaceDesc;
 		uint64_t m_FrameLastUsed;
+		VkSemaphore m_Semaphore;
 	};
 }
 

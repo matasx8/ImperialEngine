@@ -1,6 +1,7 @@
 #include "Swapchain.h"
 #include "backend/graphics/GraphicsCaps.h"
 #include <stdexcept>
+#include <cassert>
 
 imp::Swapchain::Swapchain()
 {
@@ -54,11 +55,40 @@ void imp::Swapchain::Create(VkPhysicalDevice physicalDevice, VkDevice device, Vk
     m_Format = surfaceFormat;
     m_ImageCount = swapchainImageCount;
     m_PresentMode = presentMode;
+    m_FrameClock = 0;
+    m_NeedsAcquiring = true;
 
     PopulateNewSwapchainImages(device);
 }
 
-imp::SurfaceDesc imp::Swapchain::GetSwapchainImageSurfaceDesc()
+void imp::Swapchain::Present(VkQueue presentQ, const std::vector<VkSemaphore>& semaphores)
+{
+    VkPresentInfoKHR presentInfo = {};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.waitSemaphoreCount = semaphores.size();
+    presentInfo.pWaitSemaphores = semaphores.data();
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = &m_Swapchain;
+    presentInfo.pImageIndices = &m_SwapchainIndex;
+
+    auto result = vkQueuePresentKHR(presentQ, &presentInfo);
+    if (result != VK_SUCCESS)
+        throw std::runtime_error("Failed to present image");
+
+    // I wonder should I use m_SwapchainIndex or m_FrameClock for stuff that relates to the number of swapchain images
+    m_FrameClock++;
+    m_FrameClock %= m_ImageCount;
+    m_NeedsAcquiring = true;
+}
+
+void imp::Swapchain::AcquireNextImage(VkDevice device)
+{
+    vkAcquireNextImageKHR(device, m_Swapchain, std::numeric_limits<uint64_t>::max(), m_Semaphores[m_FrameClock], VK_NULL_HANDLE, &m_SwapchainIndex);
+    m_SwapchainImages[m_SwapchainIndex].AddSemaphore(m_Semaphores[m_FrameClock]);
+    m_NeedsAcquiring = false;
+}
+
+imp::SurfaceDesc imp::Swapchain::GetSwapchainImageSurfaceDesc() const
 {
     SurfaceDesc desc;
     desc.width = m_Extent.width;
@@ -69,6 +99,13 @@ imp::SurfaceDesc imp::Swapchain::GetSwapchainImageSurfaceDesc()
     desc.isColor = true;
     desc.isBackbuffer = true;
     return desc;
+}
+
+imp::Surface imp::Swapchain::GetSwapchainImageSurface(VkDevice device)
+{
+    if (m_NeedsAcquiring)
+        AcquireNextImage(device);
+    return m_SwapchainImages[m_SwapchainIndex];
 }
 
 void imp::Swapchain::Destroy(VkDevice device)
@@ -94,6 +131,10 @@ void imp::Swapchain::PopulateNewSwapchainImages(VkDevice device)
         const uint32_t numSamples = 1;
         SurfaceDesc desc = { m_Extent.width, m_Extent.height, m_Format.format, numSamples };
         const uint64_t frameLastUsed = ~0ull;
-        m_SwapchainImages[i++] = Surface(img, desc, frameLastUsed);
+        m_SwapchainImages[i] = Surface(img, desc, frameLastUsed);
+        VkSemaphoreCreateInfo semaphoreCreateInfo = {};
+        semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+        assert(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &m_Semaphores[i]) == VK_SUCCESS);
+        i++;
     }
 }

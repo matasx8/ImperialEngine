@@ -5,6 +5,7 @@
 #include <vector>
 #include <backend/graphics/Surface.h>
 #include "backend/graphics/Framebuffer.h"
+#include "backend/graphics/CommandBuffer.h"
 
 namespace imp
 {
@@ -54,12 +55,14 @@ namespace imp
 		const std::vector<SurfaceDesc>& GetResolveSurfaceDescriptions() const;
 		VkRenderPass GetVkRenderPass() const;
 		RenderPassDesc GetRenderPassDesc() const;
+		std::vector<VkSemaphore> GetSemaphoresToWaitOn();
 
 		void Destroy(VkDevice device);
 
-	private:
+	protected:
 
-		void BeginRenderPass(Graphics& gfx);
+		void BeginRenderPass(Graphics& gfx, CommandBuffer cmb);
+		void EndRenderPass(Graphics& gfx, CommandBuffer cmb);
 
 		std::vector<VkAttachmentDescription> CreateAttachmentDescs(const RenderPassDesc& desc, const std::vector<SurfaceDesc>& surfaceDescs) const;
 		std::vector<VkAttachmentDescription> CreateResolveAttachmentDescs(const RenderPassDesc& desc, const std::vector<SurfaceDesc>& surfaceDescs) const;

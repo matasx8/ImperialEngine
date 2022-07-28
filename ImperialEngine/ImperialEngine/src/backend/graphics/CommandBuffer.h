@@ -9,6 +9,9 @@ namespace imp
 		CommandBuffer();
 		CommandBuffer(VkCommandBuffer cb);
 
+		void Begin();
+		void End();
+
 		VkCommandBuffer cmb;
 	private:
 

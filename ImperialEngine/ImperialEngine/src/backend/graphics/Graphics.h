@@ -19,6 +19,7 @@ namespace imp
 		void Initialize(const EngineGraphicsSettings& settings, Window* window);
 
 		void PrototypeRenderPass();
+		void EndFrame();
 
 		void Destroy();
 
