@@ -14,3 +14,7 @@ uint64_t imp::VulkanResource::GetLastUsed() const
 {
 	return m_FrameLastUsed;
 }
+
+void imp::VulkanResource::Destroy(VkDevice device)
+{
+}

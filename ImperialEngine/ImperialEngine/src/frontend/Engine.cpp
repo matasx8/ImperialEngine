@@ -1,5 +1,6 @@
 #include "Engine.h"
 #include "backend/EngineCommandResources.h"
+#include <barrier>
 
 namespace imp
 {
@@ -20,7 +21,10 @@ namespace imp
 
 	void Engine::StartFrame()
 	{
-		// sync point, copy stuff
+		// wait for gfx thread to stop
+		// copy relevant memory to gfx thread visible memory
+		// carry on
+		// use barriers for that? Would need two but that looks quite simple to achieve
 	}
 
 	void Engine::Update()

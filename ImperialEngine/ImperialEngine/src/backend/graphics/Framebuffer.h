@@ -1,12 +1,12 @@
 #pragma once
-#include <vulkan.h>
+#include "backend/VulkanResource.h"
 #include <vector>
 
 namespace imp
 {
 	class Surface;
 
-	class Framebuffer
+	class Framebuffer : public VulkanResource
 	{
 	public:
 		Framebuffer();
@@ -16,7 +16,7 @@ namespace imp
 
 		VkFramebuffer GetVkFramebuffer() const;
 
-		void Destroy(VkDevice device);
+		void Destroy(VkDevice device) override;
 	private:
 
 		VkFramebuffer m_Framebuffer;

@@ -142,6 +142,7 @@ bool imp::GraphicsCaps::CheckDeviceExtensionSupport(VkPhysicalDevice device, con
     std::vector<VkExtensionProperties> extensions(extensionCount);
     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, extensions.data());
 
+    // Renderdoc no work with nsight
     for (const auto& deviceExtension : requiredExtens)
     {
         bool hasExtension = false;

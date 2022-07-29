@@ -7,6 +7,7 @@
 
 imp::Graphics::Graphics() : m_Settings(), m_GfxCaps(), m_ValidationLayers(), m_Window()
 {
+    m_CurrentFrame = 0;
 }
 
 void imp::Graphics::Initialize(const EngineGraphicsSettings& settings, Window* window)
@@ -61,6 +62,8 @@ void imp::Graphics::EndFrame()
 {
     m_Swapchain.Present(m_PresentationQueue, m_CbManager.GetCommandExecSemaphores());
     m_CbManager.SignalFrameEnded();
+    m_VulkanGarbageCollector.DestroySafeResources(m_LogicalDevice, m_CurrentFrame);
+    m_CurrentFrame++;
 }
 
 void imp::Graphics::Destroy()

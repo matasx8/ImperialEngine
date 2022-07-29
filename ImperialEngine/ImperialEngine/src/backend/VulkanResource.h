@@ -11,7 +11,7 @@ namespace imp
 		void UpdateLastUsed(uint64_t currentFrame);
 		uint64_t GetLastUsed() const;
 
-		virtual void Destroy(VkDevice device) = 0;
+		virtual void Destroy(VkDevice device);
 
 	protected:
 

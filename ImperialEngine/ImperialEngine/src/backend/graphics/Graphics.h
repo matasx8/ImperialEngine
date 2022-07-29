@@ -8,6 +8,7 @@
 #include "backend/VulkanGarbageCollector.h"
 #include "backend/VkWindow.h"
 #include "Utils/NonCopyable.h"
+#include <barrier>
 
 namespace imp
 {
@@ -38,6 +39,7 @@ namespace imp
 
 		bool CheckExtensionsSupported(std::vector<const char*> extensions);
 
+		std::barrier m_EngineSyncPoint; // probably must add function pointer to synch function
 		EngineGraphicsSettings m_Settings;
 		GraphicsCaps m_GfxCaps;
 		ValidationLayers m_ValidationLayers;
@@ -52,6 +54,7 @@ namespace imp
 		VkQueue m_PresentationQueue;
 
 		Swapchain m_Swapchain;
+		uint64_t m_CurrentFrame;
 
 		CommandBufferManager m_CbManager;
 		SurfaceManager m_SurfaceManager;

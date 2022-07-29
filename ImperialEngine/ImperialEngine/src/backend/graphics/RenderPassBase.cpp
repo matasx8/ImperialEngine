@@ -147,9 +147,11 @@ void imp::RenderPassBase::BeginRenderPass(Graphics& gfx, CommandBuffer cmb)
 	// can't destroy them immediately either
 	if (!m_Framebuffer.StillValid(surfaces))
 	{
-		gfx.m_VulkanGarbageCollector.AddGarbageResourcem_Framebuffer
+		if(m_Framebuffer.GetVkFramebuffer()) // TODO: this is a fast work around to not destroy an empty frame buffer
+			gfx.m_VulkanGarbageCollector.AddGarbageResource(std::make_shared<Framebuffer>(m_Framebuffer));
 		m_Framebuffer = gfx.m_SurfaceManager.CreateFramebuffer(*this, surfaces, gfx.m_LogicalDevice);
 	}
+	m_Framebuffer.UpdateLastUsed(gfx.m_CurrentFrame);
 	
 	// render pass should hold info for clears
 	std::array<VkClearValue, 2> clearValues = {};
@@ -166,8 +168,6 @@ void imp::RenderPassBase::BeginRenderPass(Graphics& gfx, CommandBuffer cmb)
 	renderPassBeginInfo.framebuffer = m_Framebuffer.GetVkFramebuffer();
 
 	vkCmdBeginRenderPass(cmb.cmb, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-
 }
 
 void imp::RenderPassBase::EndRenderPass(Graphics& gfx, CommandBuffer cmb)

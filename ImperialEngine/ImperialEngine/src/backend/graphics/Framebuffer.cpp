@@ -23,5 +23,5 @@ VkFramebuffer imp::Framebuffer::GetVkFramebuffer() const
 
 void imp::Framebuffer::Destroy(VkDevice device)
 {
-	//vkDestroyFramebuffer(device, m_Framebuffer, nullptr);
+	vkDestroyFramebuffer(device, m_Framebuffer, nullptr);
 }
