@@ -20,6 +20,8 @@ namespace imp
 		Framebuffer CreateFramebuffer(const RenderPassBase& rp, const std::vector<Surface>& surfaces, VkDevice device);
 		Surface GetSurface(const SurfaceDesc& desc, VkDevice device);
 
+		void ReturnSurfaces(std::vector<Surface>& surfaces);
+
 		void CombForUnusedSurfaces();
 
 		void Destroy(VkDevice device);

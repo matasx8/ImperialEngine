@@ -4,7 +4,7 @@
 #include <cassert>
 
 imp::RenderPassBase::RenderPassBase()
-	: m_RenderPass(), m_SurfaceDescriptions(), m_Desc()
+	: m_RenderPass(), m_SurfaceDescriptions(), m_Desc(), m_Framebuffer(0)
 {
 }
 
@@ -59,9 +59,9 @@ void imp::RenderPassBase::Create(VkDevice device, RenderPassDesc& desc, std::vec
 	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
 	dependency.dstSubpass = 0;
 	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.srcAccessMask = 0;
-	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	dependency.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	dependency.dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+	dependency.dstAccessMask = 0;
 
 
 	VkRenderPassCreateInfo renderPassCreateInfo = {};
@@ -130,15 +130,21 @@ void imp::RenderPassBase::BeginRenderPass(Graphics& gfx, CommandBuffer cmb)
 	// TODO: should somehow be able to get input surfaces
 	// and also attachments and map them to the surface descriptions
 	auto& surfaces = m_Surfaces;
-	if(surfaces.size() == 0)
-		for (const auto& surfDesc : GetSurfaceDescriptions())
-		{
-			if (surfDesc.isBackbuffer)
-				surfaces.push_back(gfx.m_Swapchain.GetSwapchainImageSurface(gfx.m_LogicalDevice));
-			else
-				surfaces.push_back(gfx.m_SurfaceManager.GetSurface(surfDesc, gfx.m_LogicalDevice)); // TODO: change to emplace?
-		}
+	if (surfaces.size())
+	{
+		gfx.m_SurfaceManager.ReturnSurfaces(surfaces);
+		surfaces = {};
+	}
+	for (const auto& surfDesc : GetSurfaceDescriptions())
+	{
+		if (surfDesc.isBackbuffer)
+			surfaces.push_back(gfx.m_Swapchain.GetSwapchainImageSurface(gfx.m_LogicalDevice));
+		else
+			surfaces.push_back(gfx.m_SurfaceManager.GetSurface(surfDesc, gfx.m_LogicalDevice)); // TODO: change to emplace?
+	}
 	// check if framebuffer we have still is good
+	// TODO: make framebuffer system, creating many fbs causes memory leak
+	// can't destroy them immediately either
 	if (!m_Framebuffer.StillValid(surfaces))
 	{
 		m_Framebuffer.Destroy(gfx.m_LogicalDevice);

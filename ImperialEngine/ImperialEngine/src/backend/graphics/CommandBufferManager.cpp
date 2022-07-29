@@ -27,6 +27,14 @@ void imp::CommandBufferManager::Initialize(VkDevice device, QueueFamilyIndices f
 	}
 }
 
+static std::vector<VkCommandBuffer> GetCmbs(std::vector<imp::CommandBuffer> commandBuffers)
+{
+    std::vector<VkCommandBuffer> buffs;
+    for (auto& buff : commandBuffers)
+        buffs.push_back(buff.cmb);
+    return buffs;
+}
+
 void imp::CommandBufferManager::Submit(VkQueue submitQueue, VkDevice device, std::vector<CommandBuffer> commandBuffers, std::vector<VkSemaphore> waitSemaphores)
 {
     // need to add fence for command buffers to know when we can reset them
@@ -42,6 +50,10 @@ void imp::CommandBufferManager::Submit(VkQueue submitQueue, VkDevice device, std
     submitInfo.pWaitDstStageMask = waitStages;
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = &semaphore;
+    submitInfo.commandBufferCount = commandBuffers.size();
+    auto ccs = GetCmbs(commandBuffers);
+    submitInfo.pCommandBuffers = ccs.data();
+
 
     VkResult result = vkQueueSubmit(submitQueue, 1, &submitInfo, fence);
     if (result != VK_SUCCESS)
@@ -77,7 +89,7 @@ void imp::CommandBufferManager::Destroy(VkDevice device)
 
 VkSemaphore imp::CommandBufferManager::GetSemaphore(VkDevice device)
 {
-    VkSemaphore sem;
+    VkSemaphore sem = 0;
     VkSemaphoreCreateInfo semaphoreCreateInfo = {};
     semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
     assert(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &sem) == VK_SUCCESS);
@@ -86,7 +98,7 @@ VkSemaphore imp::CommandBufferManager::GetSemaphore(VkDevice device)
 
 VkFence imp::CommandBufferManager::GetFence(VkDevice device)
 {
-    VkFence fence;
+    VkFence fence = 0;
     VkFenceCreateInfo fenceCreateInfo = {};
     fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     //fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
@@ -133,8 +145,10 @@ void imp::CommandPool::ReturnCommandBuffers(std::vector<CommandBuffer>& buffers,
 
 void imp::CommandPool::Reset(VkDevice device)
 {
-    if(fences.size())
-        assert(vkWaitForFences(device, fences.size(), fences.data(), VK_TRUE, std::numeric_limits<uint64_t>::max()) == VK_TRUE);
+    if (fences.size())
+    {
+        assert(vkWaitForFences(device, fences.size(), fences.data(), VK_TRUE, std::numeric_limits<uint64_t>::max()) == VK_SUCCESS);
+    }
     for (auto& buff : donePool)
         readyPool.push(buff);
     // TODO: not sure if releasing resources is good?

@@ -27,6 +27,16 @@ imp::Surface imp::SurfaceManager::GetSurface(const SurfaceDesc& desc, VkDevice d
 	return surf.mapped();
 }
 
+void imp::SurfaceManager::ReturnSurfaces(std::vector<Surface>& surfaces)
+{
+    for (auto& surf : surfaces)
+    {
+        auto desc = surf.GetDesc();
+        if (!desc.isBackbuffer) // leave backbuffers to swapchain
+            m_SurfacePool.insert(std::make_pair(desc, surf));
+    }
+}
+
 void imp::SurfaceManager::CombForUnusedSurfaces()
 {
 	// unordered map is actually okay, can save the .first values that are old and need to be extracted

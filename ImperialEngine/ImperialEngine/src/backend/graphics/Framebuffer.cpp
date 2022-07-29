@@ -13,7 +13,7 @@ imp::Framebuffer::Framebuffer(VkFramebuffer fb)
 bool imp::Framebuffer::StillValid(const std::vector<Surface>& surfaces) const
 {
 	// TODO: this
-	return false; // for now lets create new fb each time
+	return false;
 }
 
 VkFramebuffer imp::Framebuffer::GetVkFramebuffer() const
@@ -23,5 +23,5 @@ VkFramebuffer imp::Framebuffer::GetVkFramebuffer() const
 
 void imp::Framebuffer::Destroy(VkDevice device)
 {
-
+	//vkDestroyFramebuffer(device, m_Framebuffer, nullptr);
 }
