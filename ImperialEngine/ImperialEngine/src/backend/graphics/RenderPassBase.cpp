@@ -147,7 +147,7 @@ void imp::RenderPassBase::BeginRenderPass(Graphics& gfx, CommandBuffer cmb)
 	// can't destroy them immediately either
 	if (!m_Framebuffer.StillValid(surfaces))
 	{
-		m_Framebuffer.Destroy(gfx.m_LogicalDevice);
+		gfx.m_VulkanGarbageCollector.AddGarbageResourcem_Framebuffer
 		m_Framebuffer = gfx.m_SurfaceManager.CreateFramebuffer(*this, surfaces, gfx.m_LogicalDevice);
 	}
 	

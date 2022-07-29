@@ -19,6 +19,7 @@ void imp::Graphics::Initialize(const EngineGraphicsSettings& settings, Window* w
     CreateSwapchain();
     CreateCommandBufferManager();
     CreateSurfaceManager();
+    CreateGarbageCollector();
 
     // create renderpass..
     renderpass = new RenderPass();
@@ -220,6 +221,11 @@ void imp::Graphics::CreateSurfaceManager()
     props.memoryProperties = memoryProperties;
 
     m_SurfaceManager.Initialize(m_LogicalDevice, props);
+}
+
+void imp::Graphics::CreateGarbageCollector()
+{
+    m_VulkanGarbageCollector.Initialize(m_Settings.swapchainImageCount);
 }
 
 bool imp::Graphics::CheckExtensionsSupported(std::vector<const char*> extensions)
