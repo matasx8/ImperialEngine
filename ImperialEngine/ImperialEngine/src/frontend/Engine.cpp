@@ -5,7 +5,7 @@
 namespace imp
 {
 	Engine::Engine()
-		: m_Entities(), m_Q(nullptr), m_Worker(nullptr), m_EngineSettings(), m_Window(), m_Gfx()
+		: m_Entities(), m_Q(nullptr), m_Worker(nullptr), m_SyncPoint(nullptr), m_EngineSettings(), m_Window(), m_Gfx()
 	{
 	}
 
@@ -41,6 +41,8 @@ namespace imp
 	void Engine::EndFrame()
 	{
 		m_Q->add(std::mem_fn(&Engine::Cmd_EndFrame), std::shared_ptr<void>());
+		if (m_SyncPoint)
+			m_SyncPoint->arrive_and_wait();
 	}
 
 	bool Engine::ShouldClose() const
@@ -54,6 +56,10 @@ namespace imp
 		CleanUpWindow();
 		CleanUpGraphics();
 	}
+	static void hehe() noexcept
+	{
+
+	}
 
 	void Engine::InitThreading(EngineThreadingMode mode)
 	{
@@ -64,8 +70,10 @@ namespace imp
 			m_Q = new prl::WorkQ_ST<Engine>(*this);
 			break;
 		case kEngineMultiThreaded:
+			constexpr int numThreads = 2;
 			m_Q = new prl::WorkQ<Engine>();
 			m_Worker = new prl::ConsumerThread<Engine>(*this, *m_Q);
+			m_SyncPoint = new std::barrier(numThreads, &hehe); // figure out how to pass something with refs to relevant stuff
 			break;
 		}
 	}
@@ -90,6 +98,7 @@ namespace imp
 			m_Worker->End();
 			m_Worker->Join();
 			delete m_Worker;
+			delete m_SyncPoint;
 		}
 		delete m_Q;
 	}
@@ -107,6 +116,10 @@ namespace imp
 	void Engine::RenderCameras()
 	{
 		m_Q->add(std::mem_fn(&Engine::Cmd_RenderCameras), std::shared_ptr<void>());
+	}
+
+	void Engine::EngineThreadSyncFunc() noexcept
+	{
 	}
 
 }

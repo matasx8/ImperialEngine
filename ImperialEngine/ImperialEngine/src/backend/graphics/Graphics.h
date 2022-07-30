@@ -39,7 +39,7 @@ namespace imp
 
 		bool CheckExtensionsSupported(std::vector<const char*> extensions);
 
-		std::barrier m_EngineSyncPoint; // probably must add function pointer to synch function
+		//std::barrier m_EngineSyncPoint; // probably must add function pointer to synch function
 		EngineGraphicsSettings m_Settings;
 		GraphicsCaps m_GfxCaps;
 		ValidationLayers m_ValidationLayers;

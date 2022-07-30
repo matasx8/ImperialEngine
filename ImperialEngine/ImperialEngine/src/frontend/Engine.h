@@ -6,6 +6,7 @@
 #include "backend/parallel/ConsumerThread.h"
 #include "frontend/EngineSettings.h"
 #include "frontend/Window.h"
+#include <barrier>
 
 // No Vulkan stuff here
 // use registry from EnTT for commands and their memory?
@@ -37,12 +38,16 @@ namespace imp
 
 		void RenderCameras();
 
+		void EngineThreadSyncFunc()  noexcept;
+
 		// entity stuff
 		entt::registry m_Entities;
 
 		// parallel stuff
 		prl::WorkQ<Engine>* m_Q;
 		prl::ConsumerThread<Engine>* m_Worker;
+	    std::barrier<void (*)() noexcept>* m_SyncPoint;
+		//std::barrier<void (Engine::*)() noexcept>>* m_SyncPoint;
 
 		// window stuff
 		Window m_Window;
