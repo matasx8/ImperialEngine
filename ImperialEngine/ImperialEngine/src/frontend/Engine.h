@@ -46,7 +46,16 @@ namespace imp
 		// parallel stuff
 		prl::WorkQ<Engine>* m_Q;
 		prl::ConsumerThread<Engine>* m_Worker;
-	    std::barrier<void (*)() noexcept>* m_SyncPoint;
+		struct BarrierFunctionObject
+		{
+			Engine& engine;
+			BarrierFunctionObject(Engine& eng) : engine(eng) {};
+			void operator()() noexcept
+			{
+				//printf("sync\n");
+			}
+		};
+	    std::barrier<BarrierFunctionObject>* m_SyncPoint;
 		//std::barrier<void (Engine::*)() noexcept>>* m_SyncPoint;
 
 		// window stuff

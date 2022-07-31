@@ -73,7 +73,8 @@ namespace imp
 			constexpr int numThreads = 2;
 			m_Q = new prl::WorkQ<Engine>();
 			m_Worker = new prl::ConsumerThread<Engine>(*this, *m_Q);
-			m_SyncPoint = new std::barrier(numThreads, &hehe); // figure out how to pass something with refs to relevant stuff
+			BarrierFunctionObject func(*this);
+			m_SyncPoint = new std::barrier(numThreads, func); // figure out how to pass something with refs to relevant stuff
 			break;
 		}
 	}
@@ -120,6 +121,7 @@ namespace imp
 
 	void Engine::EngineThreadSyncFunc() noexcept
 	{
+		printf("sync\n");
 	}
 
 }
