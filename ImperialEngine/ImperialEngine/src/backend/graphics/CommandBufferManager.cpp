@@ -92,7 +92,8 @@ VkSemaphore imp::CommandBufferManager::GetSemaphore(VkDevice device)
     VkSemaphore sem = 0;
     VkSemaphoreCreateInfo semaphoreCreateInfo = {};
     semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-    assert(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &sem) == VK_SUCCESS);
+    const auto res = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &sem);
+    assert(res == VK_SUCCESS);
     return sem;
 }
 
@@ -101,8 +102,8 @@ VkFence imp::CommandBufferManager::GetFence(VkDevice device)
     VkFence fence = 0;
     VkFenceCreateInfo fenceCreateInfo = {};
     fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    //fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-    assert(vkCreateFence(device, &fenceCreateInfo, nullptr, &fence) == VK_SUCCESS);
+    const auto res = vkCreateFence(device, &fenceCreateInfo, nullptr, &fence);
+    assert(res == VK_SUCCESS);
     return fence;
 }
 
@@ -147,13 +148,14 @@ void imp::CommandPool::Reset(VkDevice device)
 {
     if (fences.size())
     {
-        assert(vkWaitForFences(device, fences.size(), fences.data(), VK_TRUE, std::numeric_limits<uint64_t>::max()) == VK_SUCCESS);
+        const auto res = vkWaitForFences(device, fences.size(), fences.data(), VK_TRUE, std::numeric_limits<uint64_t>::max());
+        assert(res == VK_SUCCESS);
     }
     for (auto& buff : donePool)
         readyPool.push(buff);
     // TODO: not sure if releasing resources is good?
     auto res = vkResetCommandPool(device, pool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
-    //assert( == VK_TRUE);
+    assert(res == VK_SUCCESS);
 
     for (int i = 0; i < fences.size(); i++)
     {

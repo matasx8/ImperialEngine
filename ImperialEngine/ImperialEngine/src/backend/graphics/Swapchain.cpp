@@ -85,7 +85,8 @@ void imp::Swapchain::Present(VkQueue presentQ, const std::vector<VkSemaphore>& s
 
 void imp::Swapchain::AcquireNextImage(VkDevice device)
 {
-    assert(vkAcquireNextImageKHR(device, m_Swapchain, std::numeric_limits<uint64_t>::max(), m_Semaphores[m_FrameClock], VK_NULL_HANDLE, &m_SwapchainIndex) == VK_SUCCESS);
+    const auto res = vkAcquireNextImageKHR(device, m_Swapchain, std::numeric_limits<uint64_t>::max(), m_Semaphores[m_FrameClock], VK_NULL_HANDLE, &m_SwapchainIndex);
+    assert(res == VK_SUCCESS);
     m_SwapchainImages[m_SwapchainIndex].AddSemaphore(m_Semaphores[m_FrameClock]);
     m_NeedsAcquiring = false;
 }
@@ -136,7 +137,8 @@ void imp::Swapchain::PopulateNewSwapchainImages(VkDevice device)
         m_SwapchainImages[i] = Surface(img, desc, frameLastUsed);
         VkSemaphoreCreateInfo semaphoreCreateInfo = {};
         semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-        assert(vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &m_Semaphores[i]) == VK_SUCCESS);
+        const auto res = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &m_Semaphores[i]);
+        assert(res == VK_SUCCESS);
         i++;
     }
 }

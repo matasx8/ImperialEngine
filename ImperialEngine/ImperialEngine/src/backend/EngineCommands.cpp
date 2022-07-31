@@ -31,7 +31,6 @@ namespace imp
 	void Engine::Cmd_EndFrame(std::shared_ptr<void> rsc)
 	{
 		m_Gfx.EndFrame();
-		if (m_SyncPoint)
-			m_SyncPoint->arrive_and_wait();
+		m_SyncPoint->arrive_and_wait();
 	}
 }

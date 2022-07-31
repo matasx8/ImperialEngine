@@ -24,6 +24,7 @@ namespace imp
 		void Update();
 		void Render();
 		void EndFrame();
+		void SyncThreads();
 
 		bool ShouldClose() const;
 		void ShutDown();
@@ -50,13 +51,9 @@ namespace imp
 		{
 			Engine& engine;
 			BarrierFunctionObject(Engine& eng) : engine(eng) {};
-			void operator()() noexcept
-			{
-				//printf("sync\n");
-			}
+			void operator()() noexcept { engine.EngineThreadSyncFunc(); }
 		};
 	    std::barrier<BarrierFunctionObject>* m_SyncPoint;
-		//std::barrier<void (Engine::*)() noexcept>>* m_SyncPoint;
 
 		// window stuff
 		Window m_Window;

@@ -1,6 +1,7 @@
 #include "Window.h"
 #include <assert.h>
 #include "extern/GLFW/glfw3.h"
+#include "Debug.h"
 
 imp::Window::Window()
 	: m_Width(0), m_Height(0), m_WindowPtr()
@@ -48,6 +49,24 @@ int imp::Window::GetWidth() const
 int imp::Window::GetHeight() const
 {
 	return m_Height;
+}
+
+void imp::Window::UpdateDeltaTime()
+{
+	float now = glfwGetTime();
+	m_DeltaTime = now - m_LastTime;
+	m_LastTime = now;
+}
+
+void imp::Window::DisplayFrameInfo() const
+{
+
+	char buffer[100];
+	float dtms = static_cast<float>(m_DeltaTime) * 10000;// a bit less than mili
+	int fps = 1 / (((dtms > 1) ? floor(dtms) : 1.0f) / 10000.0f);
+	snprintf(buffer, 100, "[Debug Frame Info] length: %.3fms FPS: %.4d\0", dtms / 10.0f, fps);
+
+	glfwSetWindowTitle(m_WindowPtr, buffer);
 }
 
 bool imp::Window::ShouldClose() const

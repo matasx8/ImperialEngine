@@ -9,8 +9,8 @@ int main()
 
 	EngineSettings settings;
 #if _DEBUG
-	//settings = { EngineSettingsTemplate::kEngineSettingsDebug };
-//#elif _DEV //TODO: for some reason this preprocessor is not set in 'development' mode
+	settings = { EngineSettingsTemplate::kEngineSettingsDebug };
+#elif _DEV //TODO: for some reason this preprocessor is not set in 'development' mode
 	settings = { EngineSettingsTemplate::kEngineSettingsDevelopment };
 #elif NDEBUG
 	settings = { EngineSettingsTemplate::kEngineSettingsRelease };
@@ -24,9 +24,10 @@ int main()
 	while (!engine.ShouldClose())
 	{
 		engine.StartFrame();
-		engine.Update();
 		engine.Render();
 		engine.EndFrame();
+		engine.Update();
+		engine.SyncThreads();
 	}
 
 	engine.ShutDown();

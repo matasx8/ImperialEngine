@@ -117,6 +117,7 @@ std::vector<VkSemaphore> imp::RenderPassBase::GetSemaphoresToWaitOn()
 		if(sem)
 			sems.push_back(surf.GetSemaphore());
 	}
+	assert(sems.size());
 	return sems;
 }
 

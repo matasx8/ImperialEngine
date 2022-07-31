@@ -21,10 +21,7 @@ namespace imp
 
 	void Engine::StartFrame()
 	{
-		// wait for gfx thread to stop
-		// copy relevant memory to gfx thread visible memory
-		// carry on
-		// use barriers for that? Would need two but that looks quite simple to achieve
+
 	}
 
 	void Engine::Update()
@@ -41,8 +38,13 @@ namespace imp
 	void Engine::EndFrame()
 	{
 		m_Q->add(std::mem_fn(&Engine::Cmd_EndFrame), std::shared_ptr<void>());
-		if (m_SyncPoint)
+	}
+
+	void Engine::SyncThreads()
+	{
+		if (m_EngineSettings.threadingMode == kEngineMultiThreaded)
 			m_SyncPoint->arrive_and_wait();
+		m_Window.DisplayFrameInfo();
 	}
 
 	bool Engine::ShouldClose() const
@@ -56,25 +58,23 @@ namespace imp
 		CleanUpWindow();
 		CleanUpGraphics();
 	}
-	static void hehe() noexcept
-	{
-
-	}
 
 	void Engine::InitThreading(EngineThreadingMode mode)
 	{
+		BarrierFunctionObject func(*this);
 		switch (mode)
 		{
 		case kEngineSingleThreaded:
 			// single-threaded so we only need the single-threaded version of the queue that executes task on add.
 			m_Q = new prl::WorkQ_ST<Engine>(*this);
+
+			m_SyncPoint = new std::barrier(1, func);
 			break;
 		case kEngineMultiThreaded:
 			constexpr int numThreads = 2;
 			m_Q = new prl::WorkQ<Engine>();
 			m_Worker = new prl::ConsumerThread<Engine>(*this, *m_Q);
-			BarrierFunctionObject func(*this);
-			m_SyncPoint = new std::barrier(numThreads, func); // figure out how to pass something with refs to relevant stuff
+			m_SyncPoint = new std::barrier(numThreads, func);
 			break;
 		}
 	}
@@ -121,7 +121,7 @@ namespace imp
 
 	void Engine::EngineThreadSyncFunc() noexcept
 	{
-		printf("sync\n");
+		m_Window.UpdateDeltaTime();
 	}
 
 }

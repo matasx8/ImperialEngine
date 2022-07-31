@@ -17,6 +17,8 @@ namespace imp
 		GLFWwindow* const GetWindowPtr() const;
 		int GetWidth() const;
 		int GetHeight() const;
+		void UpdateDeltaTime();
+		void DisplayFrameInfo() const;
 
 		bool ShouldClose() const;
 
@@ -24,5 +26,7 @@ namespace imp
 	private:
 		int m_Width, m_Height;
 		GLFWwindow* m_WindowPtr;
+		double m_LastTime;
+		double m_DeltaTime;
 	};
 }
