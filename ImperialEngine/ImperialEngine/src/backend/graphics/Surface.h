@@ -38,6 +38,7 @@ namespace imp
 		void AddSemaphore(VkSemaphore sem);
 		VkSemaphore GetSemaphore();
 
+		void Destroy(VkDevice device);
 	private:
 		Image m_Image;
 		SurfaceDesc m_SurfaceDesc;

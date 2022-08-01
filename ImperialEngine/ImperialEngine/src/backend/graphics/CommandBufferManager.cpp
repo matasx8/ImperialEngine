@@ -84,7 +84,13 @@ std::vector<VkSemaphore>& imp::CommandBufferManager::GetCommandExecSemaphores()
 void imp::CommandBufferManager::Destroy(VkDevice device)
 {
     for (auto& pool : m_GfxCommandPools)
+    {
         vkDestroyCommandPool(device, pool.pool, nullptr);
+        for (auto& fence : pool.fences)
+            vkDestroyFence(device, fence, nullptr);
+        for (auto& sem : pool.semaphores)
+            vkDestroySemaphore(device, sem, nullptr);
+    }
 }
 
 VkSemaphore imp::CommandBufferManager::GetSemaphore(VkDevice device)

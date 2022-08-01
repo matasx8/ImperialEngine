@@ -8,9 +8,9 @@ int main()
 	//std::this_thread::sleep_for(std::chrono::milliseconds(15000));
 
 	EngineSettings settings;
-#if _DEBUG
+#if _DEBUG && !_DEV // for some reason _DEBUG is not removed
 	settings = { EngineSettingsTemplate::kEngineSettingsDebug };
-#elif _DEV //TODO: for some reason this preprocessor is not set in 'development' mode
+#elif _DEV
 	settings = { EngineSettingsTemplate::kEngineSettingsDevelopment };
 #elif NDEBUG
 	settings = { EngineSettingsTemplate::kEngineSettingsRelease };
@@ -26,8 +26,9 @@ int main()
 		engine.StartFrame();
 		engine.Render();
 		engine.EndFrame();
+		engine.SyncRenderThread();
 		engine.Update();
-		engine.SyncThreads();
+		engine.SyncGameThread();
 	}
 
 	engine.ShutDown();

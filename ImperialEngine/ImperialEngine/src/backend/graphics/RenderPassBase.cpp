@@ -121,8 +121,20 @@ std::vector<VkSemaphore> imp::RenderPassBase::GetSemaphoresToWaitOn()
 	return sems;
 }
 
+std::vector<imp::Surface> imp::RenderPassBase::GiveSurfaces()
+{
+	std::vector<imp::Surface> surfaceCopies;
+	for (auto&& surf : m_Surfaces)
+	{
+		if(!surf.GetDesc().isBackbuffer)	// swapchain images are controlled by the swapchain
+			surfaceCopies.emplace_back(surf);
+	}
+	return surfaceCopies;
+}
+
 void imp::RenderPassBase::Destroy(VkDevice device)
 {
+	m_Framebuffer.Destroy(device);
 	vkDestroyRenderPass(device, m_RenderPass, nullptr);
 }
 
@@ -155,6 +167,7 @@ void imp::RenderPassBase::BeginRenderPass(Graphics& gfx, CommandBuffer cmb)
 	m_Framebuffer.UpdateLastUsed(gfx.m_CurrentFrame);
 	
 	// render pass should hold info for clears
+	// TODO: make the clear dynamic
 	std::array<VkClearValue, 2> clearValues = {};
 	clearValues[0].color = { 0.0f, 1.0f, 0.0f, 0.0f };
 	clearValues[1].depthStencil.depth = 1.0f;

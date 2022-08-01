@@ -20,17 +20,14 @@ namespace imp
 		// Surface manager will have to take and give surfaces
 		// camera with its stack of render passes will have to pass on surfaces to next render passes
 		m_Gfx.PrototypeRenderPass();
-
-		// idea is get a hardcoded rp in that does a clear command
-		// with this i'll have working command buffers, synchronization, render passes and etc.
-		// should have some end rendering command, so render thread can do present
-
-		// also do i need synch for non swapchain image surfaces?
 	}
 
 	void Engine::Cmd_EndFrame(std::shared_ptr<void> rsc)
 	{
 		m_Gfx.EndFrame();
+	}
+	void Engine::Cmd_SyncRenderThread(std::shared_ptr<void> rsc)
+	{
 		m_SyncPoint->arrive_and_wait();
 	}
 }

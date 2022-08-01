@@ -56,6 +56,7 @@ namespace imp
 		VkRenderPass GetVkRenderPass() const;
 		RenderPassDesc GetRenderPassDesc() const;
 		std::vector<VkSemaphore> GetSemaphoresToWaitOn();
+		std::vector<Surface> GiveSurfaces();
 
 		void Destroy(VkDevice device);
 

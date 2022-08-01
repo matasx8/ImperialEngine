@@ -24,7 +24,8 @@ namespace imp
 		void Update();
 		void Render();
 		void EndFrame();
-		void SyncThreads();
+		void SyncRenderThread();
+		void SyncGameThread();
 
 		bool ShouldClose() const;
 		void ShutDown();
@@ -53,7 +54,7 @@ namespace imp
 			BarrierFunctionObject(Engine& eng) : engine(eng) {};
 			void operator()() noexcept { engine.EngineThreadSyncFunc(); }
 		};
-	    std::barrier<BarrierFunctionObject>* m_SyncPoint;
+	    std::barrier<BarrierFunctionObject>* m_SyncPoint;	// TODO: use polymorphism for when Single thread mode this wont do anything
 
 		// window stuff
 		Window m_Window;
@@ -66,6 +67,7 @@ namespace imp
 		void Cmd_InitGraphics(std::shared_ptr<void> rsc);
 		void Cmd_RenderCameras(std::shared_ptr<void> rsc);
 		void Cmd_EndFrame(std::shared_ptr<void> rsc);
+		void Cmd_SyncRenderThread(std::shared_ptr<void> rsc);
 	};
 }
 

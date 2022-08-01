@@ -16,7 +16,7 @@ namespace imp
 		VkImage GetImage() const { return m_Image; }
 		VkImageView GetImageView() const { return m_ImageView; }
 
-		void DestroyImage(VkDevice logicalDevice);
+		void Destroy(VkDevice logicalDevice);
 
 	private:
 		VkImage m_Image;

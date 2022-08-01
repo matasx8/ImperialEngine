@@ -56,6 +56,9 @@ void imp::Graphics::Initialize(const EngineGraphicsSettings& settings, Window* w
 void imp::Graphics::PrototypeRenderPass()
 {
     renderpass->Execute(*this);
+    // should always return owned surfaces
+    auto surfaces = renderpass->GiveSurfaces();
+    m_SurfaceManager.ReturnSurfaces(surfaces);
 }
 
 void imp::Graphics::EndFrame()
@@ -70,6 +73,13 @@ void imp::Graphics::Destroy()
 {
     vkDeviceWaitIdle(m_LogicalDevice);
 
+    // prototyping stuff ---
+    renderpass->Destroy(m_LogicalDevice);
+
+    // prototyping stuff ---
+
+    m_SurfaceManager.Destroy(m_LogicalDevice);
+    m_VulkanGarbageCollector.DestroyAllImmediate(m_LogicalDevice);
     m_CbManager.Destroy(m_LogicalDevice);
     m_Swapchain.Destroy(m_LogicalDevice);
     vkDestroyDevice(m_LogicalDevice, nullptr);

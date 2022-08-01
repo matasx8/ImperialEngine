@@ -34,3 +34,11 @@ VkSemaphore imp::Surface::GetSemaphore()
 {
 	return m_Semaphore;
 }
+
+void imp::Surface::Destroy(VkDevice device)
+{
+	assert(!m_SurfaceDesc.isBackbuffer);
+	if (m_Semaphore)
+		vkDestroySemaphore(device, m_Semaphore, nullptr);
+	m_Image.Destroy(device);
+}
