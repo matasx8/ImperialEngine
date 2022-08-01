@@ -54,7 +54,7 @@ namespace imp
 			BarrierFunctionObject(Engine& eng) : engine(eng) {};
 			void operator()() noexcept { engine.EngineThreadSyncFunc(); }
 		};
-	    std::barrier<BarrierFunctionObject>* m_SyncPoint;
+	    std::barrier<BarrierFunctionObject>* m_SyncPoint;	// TODO: use polymorphism for when Single thread mode this wont do anything
 
 		// window stuff
 		Window m_Window;
