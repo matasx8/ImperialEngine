@@ -44,6 +44,8 @@ void imp::SurfaceManager::CombForUnusedSurfaces()
 
 void imp::SurfaceManager::Destroy(VkDevice device)
 {
+    for (auto& surf : m_SurfacePool)
+        surf.second.Destroy(device);
 }
 
 imp::Surface imp::SurfaceManager::CreateSurface(const SurfaceDesc& desc, VkDevice device)

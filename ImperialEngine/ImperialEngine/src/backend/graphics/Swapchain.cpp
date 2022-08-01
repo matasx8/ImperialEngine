@@ -114,7 +114,10 @@ imp::Surface imp::Swapchain::GetSwapchainImageSurface(VkDevice device)
 void imp::Swapchain::Destroy(VkDevice device)
 {
     for (auto& image : m_SwapchainImages)
+    {       
         vkDestroyImageView(device, image.GetImage().GetImageView(), nullptr);
+        vkDestroySemaphore(device, image.GetSemaphore(), nullptr);
+    }
     vkDestroySwapchainKHR(device, m_Swapchain, nullptr);
 }
 
@@ -132,7 +135,7 @@ void imp::Swapchain::PopulateNewSwapchainImages(VkDevice device)
         VkImageView imageView = Image::CreateImageView(image, m_Format.format, VK_IMAGE_ASPECT_COLOR_BIT, device);
         Image img(image, imageView, 0);
         const uint32_t numSamples = 1;
-        SurfaceDesc desc = { m_Extent.width, m_Extent.height, m_Format.format, numSamples };
+        SurfaceDesc desc = GetSwapchainImageSurfaceDesc();
         const uint64_t frameLastUsed = ~0ull;
         m_SwapchainImages[i] = Surface(img, desc, frameLastUsed);
         VkSemaphoreCreateInfo semaphoreCreateInfo = {};

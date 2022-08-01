@@ -81,12 +81,9 @@ VkImageView imp::Image::CreateImageView(VkImage image, VkFormat format, VkImageA
     return imageView;
 }
 
-void imp::Image::DestroyImage(VkDevice logicalDevice)
+void imp::Image::Destroy(VkDevice logicalDevice)
 {
     vkDestroyImageView(logicalDevice, m_ImageView, nullptr);
     vkDestroyImage(logicalDevice, m_Image, nullptr);
-    //if (m_ImageMemory)
-        vkFreeMemory(logicalDevice, m_ImageMemory, nullptr);
-   // else
-     //   Debug::LogMsg("an Image was just destroyed that didn't have memory.. That's probably not right :)\0");
+    vkFreeMemory(logicalDevice, m_ImageMemory, nullptr);
 }

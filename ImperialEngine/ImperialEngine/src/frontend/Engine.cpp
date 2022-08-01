@@ -40,7 +40,12 @@ namespace imp
 		m_Q->add(std::mem_fn(&Engine::Cmd_EndFrame), std::shared_ptr<void>());
 	}
 
-	void Engine::SyncThreads()
+	void Engine::SyncRenderThread()
+	{
+		m_Q->add(std::mem_fn(&Engine::Cmd_SyncRenderThread), std::shared_ptr<void>());
+	}
+
+	void Engine::SyncGameThread()
 	{
 		if (m_EngineSettings.threadingMode == kEngineMultiThreaded)
 			m_SyncPoint->arrive_and_wait();
@@ -96,7 +101,9 @@ namespace imp
 	{
 		if (m_EngineSettings.threadingMode == kEngineMultiThreaded)
 		{
-			m_Worker->End();
+			m_Worker->End();				// signal to stop working
+			SyncRenderThread();				// thread might be blocked, so add any command to wake up
+			m_SyncPoint->arrive_and_wait();
 			m_Worker->Join();
 			delete m_Worker;
 			delete m_SyncPoint;

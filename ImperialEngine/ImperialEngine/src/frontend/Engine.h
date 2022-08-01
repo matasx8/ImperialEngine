@@ -24,7 +24,8 @@ namespace imp
 		void Update();
 		void Render();
 		void EndFrame();
-		void SyncThreads();
+		void SyncRenderThread();
+		void SyncGameThread();
 
 		bool ShouldClose() const;
 		void ShutDown();
@@ -66,6 +67,7 @@ namespace imp
 		void Cmd_InitGraphics(std::shared_ptr<void> rsc);
 		void Cmd_RenderCameras(std::shared_ptr<void> rsc);
 		void Cmd_EndFrame(std::shared_ptr<void> rsc);
+		void Cmd_SyncRenderThread(std::shared_ptr<void> rsc);
 	};
 }
 

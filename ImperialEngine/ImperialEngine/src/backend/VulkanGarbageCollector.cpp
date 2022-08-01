@@ -17,9 +17,10 @@ void imp::VulkanGarbageCollector::AddGarbageResource(std::shared_ptr<VulkanResou
 
 void imp::VulkanGarbageCollector::DestroySafeResources(VkDevice device, uint64_t currentFrame)
 {
-	for (int i = 0; i < m_GarbageQueue.size(); i++)
+	const auto size = m_GarbageQueue.size();
+	for (auto i = 0; i < size; i++)
 	{
-		auto res = m_GarbageQueue.front();
+		auto& res = m_GarbageQueue.front();
 		const auto diff = currentFrame - res->GetLastUsed();
 		if (diff < m_SafeFrames)
 			return;
@@ -31,4 +32,10 @@ void imp::VulkanGarbageCollector::DestroySafeResources(VkDevice device, uint64_t
 
 void imp::VulkanGarbageCollector::DestroyAllImmediate(VkDevice device)
 {
+	const auto size = m_GarbageQueue.size();
+	for (auto i = 0; i < size; i++)
+	{
+		m_GarbageQueue.front()->Destroy(device);
+		m_GarbageQueue.pop();
+	}
 }
