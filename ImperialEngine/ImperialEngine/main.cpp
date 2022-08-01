@@ -1,12 +1,16 @@
 #include<iostream>
 #include "frontend/Engine.h"
+#include <chrono>
+#include <thread>
 
 int main()
 {
+	//std::this_thread::sleep_for(std::chrono::milliseconds(15000));
+
 	EngineSettings settings;
 #if _DEBUG
 	settings = { EngineSettingsTemplate::kEngineSettingsDebug };
-#elif _DEV
+#elif _DEV //TODO: for some reason this preprocessor is not set in 'development' mode
 	settings = { EngineSettingsTemplate::kEngineSettingsDevelopment };
 #elif NDEBUG
 	settings = { EngineSettingsTemplate::kEngineSettingsRelease };
@@ -17,13 +21,13 @@ int main()
 	if (!engine.Initialize(settings))
 		return 1;
 
-	// insert 'shouldclose' or something like that
-	// should leave somekind of input interface so user can decide when to close
-	int iterations = 1234;
-	while (iterations--)
+	while (!engine.ShouldClose())
 	{
-		engine.Update();
+		engine.StartFrame();
 		engine.Render();
+		engine.EndFrame();
+		engine.Update();
+		engine.SyncThreads();
 	}
 
 	engine.ShutDown();

@@ -204,6 +204,7 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <AdditionalIncludeDirectories>$(ProjectDir)/src;$(VULKAN_SDK)/Include/vulkan;$(VK_SDK_PATH)/Include/vulkan;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <Optimization>MaxSpeed</Optimization>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -215,11 +216,46 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\backend\EngineCommands.cpp" />
+    <ClCompile Include="src\backend\graphics\CommandBuffer.cpp" />
+    <ClCompile Include="src\backend\graphics\CommandBufferManager.cpp" />
+    <ClCompile Include="src\backend\graphics\Framebuffer.cpp" />
+    <ClCompile Include="src\backend\graphics\Graphics.cpp" />
+    <ClCompile Include="src\backend\graphics\GraphicsCaps.cpp" />
+    <ClCompile Include="src\backend\graphics\Image.cpp" />
+    <ClCompile Include="src\backend\graphics\RenderPass.cpp" />
+    <ClCompile Include="src\backend\graphics\RenderPassBase.cpp" />
+    <ClCompile Include="src\backend\graphics\Surface.cpp" />
+    <ClCompile Include="src\backend\graphics\SurfaceManager.cpp" />
+    <ClCompile Include="src\backend\graphics\Swapchain.cpp" />
+    <ClCompile Include="src\backend\graphics\VkDebug.cpp" />
+    <ClCompile Include="src\backend\VulkanGarbageCollector.cpp" />
+    <ClCompile Include="src\backend\VulkanResource.cpp" />
+    <ClCompile Include="src\backend\VkWindow.cpp" />
     <ClCompile Include="src\frontend\EngineSettings.cpp" />
     <ClCompile Include="src\frontend\Engine.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="src\frontend\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\backend\EngineCommandResources.h" />
+    <ClInclude Include="src\backend\EnumTranslator.h" />
+    <ClInclude Include="src\backend\graphics\CommandBuffer.h" />
+    <ClInclude Include="src\backend\graphics\CommandBufferManager.h" />
+    <ClInclude Include="src\backend\graphics\Framebuffer.h" />
+    <ClInclude Include="src\backend\graphics\Graphics.h" />
+    <ClInclude Include="src\backend\graphics\GraphicsCaps.h" />
+    <ClInclude Include="src\backend\graphics\Image.h" />
+    <ClInclude Include="src\backend\graphics\RenderPass.h" />
+    <ClInclude Include="src\backend\graphics\RenderPassBase.h" />
+    <ClInclude Include="src\backend\graphics\Surface.h" />
+    <ClInclude Include="src\backend\graphics\SurfaceManager.h" />
+    <ClInclude Include="src\backend\graphics\Swapchain.h" />
+    <ClInclude Include="src\backend\graphics\VkDebug.h" />
+    <ClInclude Include="src\backend\VulkanGarbageCollector.h" />
+    <ClInclude Include="src\backend\VulkanResource.h" />
+    <ClInclude Include="src\backend\VkWindow.h" />
+    <ClInclude Include="src\frontend\Debug.h" />
     <ClInclude Include="src\frontend\EngineSettings.h" />
     <ClInclude Include="src\backend\parallel\ConsumerBase.h" />
     <ClInclude Include="src\backend\parallel\ConsumerThread.h" />
@@ -228,6 +264,7 @@
     <ClInclude Include="src\frontend\Components\Components.h" />
     <ClInclude Include="src\frontend\Engine.h" />
     <ClInclude Include="src\Utils\NonCopyable.h" />
+    <ClInclude Include="src\frontend\Window.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

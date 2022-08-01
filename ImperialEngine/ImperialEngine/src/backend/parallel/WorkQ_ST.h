@@ -10,7 +10,7 @@ namespace prl
 			: WorkQ<T>(), m_FunctionOwner(functionOwner)
 		{}
 
-		inline void add(std::_Mem_fn<void (T::*)(std::shared_ptr<CmdRsc>)> item, std::shared_ptr<CmdRsc> rsc) override {
+		inline void add(std::_Mem_fn<void (T::*)(std::shared_ptr<void>)> item, std::shared_ptr<void> rsc) override {
 			item(m_FunctionOwner, rsc);
 		}
 
