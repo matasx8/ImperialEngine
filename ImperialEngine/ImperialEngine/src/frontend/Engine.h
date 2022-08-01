@@ -32,6 +32,7 @@ namespace imp
 	private:
 
 		void InitThreading(EngineThreadingMode mode);
+		void InitImgui();
 		void InitWindow();
 		void InitGraphics();
 		void CleanUpThreading();

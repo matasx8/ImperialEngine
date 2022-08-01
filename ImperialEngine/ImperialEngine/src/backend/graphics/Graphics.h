@@ -5,6 +5,7 @@
 #include "backend/graphics/RenderPass.h"
 #include "backend/graphics/Swapchain.h"
 #include "backend/graphics/VkDebug.h"
+#include "backend/graphics/VkImGUI.h"
 #include "backend/VulkanGarbageCollector.h"
 #include "backend/VkWindow.h"
 #include "Utils/NonCopyable.h"
@@ -36,6 +37,7 @@ namespace imp
 		void CreateCommandBufferManager();
 		void CreateSurfaceManager();
 		void CreateGarbageCollector();
+		void CreateImGUI();
 
 		bool CheckExtensionsSupported(std::vector<const char*> extensions);
 
@@ -60,6 +62,7 @@ namespace imp
 		SurfaceManager m_SurfaceManager;
 
 		VkWindow m_Window;
+		VkImGUI m_ImGUI;
 		VulkanGarbageCollector m_VulkanGarbageCollector;
 
 		friend class RenderPassBase;

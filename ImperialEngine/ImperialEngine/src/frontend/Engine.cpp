@@ -1,6 +1,7 @@
 #include "Engine.h"
 #include "backend/EngineCommandResources.h"
 #include <barrier>
+#include <extern/IMGUI/imgui.h>
 
 namespace imp
 {
@@ -13,6 +14,7 @@ namespace imp
 	{
 		m_EngineSettings = settings;
 		InitThreading(m_EngineSettings.threadingMode);
+		InitImgui();
 		InitWindow();
 		InitGraphics();
 
@@ -84,10 +86,18 @@ namespace imp
 		}
 	}
 
+	void Engine::InitImgui()
+	{
+		IMGUI_CHECKVERSION();
+		ImGui::CreateContext();
+		ImGuiIO& io = ImGui::GetIO(); (void)io; // what is this?
+		ImGui::StyleColorsDark();
+	}
+
 	void Engine::InitWindow()
 	{
 		const std::string windowName = "TestWindow";
-		m_Window.Initialize(windowName, 800, 600);
+		m_Window.Initialize(windowName, 1280 * 2, 720 * 2);
 	}
 
 	void Engine::InitGraphics()

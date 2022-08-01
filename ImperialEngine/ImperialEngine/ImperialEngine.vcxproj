@@ -167,7 +167,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)/src;$(VULKAN_SDK)/Include/vulkan;$(VK_SDK_PATH)/Include/vulkan;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)/src;$(VULKAN_SDK)/Include/vulkan;$(VK_SDK_PATH)/Include/vulkan;$(ProjectDir)/src/extern/IMGUI;$(ProjectDir)/src/extern/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
     </ClCompile>
     <Link>
@@ -184,7 +184,7 @@
       <PreprocessorDefinitions>_DEV;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)/src;$(VULKAN_SDK)/Include/vulkan;$(VK_SDK_PATH)/Include/vulkan;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)/src;$(VULKAN_SDK)/Include/vulkan;$(VK_SDK_PATH)/Include/vulkan;$(ProjectDir)/src/extern/IMGUI;$(ProjectDir)/src/extern/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UndefinePreprocessorDefinitions>_DEBUG</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -203,7 +203,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>$(ProjectDir)/src;$(VULKAN_SDK)/Include/vulkan;$(VK_SDK_PATH)/Include/vulkan;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)/src;$(VULKAN_SDK)/Include/vulkan;$(VK_SDK_PATH)/Include/vulkan;$(ProjectDir)/src/extern/IMGUI;$(ProjectDir)/src/extern/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <Optimization>MaxSpeed</Optimization>
     </ClCompile>
@@ -230,6 +230,7 @@
     <ClCompile Include="src\backend\graphics\SurfaceManager.cpp" />
     <ClCompile Include="src\backend\graphics\Swapchain.cpp" />
     <ClCompile Include="src\backend\graphics\VkDebug.cpp" />
+    <ClCompile Include="src\backend\graphics\VkImGUI.cpp" />
     <ClCompile Include="src\backend\VulkanGarbageCollector.cpp" />
     <ClCompile Include="src\backend\VulkanResource.cpp" />
     <ClCompile Include="src\backend\VkWindow.cpp" />
@@ -253,6 +254,7 @@
     <ClInclude Include="src\backend\graphics\Framebuffer.h" />
     <ClInclude Include="src\backend\graphics\Graphics.h" />
     <ClInclude Include="src\backend\graphics\GraphicsCaps.h" />
+    <ClInclude Include="src\backend\graphics\VkImGUI.h" />
     <ClInclude Include="src\backend\graphics\Image.h" />
     <ClInclude Include="src\backend\graphics\RenderPass.h" />
     <ClInclude Include="src\backend\graphics\RenderPassBase.h" />

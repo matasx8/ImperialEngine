@@ -4,8 +4,9 @@
 #include <stdexcept>
 #include <set>
 #include <cassert>
+#include <extern/IMGUI/backends/imgui_impl_vulkan.h>
 
-imp::Graphics::Graphics() : m_Settings(), m_GfxCaps(), m_ValidationLayers(), m_Window()
+imp::Graphics::Graphics() : m_Settings(), m_GfxCaps(), m_ValidationLayers(), m_Window(), m_ImGUI()
 {
     m_CurrentFrame = 0;
 }
@@ -21,6 +22,7 @@ void imp::Graphics::Initialize(const EngineGraphicsSettings& settings, Window* w
     CreateCommandBufferManager();
     CreateSurfaceManager();
     CreateGarbageCollector();
+    CreateImGUI();
 
     // create renderpass..
     renderpass = new RenderPass();
@@ -35,7 +37,8 @@ void imp::Graphics::Initialize(const EngineGraphicsSettings& settings, Window* w
         kLoadOpClear,
         kStoreOpDontCare
     };
-    const SurfaceDesc colorDesc =  m_Swapchain.GetSwapchainImageSurfaceDesc();
+    SurfaceDesc colorDesc =  m_Swapchain.GetSwapchainImageSurfaceDesc();
+    colorDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     const SurfaceDesc depthDesc = {
         colorDesc.width,
         colorDesc.height,
@@ -239,6 +242,98 @@ void imp::Graphics::CreateSurfaceManager()
 void imp::Graphics::CreateGarbageCollector()
 {
     m_VulkanGarbageCollector.Initialize(m_Settings.swapchainImageCount);
+}
+
+static void check_vk_result(VkResult err)
+{
+    if (err == 0)
+        return;
+    fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
+    if (err < 0)
+        abort();
+}
+
+void imp::Graphics::CreateImGUI()
+{
+    VkDescriptorPool pool = VK_NULL_HANDLE;
+    {   // temporary descriptor pool
+        VkDescriptorPoolSize pool_sizes[] =
+        {
+            { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
+            { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
+            { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
+            { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
+            { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
+            { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
+            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
+            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
+            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
+            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
+            { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
+        };
+        VkDescriptorPoolCreateInfo pool_info = {};
+        pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+        pool_info.maxSets = 1000 * IM_ARRAYSIZE(pool_sizes);
+        pool_info.poolSizeCount = (uint32_t)IM_ARRAYSIZE(pool_sizes);
+        pool_info.pPoolSizes = pool_sizes;
+        auto res = vkCreateDescriptorPool(m_LogicalDevice, &pool_info, nullptr, &pool);
+        check_vk_result(res);
+    }
+
+    VkRenderPass rp = VK_NULL_HANDLE;
+    {
+        VkAttachmentDescription attachment = {};
+        attachment.format = m_Swapchain.GetSwapchainImageSurfaceDesc().format;
+        attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        attachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+        attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        attachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        VkAttachmentReference color_attachment = {};
+        color_attachment.attachment = 0;
+        color_attachment.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        VkSubpassDescription subpass = {};
+        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpass.colorAttachmentCount = 1;
+        subpass.pColorAttachments = &color_attachment;
+        VkSubpassDependency dependency = {};
+        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependency.dstSubpass = 0;
+        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        VkRenderPassCreateInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        info.attachmentCount = 1;
+        info.pAttachments = &attachment;
+        info.subpassCount = 1;
+        info.pSubpasses = &subpass;
+        info.dependencyCount = 1;
+        info.pDependencies = &dependency;
+        auto err = vkCreateRenderPass(m_LogicalDevice, &info, nullptr, &rp);
+        check_vk_result(err);
+    }
+
+    ImGui_ImplVulkan_InitInfo init_info = {};
+    init_info.Instance = m_VkInstance;
+    init_info.PhysicalDevice = m_PhysicalDevice;
+    init_info.Device = m_LogicalDevice;
+    init_info.QueueFamily = m_GfxCaps.GetQueueFamilies().graphicsFamily;
+    init_info.Queue = m_GfxQueue;
+    init_info.PipelineCache = 0;
+    init_info.DescriptorPool = pool;
+    init_info.Subpass = 0;
+    init_info.MinImageCount = kEngineSwapchainDoubleBuffering;
+    init_info.ImageCount = m_Swapchain.GetSwapchainImageCount();
+    init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+    init_info.Allocator = nullptr;
+    init_info.CheckVkResultFn = check_vk_result;
+    ImGui_ImplVulkan_Init(&init_info, rp); // resume with font upload
+
 }
 
 bool imp::Graphics::CheckExtensionsSupported(std::vector<const char*> extensions)

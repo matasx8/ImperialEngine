@@ -111,6 +111,11 @@ imp::Surface imp::Swapchain::GetSwapchainImageSurface(VkDevice device)
     return m_SwapchainImages[m_SwapchainIndex];
 }
 
+uint32_t imp::Swapchain::GetSwapchainImageCount() const
+{
+    return m_ImageCount;
+}
+
 void imp::Swapchain::Destroy(VkDevice device)
 {
     for (auto& image : m_SwapchainImages)
