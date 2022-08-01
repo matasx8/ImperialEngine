@@ -72,6 +72,11 @@ void imp::Window::DisplayFrameInfo() const
 	glfwSetWindowTitle(m_WindowPtr, buffer);
 }
 
+void imp::Window::UpdateImGUI()
+{
+	ImGui_ImplGlfw_NewFrame();
+}
+
 bool imp::Window::ShouldClose() const
 {
 	return glfwWindowShouldClose(m_WindowPtr);

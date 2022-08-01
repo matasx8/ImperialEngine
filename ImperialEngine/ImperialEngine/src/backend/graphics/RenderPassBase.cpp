@@ -117,7 +117,6 @@ std::vector<VkSemaphore> imp::RenderPassBase::GetSemaphoresToWaitOn()
 		if(sem)
 			sems.push_back(surf.GetSemaphore());
 	}
-	assert(sems.size());
 	return sems;
 }
 
@@ -177,8 +176,10 @@ void imp::RenderPassBase::BeginRenderPass(Graphics& gfx, CommandBuffer cmb)
 	renderPassBeginInfo.renderPass = m_RenderPass;
 	renderPassBeginInfo.renderArea.offset = { 0, 0 };
 	renderPassBeginInfo.renderArea.extent = { m_SurfaceDescriptions[0].width, m_SurfaceDescriptions[0].height };
-	renderPassBeginInfo.pClearValues = clearValues.data();
-	renderPassBeginInfo.clearValueCount = clearValues.size();
+	// temp way to know if clear
+	bool clear = (m_Desc.colorLoadOp == kLoadOpClear || m_Desc.depthLoadOp == kLoadOpClear);
+	renderPassBeginInfo.pClearValues = clear ? clearValues.data() : nullptr;
+	renderPassBeginInfo.clearValueCount = clear ? clearValues.size() : 0;
 	renderPassBeginInfo.framebuffer = m_Framebuffer.GetVkFramebuffer();
 
 	vkCmdBeginRenderPass(cmb.cmb, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -201,6 +202,7 @@ std::vector<VkAttachmentDescription> imp::RenderPassBase::CreateAttachmentDescs(
 		attDesc.samples = static_cast<VkSampleCountFlagBits>(descr.msaaCount);
 		attDesc.loadOp = static_cast<VkAttachmentLoadOp>(descr.isColor ? desc.colorLoadOp : desc.depthLoadOp);
 		attDesc.storeOp = static_cast<VkAttachmentStoreOp>(descr.isColor ? desc.colorStoreOp : desc.depthStoreOp);
+		attDesc.initialLayout = static_cast<VkImageLayout>(descr.initialLayout);
 		attDesc.finalLayout = static_cast<VkImageLayout>(descr.finalLayout);
 
 		descs.emplace_back(attDesc);

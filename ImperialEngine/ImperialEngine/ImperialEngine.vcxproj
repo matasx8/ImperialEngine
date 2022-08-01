@@ -226,11 +226,11 @@
     <ClCompile Include="src\backend\graphics\Image.cpp" />
     <ClCompile Include="src\backend\graphics\RenderPass.cpp" />
     <ClCompile Include="src\backend\graphics\RenderPassBase.cpp" />
+    <ClCompile Include="src\backend\graphics\RenderPassImGUI.cpp" />
     <ClCompile Include="src\backend\graphics\Surface.cpp" />
     <ClCompile Include="src\backend\graphics\SurfaceManager.cpp" />
     <ClCompile Include="src\backend\graphics\Swapchain.cpp" />
     <ClCompile Include="src\backend\graphics\VkDebug.cpp" />
-    <ClCompile Include="src\backend\graphics\VkImGUI.cpp" />
     <ClCompile Include="src\backend\VulkanGarbageCollector.cpp" />
     <ClCompile Include="src\backend\VulkanResource.cpp" />
     <ClCompile Include="src\backend\VkWindow.cpp" />
@@ -254,7 +254,7 @@
     <ClInclude Include="src\backend\graphics\Framebuffer.h" />
     <ClInclude Include="src\backend\graphics\Graphics.h" />
     <ClInclude Include="src\backend\graphics\GraphicsCaps.h" />
-    <ClInclude Include="src\backend\graphics\VkImGUI.h" />
+    <ClInclude Include="src\backend\graphics\RenderPassImGUI.h" />
     <ClInclude Include="src\backend\graphics\Image.h" />
     <ClInclude Include="src\backend\graphics\RenderPass.h" />
     <ClInclude Include="src\backend\graphics\RenderPassBase.h" />

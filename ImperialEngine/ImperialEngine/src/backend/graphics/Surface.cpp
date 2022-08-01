@@ -30,6 +30,11 @@ void imp::Surface::AddSemaphore(VkSemaphore sem)
 	m_Semaphore = sem;
 }
 
+void imp::Surface::RemoveSemaphore()
+{
+	m_Semaphore = VK_NULL_HANDLE;
+}
+
 VkSemaphore imp::Surface::GetSemaphore()
 {
 	return m_Semaphore;

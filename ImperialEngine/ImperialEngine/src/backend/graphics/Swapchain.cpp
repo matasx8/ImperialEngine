@@ -4,6 +4,7 @@
 #include <cassert>
 
 imp::Swapchain::Swapchain()
+    : m_Swapchain(), m_Format(), m_Extent(), m_PresentMode(), m_ImageCount(), m_SwapchainIndex(), m_FrameClock(), m_NeedsAcquiring(), m_SwapchainImages(), m_Semaphores()
 {
 }
 
@@ -98,6 +99,7 @@ imp::SurfaceDesc imp::Swapchain::GetSwapchainImageSurfaceDesc() const
     desc.height = m_Extent.height;
     desc.format = m_Format.format;
     desc.msaaCount = 1;
+    desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     desc.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     desc.isColor = true;
     desc.isBackbuffer = true;
@@ -108,6 +110,8 @@ imp::Surface imp::Swapchain::GetSwapchainImageSurface(VkDevice device)
 {
     if (m_NeedsAcquiring)
         AcquireNextImage(device);
+    else
+        m_SwapchainImages[m_SwapchainIndex].RemoveSemaphore();
     return m_SwapchainImages[m_SwapchainIndex];
 }
 

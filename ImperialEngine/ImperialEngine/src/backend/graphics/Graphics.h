@@ -2,10 +2,10 @@
 #include "backend/graphics/CommandBufferManager.h"
 #include "backend/graphics/SurfaceManager.h"
 #include "backend/graphics/GraphicsCaps.h"
+#include "backend/graphics/RenderPassImGUI.h"
 #include "backend/graphics/RenderPass.h"
 #include "backend/graphics/Swapchain.h"
 #include "backend/graphics/VkDebug.h"
-#include "backend/graphics/VkImGUI.h"
 #include "backend/VulkanGarbageCollector.h"
 #include "backend/VkWindow.h"
 #include "Utils/NonCopyable.h"
@@ -62,12 +62,13 @@ namespace imp
 		SurfaceManager m_SurfaceManager;
 
 		VkWindow m_Window;
-		VkImGUI m_ImGUI;
 		VulkanGarbageCollector m_VulkanGarbageCollector;
 
 		friend class RenderPassBase;
 		friend class RenderPass;
+		friend class RenderPassImGUI;
 		// prototyping..
 		RenderPassBase* renderpass;
+		RenderPassBase* renderpassgui;
 	};
 }

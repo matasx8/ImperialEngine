@@ -96,7 +96,7 @@
     <ClCompile Include="src\extern\IMGUI\imgui_widgets.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\backend\graphics\VkImGUI.cpp">
+    <ClCompile Include="src\backend\graphics\RenderPassImGUI.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -206,7 +206,7 @@
     <ClInclude Include="src\extern\IMGUI\imstb_truetype.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\backend\graphics\VkImGUI.h">
+    <ClInclude Include="src\backend\graphics\RenderPassImGUI.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

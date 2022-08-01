@@ -17,6 +17,8 @@ namespace imp
 		InitImgui();
 		InitWindow();
 		InitGraphics();
+		// TODO: this is so first frame renders.. 
+		m_Window.UpdateImGUI();
 
 		return true;
 	}
@@ -97,7 +99,7 @@ namespace imp
 	void Engine::InitWindow()
 	{
 		const std::string windowName = "TestWindow";
-		m_Window.Initialize(windowName, 1280 * 2, 720 * 2);
+		m_Window.Initialize(windowName, 1280, 720);
 	}
 
 	void Engine::InitGraphics()
@@ -139,6 +141,7 @@ namespace imp
 	void Engine::EngineThreadSyncFunc() noexcept
 	{
 		m_Window.UpdateDeltaTime();
+		m_Window.UpdateImGUI();
 	}
 
 }
