@@ -6,6 +6,8 @@ namespace imp
 	{
 		auto* re = (Window*)rsc.get();
 		m_Gfx.Initialize(m_EngineSettings.gfxSettings, re);
+		// after initing graphics we can now wait for first update
+		m_SyncPoint->arrive_and_wait();
 	}
 
 	void Engine::Cmd_RenderCameras(std::shared_ptr<void> rsc)
@@ -29,5 +31,9 @@ namespace imp
 	void Engine::Cmd_SyncRenderThread(std::shared_ptr<void> rsc)
 	{
 		m_SyncPoint->arrive_and_wait();
+	}
+	void Engine::Cmd_RenderImGUI(std::shared_ptr<void> rsc)
+	{
+		m_Gfx.RenderImGUI();
 	}
 }

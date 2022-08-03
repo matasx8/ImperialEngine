@@ -17,26 +17,28 @@ namespace imp
 		InitImgui();
 		InitWindow();
 		InitGraphics();
-		// TODO: this is so first frame renders.. 
-		m_Window.UpdateImGUI();
 
+		// unfortunately we must wait until imgui is initialized on the backend
+		m_SyncPoint->arrive_and_wait();
+		SyncRenderThread();	// and then insert another barrier for first frame
 		return true;
 	}
 
 	void Engine::StartFrame()
 	{
-
+		m_Window.UpdateImGUI();
 	}
 
 	void Engine::Update()
 	{
+		// not sure if this should be here
 		m_Window.Update();
-
 	}
 
 	void Engine::Render()
 	{
 		RenderCameras();
+		RenderImGUI();
 	}
 
 	void Engine::EndFrame()
@@ -114,7 +116,6 @@ namespace imp
 		if (m_EngineSettings.threadingMode == kEngineMultiThreaded)
 		{
 			m_Worker->End();				// signal to stop working
-			SyncRenderThread();				// thread might be blocked, so add any command to wake up
 			m_SyncPoint->arrive_and_wait();
 			m_Worker->Join();
 			delete m_Worker;
@@ -138,10 +139,21 @@ namespace imp
 		m_Q->add(std::mem_fn(&Engine::Cmd_RenderCameras), std::shared_ptr<void>());
 	}
 
+	void Engine::RenderImGUI()
+	{
+		// Because dear imgui uses static globals I can't copy relevant data
+		// TODO: find out how to better paralelize imgui
+		ImGui::NewFrame();
+		bool ye = true;
+		ImGui::ShowDemoWindow(&ye);
+		ImGui::Render();
+		m_Q->add(std::mem_fn(&Engine::Cmd_RenderImGUI), std::shared_ptr<void>());
+	}
+
 	void Engine::EngineThreadSyncFunc() noexcept
 	{
 		m_Window.UpdateDeltaTime();
-		m_Window.UpdateImGUI();
+
 	}
 
 }

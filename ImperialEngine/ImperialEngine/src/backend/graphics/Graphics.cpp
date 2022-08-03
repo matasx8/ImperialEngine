@@ -84,9 +84,12 @@ void imp::Graphics::PrototypeRenderPass()
     // should always return owned surfaces
     auto surfaces = renderpass->GiveSurfaces();
     m_SurfaceManager.ReturnSurfaces(surfaces);
+}
 
+void imp::Graphics::RenderImGUI()
+{
     renderpassgui->Execute(*this);
-    surfaces = renderpassgui->GiveSurfaces();
+    auto surfaces = renderpassgui->GiveSurfaces();
     m_SurfaceManager.ReturnSurfaces(surfaces);
 }
 

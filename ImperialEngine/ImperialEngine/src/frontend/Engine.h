@@ -40,6 +40,7 @@ namespace imp
 		void CleanUpGraphics();
 
 		void RenderCameras();
+		void RenderImGUI();
 
 		void EngineThreadSyncFunc()  noexcept;
 
@@ -69,6 +70,7 @@ namespace imp
 		void Cmd_RenderCameras(std::shared_ptr<void> rsc);
 		void Cmd_EndFrame(std::shared_ptr<void> rsc);
 		void Cmd_SyncRenderThread(std::shared_ptr<void> rsc);
+		void Cmd_RenderImGUI(std::shared_ptr<void> rsc);
 	};
 }
 

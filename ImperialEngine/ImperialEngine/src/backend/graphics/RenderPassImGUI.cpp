@@ -16,10 +16,8 @@ void imp::RenderPassImGUI::Execute(Graphics& gfx)
 	cmb.Begin();
 	BeginRenderPass(gfx, cmb);
 
-	ImGui::NewFrame();
-	bool ye = true;
-	ImGui::ShowDemoWindow(&ye);
-	ImGui::Render();
+
+	// we only want this
 	ImDrawData* draw_data = ImGui::GetDrawData();
 	ImGui_ImplVulkan_RenderDrawData(draw_data, cmb.cmb);
 	EndRenderPass(gfx, cmb);
