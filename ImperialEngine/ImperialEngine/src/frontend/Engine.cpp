@@ -1,11 +1,12 @@
 #include "Engine.h"
 #include "backend/EngineCommandResources.h"
 #include <barrier>
+#include <extern/IMGUI/imgui.h>
 
 namespace imp
 {
 	Engine::Engine()
-		: m_Entities(), m_Q(nullptr), m_Worker(nullptr), m_SyncPoint(nullptr), m_EngineSettings(), m_Window(), m_Gfx()
+		: m_Entities(), m_Q(nullptr), m_Worker(nullptr), m_SyncPoint(nullptr), m_EngineSettings(), m_Window(), m_UI(), m_Gfx()
 	{
 	}
 
@@ -13,26 +14,31 @@ namespace imp
 	{
 		m_EngineSettings = settings;
 		InitThreading(m_EngineSettings.threadingMode);
+		InitImgui();
 		InitWindow();
 		InitGraphics();
 
+		// unfortunately we must wait until imgui is initialized on the backend
+		m_SyncPoint->arrive_and_wait();
+		SyncRenderThread();	// and then insert another barrier for first frame
 		return true;
 	}
 
 	void Engine::StartFrame()
 	{
-
 	}
 
 	void Engine::Update()
 	{
+		// not sure if this should be here
+		m_Window.UpdateImGUI();
 		m_Window.Update();
-
 	}
 
 	void Engine::Render()
 	{
 		RenderCameras();
+		RenderImGUI();
 	}
 
 	void Engine::EndFrame()
@@ -61,6 +67,7 @@ namespace imp
 	{
 		CleanUpThreading();
 		CleanUpWindow();
+		CleanUpUI();
 		CleanUpGraphics();
 	}
 
@@ -84,10 +91,15 @@ namespace imp
 		}
 	}
 
+	void Engine::InitImgui()
+	{
+		m_UI.Initialize();
+	}
+
 	void Engine::InitWindow()
 	{
 		const std::string windowName = "TestWindow";
-		m_Window.Initialize(windowName, 800, 600);
+		m_Window.Initialize(windowName, 1280 * 2, 720 * 2);
 	}
 
 	void Engine::InitGraphics()
@@ -102,7 +114,6 @@ namespace imp
 		if (m_EngineSettings.threadingMode == kEngineMultiThreaded)
 		{
 			m_Worker->End();				// signal to stop working
-			SyncRenderThread();				// thread might be blocked, so add any command to wake up
 			m_SyncPoint->arrive_and_wait();
 			m_Worker->Join();
 			delete m_Worker;
@@ -121,9 +132,22 @@ namespace imp
 		m_Gfx.Destroy();
 	}
 
+	void Engine::CleanUpUI()
+	{
+		m_UI.Destroy();
+	}
+
 	void Engine::RenderCameras()
 	{
 		m_Q->add(std::mem_fn(&Engine::Cmd_RenderCameras), std::shared_ptr<void>());
+	}
+
+	void Engine::RenderImGUI()
+	{
+		// Because dear imgui uses static globals I can't copy relevant data
+		// TODO: find out how to better paralelize imgui
+		m_UI.Update();
+		m_Q->add(std::mem_fn(&Engine::Cmd_RenderImGUI), std::shared_ptr<void>());
 	}
 
 	void Engine::EngineThreadSyncFunc() noexcept

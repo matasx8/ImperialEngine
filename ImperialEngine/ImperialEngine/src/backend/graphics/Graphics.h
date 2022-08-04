@@ -2,6 +2,7 @@
 #include "backend/graphics/CommandBufferManager.h"
 #include "backend/graphics/SurfaceManager.h"
 #include "backend/graphics/GraphicsCaps.h"
+#include "backend/graphics/RenderPassImGUI.h"
 #include "backend/graphics/RenderPass.h"
 #include "backend/graphics/Swapchain.h"
 #include "backend/graphics/VkDebug.h"
@@ -21,6 +22,7 @@ namespace imp
 		void Initialize(const EngineGraphicsSettings& settings, Window* window);
 
 		void PrototypeRenderPass();
+		void RenderImGUI();
 		void EndFrame();
 
 		void Destroy();
@@ -36,10 +38,10 @@ namespace imp
 		void CreateCommandBufferManager();
 		void CreateSurfaceManager();
 		void CreateGarbageCollector();
+		void CreateImGUI();
 
 		bool CheckExtensionsSupported(std::vector<const char*> extensions);
 
-		//std::barrier m_EngineSyncPoint; // probably must add function pointer to synch function
 		EngineGraphicsSettings m_Settings;
 		GraphicsCaps m_GfxCaps;
 		ValidationLayers m_ValidationLayers;
@@ -64,7 +66,9 @@ namespace imp
 
 		friend class RenderPassBase;
 		friend class RenderPass;
+		friend class RenderPassImGUI;
 		// prototyping..
 		RenderPassBase* renderpass;
+		RenderPassBase* renderpassgui;
 	};
 }

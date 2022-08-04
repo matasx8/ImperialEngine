@@ -6,6 +6,7 @@
 #include "backend/parallel/ConsumerThread.h"
 #include "frontend/EngineSettings.h"
 #include "frontend/Window.h"
+#include "frontend/UI.h"
 #include <barrier>
 
 // No Vulkan stuff here
@@ -32,13 +33,16 @@ namespace imp
 	private:
 
 		void InitThreading(EngineThreadingMode mode);
+		void InitImgui();
 		void InitWindow();
 		void InitGraphics();
 		void CleanUpThreading();
 		void CleanUpWindow();
 		void CleanUpGraphics();
+		void CleanUpUI();
 
 		void RenderCameras();
+		void RenderImGUI();
 
 		void EngineThreadSyncFunc()  noexcept;
 
@@ -58,6 +62,7 @@ namespace imp
 
 		// window stuff
 		Window m_Window;
+		UI m_UI;
 
 		// graphics stuff
 		Graphics m_Gfx;
@@ -68,6 +73,7 @@ namespace imp
 		void Cmd_RenderCameras(std::shared_ptr<void> rsc);
 		void Cmd_EndFrame(std::shared_ptr<void> rsc);
 		void Cmd_SyncRenderThread(std::shared_ptr<void> rsc);
+		void Cmd_RenderImGUI(std::shared_ptr<void> rsc);
 	};
 }
 

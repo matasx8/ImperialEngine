@@ -11,6 +11,7 @@ namespace imp
 		uint32_t height;
 		VkFormat format;
 		uint32_t msaaCount;
+		uint32_t initialLayout;
 		uint32_t finalLayout;
 		bool isColor;
 		bool isBackbuffer;
@@ -36,6 +37,8 @@ namespace imp
 		const SurfaceDesc& GetDesc() const;
 		void UpdateLastUsed(unsigned long long currFrame);
 		void AddSemaphore(VkSemaphore sem);
+		// removes semaphore without destroying it
+		void RemoveSemaphore();
 		VkSemaphore GetSemaphore();
 
 		void Destroy(VkDevice device);

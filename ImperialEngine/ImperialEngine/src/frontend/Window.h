@@ -19,6 +19,7 @@ namespace imp
 		int GetHeight() const;
 		void UpdateDeltaTime();
 		void DisplayFrameInfo() const;
+		void UpdateImGUI();
 
 		bool ShouldClose() const;
 
