@@ -173,8 +173,8 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)extern/GLFW/;$(VK_SDK_PATH);$(VULKAN_SDK)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;Lib/vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)extern/GLFW/;$(VK_SDK_PATH);$(VULKAN_SDK);$(ProjectDir)extern/IMGUI/</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;Lib/vulkan-1.lib;StaticDearImGUI.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Development|x64'">
@@ -190,8 +190,8 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)extern/GLFW/;$(VK_SDK_PATH);$(VULKAN_SDK)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;Lib/vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)extern/GLFW/;$(VK_SDK_PATH);$(VULKAN_SDK);$(ProjectDir)extern/IMGUI/</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;Lib/vulkan-1.lib;StaticDearImGUI.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -212,8 +212,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)extern/GLFW/;$(VK_SDK_PATH);$(VULKAN_SDK)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;Lib/vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)extern/GLFW/;$(VK_SDK_PATH);$(VULKAN_SDK);$(ProjectDir)extern/IMGUI/</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;Lib/vulkan-1.lib;StaticDearImGUI.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -236,11 +236,6 @@
     <ClCompile Include="src\backend\VkWindow.cpp" />
     <ClCompile Include="src\extern\IMGUI\backends\imgui_impl_glfw.cpp" />
     <ClCompile Include="src\extern\IMGUI\backends\imgui_impl_vulkan.cpp" />
-    <ClCompile Include="src\extern\IMGUI\imgui.cpp" />
-    <ClCompile Include="src\extern\IMGUI\imgui_demo.cpp" />
-    <ClCompile Include="src\extern\IMGUI\imgui_draw.cpp" />
-    <ClCompile Include="src\extern\IMGUI\imgui_tables.cpp" />
-    <ClCompile Include="src\extern\IMGUI\imgui_widgets.cpp" />
     <ClCompile Include="src\frontend\EngineSettings.cpp" />
     <ClCompile Include="src\frontend\Engine.cpp" />
     <ClCompile Include="main.cpp" />
