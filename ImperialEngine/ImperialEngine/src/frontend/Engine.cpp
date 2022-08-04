@@ -27,7 +27,7 @@ namespace imp
 
 	void Engine::LoadScene()
 	{
-
+		m_AssetImporter.LoadScene("Scene/");
 	}
 
 	void Engine::StartFrame()
@@ -149,6 +149,7 @@ namespace imp
 
 	void Engine::CleanUpAssetImporter()
 	{
+		m_AssetImporter.Destroy();
 	}
 
 	void Engine::RenderCameras()

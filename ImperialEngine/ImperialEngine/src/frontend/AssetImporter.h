@@ -1,6 +1,7 @@
 #pragma once
 #include "Utils/NonCopyable.h"
 #include <string>
+#include <extern/ASSIMP/Importer.hpp>
 
 namespace imp
 {
