@@ -21,6 +21,9 @@ int main()
 	if (!engine.Initialize(settings))
 		return 1;
 
+	// load stuff
+	engine.LoadScene();
+
 	// update - sync - render - update
 	while (!engine.ShouldClose())
 	{

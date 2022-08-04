@@ -1,20 +1,18 @@
 #pragma once
 #include "Utils/NonCopyable.h"
-
+#include <string>
 
 namespace imp
 {
-	class UI : NonCopyable
+	class AssetImporter : NonCopyable
 	{
 	public:
-		UI();
+		AssetImporter();
 		void Initialize();
-
-		void Update();
+		void LoadScene(const std::string& path);
 
 		void Destroy();
-
 	private:
-		bool m_ShowDefaultWindow;
+
 	};
 }

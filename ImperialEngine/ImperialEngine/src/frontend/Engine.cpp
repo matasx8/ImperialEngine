@@ -17,11 +17,17 @@ namespace imp
 		InitImgui();
 		InitWindow();
 		InitGraphics();
+		InitAssetImporter();
 
 		// unfortunately we must wait until imgui is initialized on the backend
 		m_SyncPoint->arrive_and_wait();
 		SyncRenderThread();	// and then insert another barrier for first frame
 		return true;
+	}
+
+	void Engine::LoadScene()
+	{
+
 	}
 
 	void Engine::StartFrame()
@@ -55,7 +61,6 @@ namespace imp
 	{
 		if (m_EngineSettings.threadingMode == kEngineMultiThreaded)
 			m_SyncPoint->arrive_and_wait();
-		m_Window.DisplayFrameInfo();
 	}
 
 	bool Engine::ShouldClose() const
@@ -109,6 +114,11 @@ namespace imp
 		m_Q->add(std::mem_fn(&Engine::Cmd_InitGraphics), std::make_shared<Window>(m_Window));
 	}
 
+	void Engine::InitAssetImporter()
+	{
+		m_AssetImporter.Initialize();
+	}
+
 	void Engine::CleanUpThreading()
 	{
 		if (m_EngineSettings.threadingMode == kEngineMultiThreaded)
@@ -135,6 +145,10 @@ namespace imp
 	void Engine::CleanUpUI()
 	{
 		m_UI.Destroy();
+	}
+
+	void Engine::CleanUpAssetImporter()
+	{
 	}
 
 	void Engine::RenderCameras()

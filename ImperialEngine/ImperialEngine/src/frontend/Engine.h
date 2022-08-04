@@ -5,6 +5,7 @@
 #include "backend/parallel/WorkQ_ST.h"
 #include "backend/parallel/ConsumerThread.h"
 #include "frontend/EngineSettings.h"
+#include "frontend/AssetImporter.h"
 #include "frontend/Window.h"
 #include "frontend/UI.h"
 #include <barrier>
@@ -20,6 +21,7 @@ namespace imp
 	public:
 		Engine();
 		bool Initialize(EngineSettings settings);
+		void LoadScene();
 
 		void StartFrame();
 		void Update();
@@ -36,15 +38,20 @@ namespace imp
 		void InitImgui();
 		void InitWindow();
 		void InitGraphics();
+		void InitAssetImporter();
 		void CleanUpThreading();
 		void CleanUpWindow();
 		void CleanUpGraphics();
 		void CleanUpUI();
+		void CleanUpAssetImporter();
 
 		void RenderCameras();
 		void RenderImGUI();
 
 		void EngineThreadSyncFunc()  noexcept;
+
+		// asset stuff
+		AssetImporter m_AssetImporter;
 
 		// entity stuff
 		entt::registry m_Entities;
