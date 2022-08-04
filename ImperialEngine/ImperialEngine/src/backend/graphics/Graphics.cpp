@@ -107,7 +107,7 @@ void imp::Graphics::Destroy()
 
     // prototyping stuff ---
     renderpass->Destroy(m_LogicalDevice);
-
+    renderpassgui->Destroy(m_LogicalDevice);
     // prototyping stuff ---
 
     m_SurfaceManager.Destroy(m_LogicalDevice);

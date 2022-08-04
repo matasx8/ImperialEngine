@@ -6,6 +6,7 @@
 #include "backend/parallel/ConsumerThread.h"
 #include "frontend/EngineSettings.h"
 #include "frontend/Window.h"
+#include "frontend/UI.h"
 #include <barrier>
 
 // No Vulkan stuff here
@@ -38,6 +39,7 @@ namespace imp
 		void CleanUpThreading();
 		void CleanUpWindow();
 		void CleanUpGraphics();
+		void CleanUpUI();
 
 		void RenderCameras();
 		void RenderImGUI();
@@ -60,6 +62,7 @@ namespace imp
 
 		// window stuff
 		Window m_Window;
+		UI m_UI;
 
 		// graphics stuff
 		Graphics m_Gfx;

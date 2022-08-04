@@ -6,7 +6,7 @@
 namespace imp
 {
 	Engine::Engine()
-		: m_Entities(), m_Q(nullptr), m_Worker(nullptr), m_SyncPoint(nullptr), m_EngineSettings(), m_Window(), m_Gfx()
+		: m_Entities(), m_Q(nullptr), m_Worker(nullptr), m_SyncPoint(nullptr), m_EngineSettings(), m_Window(), m_UI(), m_Gfx()
 	{
 	}
 
@@ -26,12 +26,12 @@ namespace imp
 
 	void Engine::StartFrame()
 	{
-		m_Window.UpdateImGUI();
 	}
 
 	void Engine::Update()
 	{
 		// not sure if this should be here
+		m_Window.UpdateImGUI();
 		m_Window.Update();
 	}
 
@@ -67,6 +67,7 @@ namespace imp
 	{
 		CleanUpThreading();
 		CleanUpWindow();
+		CleanUpUI();
 		CleanUpGraphics();
 	}
 
@@ -92,16 +93,13 @@ namespace imp
 
 	void Engine::InitImgui()
 	{
-		IMGUI_CHECKVERSION();
-		ImGui::CreateContext();
-		ImGuiIO& io = ImGui::GetIO(); (void)io; // what is this?
-		ImGui::StyleColorsDark();
+		m_UI.Initialize();
 	}
 
 	void Engine::InitWindow()
 	{
 		const std::string windowName = "TestWindow";
-		m_Window.Initialize(windowName, 1280, 720);
+		m_Window.Initialize(windowName, 1280 * 2, 720 * 2);
 	}
 
 	void Engine::InitGraphics()
@@ -134,6 +132,11 @@ namespace imp
 		m_Gfx.Destroy();
 	}
 
+	void Engine::CleanUpUI()
+	{
+		m_UI.Destroy();
+	}
+
 	void Engine::RenderCameras()
 	{
 		m_Q->add(std::mem_fn(&Engine::Cmd_RenderCameras), std::shared_ptr<void>());
@@ -143,17 +146,13 @@ namespace imp
 	{
 		// Because dear imgui uses static globals I can't copy relevant data
 		// TODO: find out how to better paralelize imgui
-		ImGui::NewFrame();
-		bool ye = true;
-		ImGui::ShowDemoWindow(&ye);
-		ImGui::Render();
+		m_UI.Update();
 		m_Q->add(std::mem_fn(&Engine::Cmd_RenderImGUI), std::shared_ptr<void>());
 	}
 
 	void Engine::EngineThreadSyncFunc() noexcept
 	{
 		m_Window.UpdateDeltaTime();
-
 	}
 
 }

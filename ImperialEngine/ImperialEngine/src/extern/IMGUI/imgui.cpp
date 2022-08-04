@@ -13515,6 +13515,7 @@ void ImGui::UpdateDebugToolStackQueries() {}
 // Prefer just including imgui_internal.h from your code rather than using this define. If a declaration is missing from imgui_internal.h add it or request it on the github.
 #ifdef IMGUI_INCLUDE_IMGUI_USER_INL
 #include "imgui_user.inl"
+#include "ImGUI.h"
 #endif
 
 //-----------------------------------------------------------------------------
