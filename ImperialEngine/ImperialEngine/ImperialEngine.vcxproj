@@ -241,6 +241,7 @@
     <ClCompile Include="src\frontend\Engine.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="src\frontend\UI.cpp" />
+    <ClCompile Include="src\Utils\Utilities.cpp" />
     <ClCompile Include="src\frontend\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -274,6 +275,7 @@
     <ClInclude Include="src\frontend\Components\Components.h" />
     <ClInclude Include="src\frontend\Engine.h" />
     <ClInclude Include="src\frontend\UI.h" />
+    <ClInclude Include="src\Utils\Utilities.h" />
     <ClInclude Include="src\Utils\NonCopyable.h" />
     <ClInclude Include="src\frontend\Window.h" />
   </ItemGroup>

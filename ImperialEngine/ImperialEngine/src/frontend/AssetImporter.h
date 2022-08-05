@@ -1,7 +1,8 @@
 #pragma once
 #include "Utils/NonCopyable.h"
 #include <string>
-#include <extern/ASSIMP/Importer.hpp>
+#include <filesystem>
+
 
 namespace imp
 {
@@ -15,5 +16,7 @@ namespace imp
 		void Destroy();
 	private:
 
+		void LoadFile(const std::filesystem::path& path);
+		void LoadObj(const std::filesystem::path& path);
 	};
 }
