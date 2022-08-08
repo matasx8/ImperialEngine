@@ -3,9 +3,20 @@
 #include <string>
 #include <filesystem>
 
+namespace Assimp
+{
+	class Importer;
+}
+
+
 
 namespace imp
 {
+	namespace CmdRsc
+	{
+		struct MeshCreationRequest;
+	}
+
 	class AssetImporter : NonCopyable
 	{
 	public:
@@ -16,7 +27,7 @@ namespace imp
 		void Destroy();
 	private:
 
-		void LoadFile(const std::filesystem::path& path);
-		void LoadObj(const std::filesystem::path& path);
+		void LoadFile(Assimp::Importer& imp, const std::filesystem::path& path);
+		void LoadModel(std::vector<imp::CmdRsc::MeshCreationRequest>& reqs, Assimp::Importer& imp, const std::filesystem::path& path);
 	};
 }

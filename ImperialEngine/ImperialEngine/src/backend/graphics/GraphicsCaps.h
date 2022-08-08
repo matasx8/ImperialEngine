@@ -1,6 +1,8 @@
 #pragma once
 #include <vulkan.h>
 #include <vector>
+#include <extern/GLM/vec2.hpp>
+#include <extern/GLM/vec3.hpp>
 #include "frontend/EngineSettings.h"
 
 namespace imp
@@ -29,6 +31,13 @@ namespace imp
 		VkPhysicalDeviceMemoryProperties memoryProperties;
 
 		uint32_t FindMemoryTypeIndex(uint32_t allowedTypes, VkMemoryPropertyFlags flags);
+	};
+
+	struct Vertex
+	{
+		glm::vec3 pos;
+		glm::vec2 tex; // tex coords (u, v)
+		glm::vec3 norm;
 	};
 
 	class GraphicsCaps
