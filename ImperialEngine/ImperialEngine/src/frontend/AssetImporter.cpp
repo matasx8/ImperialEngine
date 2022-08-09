@@ -53,7 +53,9 @@ namespace imp
 			LoadModel(reqs, imp, path);
 			for (auto& req : reqs)
 			{
-				const auto renderable = m_Engine.m_Entities.create();
+				const auto renderable = reg.create();
+				const auto vertexData = reg.create(); // not sure if this would be thread safe..
+				req.vertexData = vertexData;
 				reg.emplace<Comp::Mesh>(renderable);
 			}
 			// finish this command 
