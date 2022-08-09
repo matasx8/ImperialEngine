@@ -15,6 +15,6 @@ namespace Comp
 
 	struct Mesh
 	{
-		entt::entity e;
+		entt::entity e;	// vbo created by backend
 	};
 }

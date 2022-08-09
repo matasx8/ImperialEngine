@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <ENTT/entt.hpp>
 #include "backend/graphics/GraphicsCaps.h"
 
 namespace imp
@@ -8,6 +9,7 @@ namespace imp
 	{
 		struct MeshCreationRequest
 		{
+			entt::entity vertexData;
 			std::vector<Vertex> vertices;
 			std::vector<uint32_t> indices;
 		};

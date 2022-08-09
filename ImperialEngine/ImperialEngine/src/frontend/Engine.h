@@ -51,6 +51,7 @@ namespace imp
 		void EngineThreadSyncFunc()  noexcept;
 
 		// asset stuff
+		friend class AssetImporter;
 		AssetImporter m_AssetImporter;
 
 		// entity stuff
@@ -76,11 +77,13 @@ namespace imp
 
 		EngineSettings m_EngineSettings;
 
+		// can I put this in a different namespace and drop the prefix?
 		void Cmd_InitGraphics(std::shared_ptr<void> rsc);
 		void Cmd_RenderCameras(std::shared_ptr<void> rsc);
 		void Cmd_EndFrame(std::shared_ptr<void> rsc);
 		void Cmd_SyncRenderThread(std::shared_ptr<void> rsc);
 		void Cmd_RenderImGUI(std::shared_ptr<void> rsc);
+		void Cmd_UploadMeshes(std::shared_ptr<void> rsc);
 	};
 }
 

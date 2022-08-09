@@ -1,13 +1,17 @@
 #include "AssetImporter.h"
 #include "Utils/Utilities.h"
 #include "backend/EngineCommandResources.h"
+#include "frontend/Engine.h"
+#include "frontend/Components/Components.h"
 #include <extern/ASSIMP/Importer.hpp>
 #include <extern/ASSIMP/scene.h>
 #include <extern/ASSIMP/postprocess.h>
+#include <extern/GLM/mat4x4.hpp>
 
 namespace imp
 {
-	AssetImporter::AssetImporter()
+	AssetImporter::AssetImporter(Engine& engine)
+		: m_Engine(engine)
 	{
 	}
 
@@ -40,14 +44,25 @@ namespace imp
 		const auto extension = path.extension().string();
 		if (extension == "obj")
 		{
+			// create main entity, that the renderable entities will point to
+			const entt::entity mainEntity = m_Engine.m_Entities.create();
+			auto& reg = m_Engine.m_Entities;
+			reg.emplace<Comp::Transform>(mainEntity, glm::mat4x4(1.0f));
+
 			std::vector<imp::CmdRsc::MeshCreationRequest> reqs;
 			LoadModel(reqs, imp, path);
-
+			for (auto& req : reqs)
+			{
+				const auto renderable = m_Engine.m_Entities.create();
+				reg.emplace<Comp::Mesh>(renderable);
+			}
+			// finish this command 
+			m_Engine.Cmd_UploadMeshes(std::make_shared<std::vector<imp::CmdRsc::MeshCreationRequest>>(reqs));
 
 		}
 	}
 
-	static void LoadNode(std::vector<imp::CmdRsc::MeshCreationRequest>& meshList, aiNode* node, const aiScene* scene)
+	static void LoadMesh(std::vector<imp::CmdRsc::MeshCreationRequest>& meshList, aiNode* node, const aiScene* scene)
 	{
 		// go through each mesh at this node and create it, then add it to our meshlist
 		for (size_t i = 0; i < node->mNumMeshes; i++)
@@ -94,7 +109,7 @@ namespace imp
 
 		// go through each node attached to this node and load it, then append their meshes to this node's mesh list
 		for (size_t i = 0; i < node->mNumChildren; i++)
-			LoadNode(meshList, node->mChildren[i], scene);
+			LoadMesh(meshList, node->mChildren[i], scene);
 	}
 
 	void AssetImporter::LoadModel(std::vector<imp::CmdRsc::MeshCreationRequest>& reqs, Assimp::Importer& imp, const std::filesystem::path& path)
@@ -105,7 +120,7 @@ namespace imp
 			printf("[Asset Importer] Failed to read '%s' with error: '%s' \n", path.c_str(), imp.GetErrorString());
 			return;
 		}
-		LoadNode(reqs, scene->mRootNode, scene);
+		LoadMesh(reqs, scene->mRootNode, scene);
 		assert(reqs.size());
 	}
 

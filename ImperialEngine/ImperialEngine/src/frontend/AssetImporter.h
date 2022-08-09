@@ -17,10 +17,12 @@ namespace imp
 		struct MeshCreationRequest;
 	}
 
+	class Engine;
+
 	class AssetImporter : NonCopyable
 	{
 	public:
-		AssetImporter();
+		AssetImporter(Engine& engine);
 		void Initialize();
 		void LoadScene(const std::string& path);
 
@@ -29,5 +31,7 @@ namespace imp
 
 		void LoadFile(Assimp::Importer& imp, const std::filesystem::path& path);
 		void LoadModel(std::vector<imp::CmdRsc::MeshCreationRequest>& reqs, Assimp::Importer& imp, const std::filesystem::path& path);
+
+		Engine& m_Engine;
 	};
 }

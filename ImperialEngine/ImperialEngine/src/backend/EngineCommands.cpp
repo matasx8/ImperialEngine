@@ -36,4 +36,8 @@ namespace imp
 	{
 		m_Gfx.RenderImGUI();
 	}
+	void Engine::Cmd_UploadMeshes(std::shared_ptr<void> rsc)
+	{
+
+	}
 }
