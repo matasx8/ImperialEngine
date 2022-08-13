@@ -2,6 +2,7 @@
 #include "backend/EngineCommandResources.h"
 #include <barrier>
 #include <extern/IMGUI/imgui.h>
+#include "Components/Components.h"
 
 namespace imp
 {
@@ -165,9 +166,27 @@ namespace imp
 		m_Q->add(std::mem_fn(&Engine::Cmd_RenderImGUI), std::shared_ptr<void>());
 	}
 
+
+	// This member function gets executed when both main and render thread arrive at the barrier.
+	// Can be used to sync data.
+	// Keep as fast as possible.
 	void Engine::EngineThreadSyncFunc() noexcept
 	{
 		m_Window.UpdateDeltaTime();
+		// TODO: stop using old EnTT signle include so we get entt::destroyed. This func is supposed to be faster
+		m_Gfx.m_GfxEntities.assign(m_Entities.data(), m_Entities.data() + m_Entities.size());
+		{
+			auto view = m_Entities.view<Comp::Transform>();
+			m_Gfx.m_GfxEntities.insert(view.data(), view.data() + view.size(), view.raw(), view.raw() + view.size());
+		}// shit.. try to use packagae manager to get newest version..
+		{
+			auto view = m_Entities.view<Comp::Mesh>();
+			m_Gfx.m_GfxEntities.insert(view.data(), view.data() + view.size(), view.raw(), view.raw() + view.size());
+		}
+		{
+			auto view = m_Entities.view<Comp::IndexedVertexBuffers>();
+			m_Gfx.m_GfxEntities.insert(view.data(), view.data() + view.size(), view.raw(), view.raw() + view.size());
+		}
 	}
 
 }

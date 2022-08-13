@@ -10,6 +10,7 @@
 #include "backend/VulkanMemory.h"
 #include "backend/VkWindow.h"
 #include "Utils/NonCopyable.h"
+#include <extern/ENTT/entt.hpp>
 #include <barrier>
 
 namespace imp
@@ -77,7 +78,7 @@ namespace imp
 		// On the other side, a system that has access to a view or a group can only iterate, read and update entities and components.
 		// only have a group or view? Dunno if that would work threaded
 	public:
-		entt::registry& m_GfxEntities;
+		entt::registry m_GfxEntities;
 	private:
 
 		friend class RenderPassBase;

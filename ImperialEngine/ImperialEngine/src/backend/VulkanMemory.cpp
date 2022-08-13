@@ -31,6 +31,9 @@ namespace imp
 		VkMemoryRequirements memRequirements;
 		vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
 		const auto mem = AllocateMemory(device, memRequirements.size, memRequirements, buffMemPropFlags, memoryProps);
+
+		VulkanBuffer buff(bufferSize, buffer, mem);
+		return buff;
 	}
 
 	VkDeviceMemory VulkanMemory::AllocateMemory(VkDevice device, VkDeviceSize bufferSize, VkMemoryRequirements memReqs, VkMemoryPropertyFlags buffMemPropFlags, const MemoryProps& memoryProps)
@@ -44,6 +47,8 @@ namespace imp
 		memoryAllocInfo.memoryTypeIndex = memoryProps.FindMemoryTypeIndex(memReqs.memoryTypeBits, buffMemPropFlags);
 		const auto res = vkAllocateMemory(device, &memoryAllocInfo, nullptr, &mem);
 		assert(res == VK_SUCCESS);
+
+		return mem;
 	}
 
 	void VulkanMemory::Destroy()

@@ -17,9 +17,6 @@ namespace imp
 
 	void AssetImporter::Initialize()
 	{
-		// TODO: Remove when registry sync is implemented
-		// finish here
-		m_Engine.m_Gfx.m_GfxEntities = m_Engine.m_Entities;
 	}
 
 	void AssetImporter::LoadScene(const std::string& path)
@@ -66,6 +63,8 @@ namespace imp
 				req.vertexData = vertexData;
 				reg.emplace<Comp::Mesh>(renderable);
 			}
+			m_Engine.m_SyncPoint->arrive_and_wait();
+			//m_Engine.SyncRenderThread();	// and then insert another barrier for first frame
 			// TODO: put this somewhere higher in the callstack so we upload all the meshes at the same time
 			m_Engine.m_Q->add(std::mem_fn(&Engine::Cmd_UploadMeshes), std::make_shared<std::vector<imp::CmdRsc::MeshCreationRequest>>(reqs));
 

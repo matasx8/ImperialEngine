@@ -9,7 +9,7 @@
 #include <cassert>
 #include <extern/IMGUI/backends/imgui_impl_vulkan.h>
 
-imp::Graphics::Graphics() : m_Settings(), m_GfxCaps(), m_ValidationLayers(), m_Window()
+imp::Graphics::Graphics() : m_Settings(), m_GfxCaps(), m_ValidationLayers(), m_Window(), m_GfxEntities()
 {
     m_CurrentFrame = 0;
 }
@@ -102,6 +102,8 @@ void imp::Graphics::EndFrame()
     m_CbManager.SignalFrameEnded();
     m_VulkanGarbageCollector.DestroySafeResources(m_LogicalDevice, m_CurrentFrame);
     m_CurrentFrame++;
+
+    m_GfxEntities.clear();
 }
 
 void imp::Graphics::CreateAndUploadMeshes(const std::vector<CmdRsc::MeshCreationRequest>& meshCreationData)
@@ -117,6 +119,15 @@ void imp::Graphics::CreateAndUploadMeshes(const std::vector<CmdRsc::MeshCreation
         // from the request we can tell which entity to assign
         const auto IndexedVertexBufferEnt = req.vertexData;
         auto& reg = m_GfxEntities;
+        bool hass = reg.has(IndexedVertexBufferEnt);
+        auto vv = reg.view<Comp::IndexedVertexBuffers>();
+        auto id = reg.entity(IndexedVertexBufferEnt);
+        auto anyy = reg.any(IndexedVertexBufferEnt);
+        for (auto ent : vv)
+        {
+            auto& ind = vv.get<Comp::IndexedVertexBuffers>(ent);
+        }
+        auto& cc = vv.get<Comp::IndexedVertexBuffers>(IndexedVertexBufferEnt);
         auto& component = reg.get<Comp::IndexedVertexBuffers>(IndexedVertexBufferEnt);// get the single component we need
 
         // TODO: merge this into one function, vertex and index buffer creation is only different by 1 flag

@@ -5,6 +5,11 @@ imp::VulkanBuffer::VulkanBuffer()
 {
 }
 
+imp::VulkanBuffer::VulkanBuffer(uint32_t size, VkBuffer buffer, VkDeviceMemory mem)
+	: m_Buffer(buffer), m_Memory(mem), m_Size(size)
+{
+}
+
 uint32_t imp::VulkanBuffer::GetSize() const
 {
 	return m_Size;
