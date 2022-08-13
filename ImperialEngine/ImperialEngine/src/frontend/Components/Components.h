@@ -1,5 +1,6 @@
 #include <GLM/mat4x4.hpp>
 #include <ENTT/entt.hpp>
+#include "backend/VulkanBuffer.h"
 
 namespace Comp
 {
@@ -16,5 +17,11 @@ namespace Comp
 	struct Mesh
 	{
 		entt::entity e;	// vbo created by backend
+	};
+
+	struct IndexedVertexBuffers
+	{
+		imp::VulkanBuffer indices;
+		imp::VulkanBuffer vertices;
 	};
 }

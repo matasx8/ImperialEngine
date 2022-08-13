@@ -38,6 +38,10 @@ namespace imp
 	}
 	void Engine::Cmd_UploadMeshes(std::shared_ptr<void> rsc)
 	{
+		auto* re = (std::vector<imp::CmdRsc::MeshCreationRequest>*)rsc.get();
+		// we have place where to add index and vertex components
+		// we know vert and idx data
 
+		m_Gfx.CreateAndUploadMeshes(*re);
 	}
 }

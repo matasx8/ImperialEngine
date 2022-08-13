@@ -17,6 +17,9 @@ namespace imp
 
 	void AssetImporter::Initialize()
 	{
+		// TODO: Remove when registry sync is implemented
+		// finish here
+		m_Engine.m_Gfx.m_GfxEntities = m_Engine.m_Entities;
 	}
 
 	void AssetImporter::LoadScene(const std::string& path)
@@ -29,7 +32,7 @@ namespace imp
 			// create entity and from main thread it seems like the object has been loaded and created
 			// meanwhile launch render thread command to create vertex and index buffers and upload to gpu
 			// entity will have a handle to this data and when time comes to render it'll be magically inplace
-
+			LoadFile(importer, file);
 		}
 
 		printf("[Asset Importer] Successfully loaded scene from '%s' with %d files\n", path.c_str(), static_cast<int>(paths.size()));
@@ -42,7 +45,7 @@ namespace imp
 	void AssetImporter::LoadFile(Assimp::Importer& imp, const std::filesystem::path& path)
 	{
 		const auto extension = path.extension().string();
-		if (extension == "obj")
+		if (extension == ".obj")
 		{
 			// create main entity, that the renderable entities will point to
 			const entt::entity mainEntity = m_Engine.m_Entities.create();
@@ -53,13 +56,18 @@ namespace imp
 			LoadModel(reqs, imp, path);
 			for (auto& req : reqs)
 			{
+				// renderable entity is basically a mesh and material
+				// mesh component will point to IndexedVerts entity that'll have an index and vertex buffer
 				const auto renderable = reg.create();
-				const auto vertexData = reg.create(); // not sure if this would be thread safe..
+				// create the indexed verts entity so backend knows where to assign indices and vertices
+				// frontend doesn't have to know about actual VkBuffers..
+				const auto vertexData = reg.create(); // not sure if this would be thread safe.. answer: it's not!
+				reg.emplace<Comp::IndexedVertexBuffers>(vertexData);	// also assign the vertex component, backend can't add anything to registry
 				req.vertexData = vertexData;
 				reg.emplace<Comp::Mesh>(renderable);
 			}
-			// finish this command 
-			m_Engine.Cmd_UploadMeshes(std::make_shared<std::vector<imp::CmdRsc::MeshCreationRequest>>(reqs));
+			// TODO: put this somewhere higher in the callstack so we upload all the meshes at the same time
+			m_Engine.m_Q->add(std::mem_fn(&Engine::Cmd_UploadMeshes), std::make_shared<std::vector<imp::CmdRsc::MeshCreationRequest>>(reqs));
 
 		}
 	}

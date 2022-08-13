@@ -7,6 +7,7 @@
 #include "backend/graphics/Swapchain.h"
 #include "backend/graphics/VkDebug.h"
 #include "backend/VulkanGarbageCollector.h"
+#include "backend/VulkanMemory.h"
 #include "backend/VkWindow.h"
 #include "Utils/NonCopyable.h"
 #include <barrier>
@@ -14,6 +15,7 @@
 namespace imp
 {
 	class Window;
+	namespace CmdRsc { struct MeshCreationRequest; }
 
 	class Graphics : NonCopyable
 	{
@@ -24,6 +26,8 @@ namespace imp
 		void PrototypeRenderPass();
 		void RenderImGUI();
 		void EndFrame();
+
+		void CreateAndUploadMeshes(const std::vector<CmdRsc::MeshCreationRequest>& meshCreationData);
 
 		void Destroy();
 
@@ -39,6 +43,10 @@ namespace imp
 		void CreateSurfaceManager();
 		void CreateGarbageCollector();
 		void CreateImGUI();
+		void CreateVulkanMemoryManager();
+
+		// transfer commands
+		void CopyVulkanBuffer(const VulkanBuffer& src, VulkanBuffer& dst, const CommandBuffer& cb);
 
 		bool CheckExtensionsSupported(std::vector<const char*> extensions);
 
@@ -63,6 +71,14 @@ namespace imp
 
 		VkWindow m_Window;
 		VulkanGarbageCollector m_VulkanGarbageCollector;
+		VulkanMemory m_MemoryManager;
+		MemoryProps m_DeviceMemoryProps;
+
+		// On the other side, a system that has access to a view or a group can only iterate, read and update entities and components.
+		// only have a group or view? Dunno if that would work threaded
+	public:
+		entt::registry& m_GfxEntities;
+	private:
 
 		friend class RenderPassBase;
 		friend class RenderPass;

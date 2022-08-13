@@ -50,9 +50,6 @@ namespace imp
 
 		void EngineThreadSyncFunc()  noexcept;
 
-		// asset stuff
-		friend class AssetImporter;
-		AssetImporter m_AssetImporter;
 
 		// entity stuff
 		entt::registry m_Entities;
@@ -74,6 +71,10 @@ namespace imp
 
 		// graphics stuff
 		Graphics m_Gfx;
+
+		// asset stuff
+		friend class AssetImporter;
+		AssetImporter m_AssetImporter;
 
 		EngineSettings m_EngineSettings;
 

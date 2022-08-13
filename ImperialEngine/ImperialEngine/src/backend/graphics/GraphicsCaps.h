@@ -30,7 +30,7 @@ namespace imp
 	{
 		VkPhysicalDeviceMemoryProperties memoryProperties;
 
-		uint32_t FindMemoryTypeIndex(uint32_t allowedTypes, VkMemoryPropertyFlags flags);
+		uint32_t FindMemoryTypeIndex(uint32_t allowedTypes, VkMemoryPropertyFlags flags) const;
 	};
 
 	struct Vertex

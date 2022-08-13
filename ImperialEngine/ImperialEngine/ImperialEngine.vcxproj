@@ -231,7 +231,9 @@
     <ClCompile Include="src\backend\graphics\SurfaceManager.cpp" />
     <ClCompile Include="src\backend\graphics\Swapchain.cpp" />
     <ClCompile Include="src\backend\graphics\VkDebug.cpp" />
+    <ClCompile Include="src\backend\VulkanBuffer.cpp" />
     <ClCompile Include="src\backend\VulkanGarbageCollector.cpp" />
+    <ClCompile Include="src\backend\VulkanMemory.cpp" />
     <ClCompile Include="src\backend\VulkanResource.cpp" />
     <ClCompile Include="src\backend\VkWindow.cpp" />
     <ClCompile Include="src\extern\IMGUI\backends\imgui_impl_glfw.cpp" />
@@ -260,7 +262,9 @@
     <ClInclude Include="src\backend\graphics\SurfaceManager.h" />
     <ClInclude Include="src\backend\graphics\Swapchain.h" />
     <ClInclude Include="src\backend\graphics\VkDebug.h" />
+    <ClInclude Include="src\backend\VulkanBuffer.h" />
     <ClInclude Include="src\backend\VulkanGarbageCollector.h" />
+    <ClInclude Include="src\backend\VulkanMemory.h" />
     <ClInclude Include="src\backend\VulkanResource.h" />
     <ClInclude Include="src\backend\VkWindow.h" />
     <ClInclude Include="src\extern\IMGUI\backends\imgui_impl_glfw.h" />
