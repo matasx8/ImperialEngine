@@ -170,6 +170,7 @@ namespace imp
 	// This member function gets executed when both main and render thread arrive at the barrier.
 	// Can be used to sync data.
 	// Keep as fast as possible.
+	int counter = 0;
 	void Engine::EngineThreadSyncFunc() noexcept
 	{
 		m_Window.UpdateDeltaTime();
@@ -181,8 +182,8 @@ namespace imp
 		{
 			const auto& mesh = meshes.get<Comp::Mesh>(ent);
 			const auto& transform = transforms.get<Comp::Transform>(mesh.e);
-			imp::Graphics::DrawData ee = { transform.transform, static_cast<uint32_t>(mesh.e) };
-			m_Gfx.m_DrawData.push_back(ee);
+
+			m_Gfx.m_DrawData.emplace_back(transform.transform, static_cast<uint32_t>(mesh.e));
 		}
 	}
 

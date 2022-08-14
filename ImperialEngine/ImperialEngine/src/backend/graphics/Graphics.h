@@ -9,6 +9,7 @@
 #include "backend/VulkanGarbageCollector.h"
 #include "backend/VulkanMemory.h"
 #include "backend/VkWindow.h"
+#include "backend/DrawData.h"
 #include "Utils/NonCopyable.h"
 #include "frontend/Components/Components.h"
 #include <extern/ENTT/entt.hpp>
@@ -82,13 +83,13 @@ namespace imp
 		// only have a group or view? Dunno if that would work threaded
 	public:
 		//entt::registry m_GfxEntities;
-		struct DrawData
+		struct DrawDataSingle
 		{
 			glm::mat4x4 Transform;
 			uint32_t VertexBufferId;
 		};
-		//std::vector<Comp::Transform> m_Transforms;
-		std::vector<DrawData> m_DrawData;
+		std::vector<DrawDataSingle> m_DrawData;
+		//DrawData<DrawDataSingle> m_DrawData;
 	private:
 
 		friend class RenderPassBase;
