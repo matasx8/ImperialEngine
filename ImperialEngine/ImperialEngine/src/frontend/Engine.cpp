@@ -29,6 +29,20 @@ namespace imp
 	void Engine::LoadScene()
 	{
 		m_AssetImporter.LoadScene("Scene/");
+		
+		const int iterations = 1000000;
+		const int meshes = 5;
+		printf("[Test] Entities placed %d\n", meshes * iterations);
+		for (int i = 0; i < iterations; i++)
+		{
+			const auto e = m_Entities.create();
+			m_Entities.emplace<Comp::Transform>(e);
+			for (int j = 0; j < meshes; j++)
+			{
+				const auto ren = m_Entities.create();
+				m_Entities.emplace<Comp::Mesh>(ren, e);
+			}
+		}
 	}
 
 	void Engine::StartFrame()
@@ -182,7 +196,14 @@ namespace imp
 		{
 			const auto& mesh = meshes.get<Comp::Mesh>(ent);
 			const auto& transform = transforms.get<Comp::Transform>(mesh.e);
+			//printf("h %d %d\n", mesh.e, transform.transform.length());
+			//imp::Graphics::DrawDataSingle ee { transform.transform, static_cast<uint32_t>(mesh.e) };
+			//ee.Transform[0].a += 1.2f;
 
+			//auto copyy = ee;
+			//copyy.Transform[0].a += 1.3f;
+
+			//counter += ee.Transform.length() + ee.VertexBufferId + copyy.Transform[0].a;// +transform.transform.length() + static_cast<int>(mesh.e);
 			m_Gfx.m_DrawData.emplace_back(transform.transform, static_cast<uint32_t>(mesh.e));
 		}
 	}
