@@ -1,3 +1,4 @@
+#pragma once
 #include <GLM/mat4x4.hpp>
 #include <ENTT/entt.hpp>
 #include "backend/VulkanBuffer.h"
@@ -16,7 +17,7 @@ namespace Comp
 
 	struct Mesh
 	{
-		entt::entity e;	// vbo created by backend
+		entt::entity e;	// transform
 	};
 
 	struct IndexedVertexBuffers

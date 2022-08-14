@@ -9,7 +9,7 @@ namespace imp
 	{
 		struct MeshCreationRequest
 		{
-			entt::entity vertexData;
+			uint32_t id;
 			std::vector<Vertex> vertices;
 			std::vector<uint32_t> indices;
 		};

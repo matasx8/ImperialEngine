@@ -10,6 +10,7 @@
 #include "backend/VulkanMemory.h"
 #include "backend/VkWindow.h"
 #include "Utils/NonCopyable.h"
+#include "frontend/Components/Components.h"
 #include <extern/ENTT/entt.hpp>
 #include <barrier>
 
@@ -75,10 +76,19 @@ namespace imp
 		VulkanMemory m_MemoryManager;
 		MemoryProps m_DeviceMemoryProps;
 
+		std::unordered_map<uint32_t, Comp::IndexedVertexBuffers> m_VertexBuffers;
+
 		// On the other side, a system that has access to a view or a group can only iterate, read and update entities and components.
 		// only have a group or view? Dunno if that would work threaded
 	public:
-		entt::registry m_GfxEntities;
+		//entt::registry m_GfxEntities;
+		struct DrawData
+		{
+			glm::mat4x4 Transform;
+			uint32_t VertexBufferId;
+		};
+		//std::vector<Comp::Transform> m_Transforms;
+		std::vector<DrawData> m_DrawData;
 	private:
 
 		friend class RenderPassBase;

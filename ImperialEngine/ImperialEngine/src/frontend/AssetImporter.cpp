@@ -54,14 +54,10 @@ namespace imp
 			for (auto& req : reqs)
 			{
 				// renderable entity is basically a mesh and material
-				// mesh component will point to IndexedVerts entity that'll have an index and vertex buffer
 				const auto renderable = reg.create();
-				// create the indexed verts entity so backend knows where to assign indices and vertices
-				// frontend doesn't have to know about actual VkBuffers..
-				const auto vertexData = reg.create(); // not sure if this would be thread safe.. answer: it's not!
-				reg.emplace<Comp::IndexedVertexBuffers>(vertexData);	// also assign the vertex component, backend can't add anything to registry
-				req.vertexData = vertexData;
 				reg.emplace<Comp::Mesh>(renderable);
+
+				req.id = static_cast<uint32_t>(renderable);
 			}
 			m_Engine.m_SyncPoint->arrive_and_wait();
 			//m_Engine.SyncRenderThread();	// and then insert another barrier for first frame

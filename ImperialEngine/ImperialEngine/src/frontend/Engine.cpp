@@ -173,19 +173,16 @@ namespace imp
 	void Engine::EngineThreadSyncFunc() noexcept
 	{
 		m_Window.UpdateDeltaTime();
-		// TODO: stop using old EnTT signle include so we get entt::destroyed. This func is supposed to be faster
-		m_Gfx.m_GfxEntities.assign(m_Entities.data(), m_Entities.data() + m_Entities.size());
+		m_Gfx.m_DrawData.clear();
+
+		const auto meshes = m_Entities.view<Comp::Mesh>();
+		const auto transforms = m_Entities.view<Comp::Transform>();
+		for (auto ent : meshes)
 		{
-			auto view = m_Entities.view<Comp::Transform>();
-			m_Gfx.m_GfxEntities.insert(view.data(), view.data() + view.size(), view.raw(), view.raw() + view.size());
-		}// shit.. try to use packagae manager to get newest version..
-		{
-			auto view = m_Entities.view<Comp::Mesh>();
-			m_Gfx.m_GfxEntities.insert(view.data(), view.data() + view.size(), view.raw(), view.raw() + view.size());
-		}
-		{
-			auto view = m_Entities.view<Comp::IndexedVertexBuffers>();
-			m_Gfx.m_GfxEntities.insert(view.data(), view.data() + view.size(), view.raw(), view.raw() + view.size());
+			const auto& mesh = meshes.get<Comp::Mesh>(ent);
+			const auto& transform = transforms.get<Comp::Transform>(mesh.e);
+			imp::Graphics::DrawData ee = { transform.transform, static_cast<uint32_t>(mesh.e) };
+			m_Gfx.m_DrawData.push_back(ee);
 		}
 	}
 

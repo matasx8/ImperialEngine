@@ -167,7 +167,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)/src;$(VULKAN_SDK)/Include/vulkan;$(VK_SDK_PATH)/Include/vulkan;$(ProjectDir)/src/extern/IMGUI;$(ProjectDir)/src/extern/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)/src;$(VULKAN_SDK)/Include/vulkan;$(VK_SDK_PATH)/Include/vulkan;$(ProjectDir)/src/extern/IMGUI;$(ProjectDir)/src/extern/;$(ProjectDir)/src/extern/ENTT;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
     </ClCompile>
     <Link>
@@ -184,7 +184,7 @@
       <PreprocessorDefinitions>_DEV;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)/src;$(VULKAN_SDK)/Include/vulkan;$(VK_SDK_PATH)/Include/vulkan;$(ProjectDir)/src/extern/IMGUI;$(ProjectDir)/src/extern/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)/src;$(VULKAN_SDK)/Include/vulkan;$(VK_SDK_PATH)/Include/vulkan;$(ProjectDir)/src/extern/IMGUI;$(ProjectDir)/src/extern/;$(ProjectDir)/src/extern/ENTT;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UndefinePreprocessorDefinitions>_DEBUG</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -203,7 +203,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>$(ProjectDir)/src;$(VULKAN_SDK)/Include/vulkan;$(VK_SDK_PATH)/Include/vulkan;$(ProjectDir)/src/extern/IMGUI;$(ProjectDir)/src/extern/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)/src;$(VULKAN_SDK)/Include/vulkan;$(VK_SDK_PATH)/Include/vulkan;$(ProjectDir)/src/extern/IMGUI;$(ProjectDir)/src/extern/;$(ProjectDir)/src/extern/ENTT;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <Optimization>MaxSpeed</Optimization>
     </ClCompile>

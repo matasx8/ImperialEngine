@@ -24,13 +24,16 @@ namespace imp
 		bufferInfo.queueFamilyIndexCount = 0; // ignored when VK_SHARING_MODE_EXCLUSIVE (TODO: maybe don't have to init this memory?)
 		bufferInfo.pQueueFamilyIndices = nullptr;
 		bufferInfo.pNext = nullptr;
+		bufferInfo.flags = 0;
 
-		const auto res = vkCreateBuffer(device, &bufferInfo, nullptr, &buffer);
+		auto res = vkCreateBuffer(device, &bufferInfo, nullptr, &buffer);
 		assert(res == VK_SUCCESS);
 
 		VkMemoryRequirements memRequirements;
 		vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
 		const auto mem = AllocateMemory(device, memRequirements.size, memRequirements, buffMemPropFlags, memoryProps);
+		res = vkBindBufferMemory(device, buffer, mem, 0);
+		assert(res == VK_SUCCESS);
 
 		VulkanBuffer buff(bufferSize, buffer, mem);
 		return buff;
