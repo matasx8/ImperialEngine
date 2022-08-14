@@ -59,7 +59,11 @@ namespace imp
 
 				req.id = static_cast<uint32_t>(renderable);
 			}
-			m_Engine.m_SyncPoint->arrive_and_wait();
+
+			// TODO: this is needed now because on ST mode the UploadMeshes command would get executed instantly
+			// that doesn't fit now because we actually should store the creation requests somewhere and then add the command when the game loop starts
+			if(m_Engine.m_EngineSettings.threadingMode == kEngineSingleThreaded)
+				m_Engine.m_SyncPoint->arrive_and_wait();
 			//m_Engine.SyncRenderThread();	// and then insert another barrier for first frame
 			// TODO: put this somewhere higher in the callstack so we upload all the meshes at the same time
 			m_Engine.m_Q->add(std::mem_fn(&Engine::Cmd_UploadMeshes), std::make_shared<std::vector<imp::CmdRsc::MeshCreationRequest>>(reqs));
