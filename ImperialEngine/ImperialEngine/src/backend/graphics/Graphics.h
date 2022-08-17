@@ -9,7 +9,6 @@
 #include "backend/VulkanGarbageCollector.h"
 #include "backend/VulkanMemory.h"
 #include "backend/VkWindow.h"
-#include "backend/DrawData.h"
 #include "Utils/NonCopyable.h"
 #include "frontend/Components/Components.h"
 #include <extern/ENTT/entt.hpp>
@@ -47,8 +46,10 @@ namespace imp
 		void CreateGarbageCollector();
 		void CreateImGUI();
 		void CreateVulkanMemoryManager();
+		
 
 		// transfer commands
+		VulkanBuffer UploadVulkanBuffer(VkBufferUsageFlags usageFlags, VkBufferUsageFlags dstUsageFlags, VkMemoryPropertyFlags memoryFlags, VkMemoryPropertyFlags dstMemoryFlags, const CommandBuffer& cb, uint32_t allocSize, const void* dataToUpload);
 		void CopyVulkanBuffer(const VulkanBuffer& src, VulkanBuffer& dst, const CommandBuffer& cb);
 
 		bool CheckExtensionsSupported(std::vector<const char*> extensions);

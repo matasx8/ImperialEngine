@@ -115,63 +115,20 @@ void imp::Graphics::CreateAndUploadMeshes(const std::vector<CmdRsc::MeshCreation
     for (const auto& req : meshCreationData)
     {
         Comp::IndexedVertexBuffers component;
-        // TODO: merge this into one function, vertex and index buffer creation is only different by 1 flag
-        {
-            const auto usageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-            const auto memoryFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-            const auto allocSize = req.vertices.size() * sizeof(Vertex);
-            auto stagingBuffer = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, usageFlags, memoryFlags, m_DeviceMemoryProps);
-            stagingBuffer.UpdateLastUsed(m_CurrentFrame);
 
-            const auto dstUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-            const auto dstMemoryFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-            auto vertexBuffer = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, dstUsageFlags, dstMemoryFlags, m_DeviceMemoryProps);
+        const auto usageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        auto dstUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
-            // copy cpu data to host visible buffer
-            void* data;
-            const VkMemoryMapFlags flags = 0;   // don't exist yet
-            const VkDeviceSize offset = 0;      // so far we have whole buffers
-            const auto res = vkMapMemory(m_LogicalDevice, stagingBuffer.GetMemory(), offset, stagingBuffer.GetSize(), flags, &data);
-            assert(res == VK_SUCCESS);
-            memcpy(data, req.vertices.data(), stagingBuffer.GetSize());
-            vkUnmapMemory(m_LogicalDevice, stagingBuffer.GetMemory());
+        const auto memoryFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        const auto dstMemoryFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
-            // do host visible buffer to device local buffer
-            CopyVulkanBuffer(stagingBuffer, vertexBuffer, cb);
+        auto allocSize = req.vertices.size() * sizeof(Vertex);
+        component.vertices = UploadVulkanBuffer(usageFlags, dstUsageFlags, memoryFlags, dstMemoryFlags, cb, allocSize, req.vertices.data());
 
-            // assign to component
-            component.vertices = vertexBuffer;
+        dstUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+        allocSize = req.indices.size(); // * SIZE_OF_INDEX; or something like that
+        component.indices = UploadVulkanBuffer(usageFlags, dstUsageFlags, memoryFlags, dstMemoryFlags, cb, allocSize, req.indices.data());
 
-            m_VulkanGarbageCollector.AddGarbageResource(std::make_shared<VulkanBuffer>(stagingBuffer));
-        }
-        {
-            const auto usageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-            const auto memoryFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-            const auto allocSize = req.vertices.size() * sizeof(Vertex);
-            auto stagingBuffer = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, usageFlags, memoryFlags, m_DeviceMemoryProps);
-            stagingBuffer.UpdateLastUsed(m_CurrentFrame);
-
-            const auto dstUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-            const auto dstMemoryFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-            auto vertexBuffer = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, dstUsageFlags, dstMemoryFlags, m_DeviceMemoryProps);
-
-            // copy cpu data to host visible buffer
-            void* data;
-            const VkMemoryMapFlags flags = 0;   // don't exist yet
-            const VkDeviceSize offset = 0;      // so far we have whole buffers
-            const auto res = vkMapMemory(m_LogicalDevice, stagingBuffer.GetMemory(), offset, stagingBuffer.GetSize(), flags, &data);
-            assert(res == VK_SUCCESS);
-            memcpy(data, req.vertices.data(), stagingBuffer.GetSize());
-            vkUnmapMemory(m_LogicalDevice, stagingBuffer.GetMemory());
-
-            // do host visible buffer to device local buffer
-            CopyVulkanBuffer(stagingBuffer, vertexBuffer, cb);
-
-            // assign to component
-            component.indices = vertexBuffer;
-
-            m_VulkanGarbageCollector.AddGarbageResource(std::make_shared<VulkanBuffer>(stagingBuffer));
-        }
         m_VertexBuffers[req.id] = component;
     }
 
@@ -421,6 +378,38 @@ void imp::Graphics::CreateImGUI()
 void imp::Graphics::CreateVulkanMemoryManager()
 {
     m_MemoryManager.Initialize();
+}
+
+imp::VulkanBuffer imp::Graphics::UploadVulkanBuffer(VkBufferUsageFlags usageFlags, VkBufferUsageFlags dstUsageFlags, VkMemoryPropertyFlags memoryFlags, VkMemoryPropertyFlags dstMemoryFlags, const CommandBuffer& cb, uint32_t allocSize, const void* dataToUpload)
+{
+    //const auto usageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    //const auto memoryFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    //const auto allocSize = req.vertices.size() * sizeof(Vertex);
+    auto stagingBuffer = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, usageFlags, memoryFlags, m_DeviceMemoryProps);
+    stagingBuffer.UpdateLastUsed(m_CurrentFrame);
+
+    //const auto dstUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    //const auto dstMemoryFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    auto uploadedBuffer = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, dstUsageFlags, dstMemoryFlags, m_DeviceMemoryProps);
+
+    // copy cpu data to host visible buffer
+    void* data;
+    const VkMemoryMapFlags flags = 0;   // don't exist yet
+    const VkDeviceSize offset = 0;      // so far we have whole buffers
+    const auto res = vkMapMemory(m_LogicalDevice, stagingBuffer.GetMemory(), offset, stagingBuffer.GetSize(), flags, &data);
+    assert(res == VK_SUCCESS);
+    memcpy(data, dataToUpload, stagingBuffer.GetSize());
+    vkUnmapMemory(m_LogicalDevice, stagingBuffer.GetMemory());
+
+    // do host visible buffer to device local buffer
+    CopyVulkanBuffer(stagingBuffer, uploadedBuffer, cb);
+
+    // assign to component
+    //component.vertices = vertexBuffer;
+
+    m_VulkanGarbageCollector.AddGarbageResource(std::make_shared<VulkanBuffer>(stagingBuffer));
+
+    return uploadedBuffer;
 }
 
 void imp::Graphics::CopyVulkanBuffer(const VulkanBuffer& src, VulkanBuffer& dst, const CommandBuffer& cb)

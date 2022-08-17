@@ -105,7 +105,7 @@ namespace imp
 	void Engine::InitWindow()
 	{
 		const std::string windowName = "TestWindow";
-		m_Window.Initialize(windowName, 1280 * 2, 720 * 2);
+		m_Window.Initialize(windowName, 1280 , 720 );
 	}
 
 	void Engine::InitGraphics()
@@ -170,7 +170,6 @@ namespace imp
 	// This member function gets executed when both main and render thread arrive at the barrier.
 	// Can be used to sync data.
 	// Keep as fast as possible.
-	int counter = 0;
 	void Engine::EngineThreadSyncFunc() noexcept
 	{
 		m_Window.UpdateDeltaTime();
