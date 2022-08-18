@@ -52,6 +52,9 @@ namespace imp
 		VulkanBuffer UploadVulkanBuffer(VkBufferUsageFlags usageFlags, VkBufferUsageFlags dstUsageFlags, VkMemoryPropertyFlags memoryFlags, VkMemoryPropertyFlags dstMemoryFlags, const CommandBuffer& cb, uint32_t allocSize, const void* dataToUpload);
 		void CopyVulkanBuffer(const VulkanBuffer& src, VulkanBuffer& dst, const CommandBuffer& cb);
 
+		void PushConstants(VkCommandBuffer cb, const void* data, uint32_t size, VkPipelineLayout pipeLayout) const;
+		void BindMesh(VkCommandBuffer cb, uint32_t vtxBufferId) const;
+		
 		bool CheckExtensionsSupported(std::vector<const char*> extensions);
 
 		EngineGraphicsSettings m_Settings;

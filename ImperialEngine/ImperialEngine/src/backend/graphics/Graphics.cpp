@@ -424,6 +424,25 @@ void imp::Graphics::CopyVulkanBuffer(const VulkanBuffer& src, VulkanBuffer& dst,
     vkCmdCopyBuffer(cb.cmb, src.GetBuffer(), dst.GetBuffer(), 1, &bufferCopyRegion);
 }
 
+void imp::Graphics::PushConstants(VkCommandBuffer cb, const void* data, uint32_t size, VkPipelineLayout pipeLayout) const
+{
+    assert(data);
+    assert(size);
+    vkCmdPushConstants(cb, pipeLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, size, data);
+}
+
+void imp::Graphics::BindMesh(VkCommandBuffer cb, uint32_t vtxBufferId) const
+{
+    const auto indexedVertexBufferIt = m_VertexBuffers.find(vtxBufferId);
+    assert(indexedVertexBufferIt != m_VertexBuffers.end());
+    const auto& vertexBuffer = indexedVertexBufferIt->second.vertices.GetBuffer();
+    const auto& indexBuffer = indexedVertexBufferIt->second.indices.GetBuffer();
+    VkDeviceSize offsets[] = { 0 };
+
+    vkCmdBindVertexBuffers(cb, 0, 1, &vertexBuffer, offsets);
+    vkCmdBindIndexBuffer(cb, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+}
+
 bool imp::Graphics::CheckExtensionsSupported(std::vector<const char*> extensions)
 {
     uint32_t extensionCount = 0;
