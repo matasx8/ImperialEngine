@@ -126,7 +126,7 @@ void imp::Graphics::CreateAndUploadMeshes(const std::vector<CmdRsc::MeshCreation
         component.vertices = UploadVulkanBuffer(usageFlags, dstUsageFlags, memoryFlags, dstMemoryFlags, cb, allocSize, req.vertices.data());
 
         dstUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-        allocSize = req.indices.size(); // * SIZE_OF_INDEX; or something like that
+        allocSize = req.indices.size() * sizeof(uint32_t); // * SIZE_OF_INDEX; or something like that
         component.indices = UploadVulkanBuffer(usageFlags, dstUsageFlags, memoryFlags, dstMemoryFlags, cb, allocSize, req.indices.data());
 
         m_VertexBuffers[req.id] = component;
@@ -134,6 +134,14 @@ void imp::Graphics::CreateAndUploadMeshes(const std::vector<CmdRsc::MeshCreation
 
     cb.End();
     m_CbManager.Submit(m_GfxQueue, m_LogicalDevice, cbs, {});
+}
+
+void imp::Graphics::CreateAndUploadMaterials(const std::vector<CmdRsc::MaterialCreationRequest>& materialCreationData)
+{
+    for (const auto& req : materialCreationData)
+    {
+
+    }
 }
 
 void imp::Graphics::Destroy()

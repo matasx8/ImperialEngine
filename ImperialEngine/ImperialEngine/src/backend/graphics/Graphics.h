@@ -1,5 +1,6 @@
 #pragma once
 #include "backend/graphics/CommandBufferManager.h"
+#include "backend/graphics/VulkanShaderManager.h"
 #include "backend/graphics/SurfaceManager.h"
 #include "backend/graphics/GraphicsCaps.h"
 #include "backend/graphics/RenderPassImGUI.h"
@@ -30,6 +31,7 @@ namespace imp
 		void EndFrame();
 
 		void CreateAndUploadMeshes(const std::vector<CmdRsc::MeshCreationRequest>& meshCreationData);
+		void CreateAndUploadMaterials(const std::vector<CmdRsc::MaterialCreationRequest>& materialCreationData);
 
 		void Destroy();
 
@@ -75,6 +77,7 @@ namespace imp
 
 		CommandBufferManager m_CbManager;
 		SurfaceManager m_SurfaceManager;
+		VulkanShaderManager m_ShaderManager;
 
 		VkWindow m_Window;
 		VulkanGarbageCollector m_VulkanGarbageCollector;

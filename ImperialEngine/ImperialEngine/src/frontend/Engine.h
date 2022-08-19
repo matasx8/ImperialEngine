@@ -85,6 +85,7 @@ namespace imp
 		void Cmd_SyncRenderThread(std::shared_ptr<void> rsc);
 		void Cmd_RenderImGUI(std::shared_ptr<void> rsc);
 		void Cmd_UploadMeshes(std::shared_ptr<void> rsc);
+		void Cmd_UploadMaterials(std::shared_ptr<void> rsc);
 	};
 }
 

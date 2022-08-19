@@ -29,6 +29,7 @@ namespace imp
 	void Engine::LoadScene()
 	{
 		m_AssetImporter.LoadScene("Scene/");
+		m_AssetImporter.LoadMaterials("Shaders/glsl");
 	}
 
 	void Engine::StartFrame()

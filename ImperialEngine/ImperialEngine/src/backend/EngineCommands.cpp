@@ -44,4 +44,10 @@ namespace imp
 
 		m_Gfx.CreateAndUploadMeshes(*re);
 	}
+
+	void Engine::Cmd_UploadMaterials(std::shared_ptr<void> rsc)
+	{
+		auto* re = (std::vector<imp::CmdRsc::MaterialCreationRequest>*)rsc.get();
+		m_Gfx.CreateAndUploadMaterials(*re);
+	}
 }

@@ -13,5 +13,12 @@ namespace imp
 			std::vector<Vertex> vertices;
 			std::vector<uint32_t> indices;
 		};
+
+		struct MaterialCreationRequest
+		{
+			std::string shaderName;
+			std::shared_ptr<std::string> vertexSpv;
+			std::shared_ptr<std::string> fragmentSpv;
+		};
 	}
 }
