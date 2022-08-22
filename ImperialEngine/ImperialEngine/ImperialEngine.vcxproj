@@ -224,6 +224,8 @@
     <ClCompile Include="src\backend\graphics\Graphics.cpp" />
     <ClCompile Include="src\backend\graphics\GraphicsCaps.cpp" />
     <ClCompile Include="src\backend\graphics\Image.cpp" />
+    <ClCompile Include="src\backend\graphics\Pipeline.cpp" />
+    <ClCompile Include="src\backend\graphics\PipelineManager.cpp" />
     <ClCompile Include="src\backend\graphics\RenderPass.cpp" />
     <ClCompile Include="src\backend\graphics\RenderPassBase.cpp" />
     <ClCompile Include="src\backend\graphics\RenderPassImGUI.cpp" />
@@ -232,6 +234,7 @@
     <ClCompile Include="src\backend\graphics\Swapchain.cpp" />
     <ClCompile Include="src\backend\graphics\VkDebug.cpp" />
     <ClCompile Include="src\backend\graphics\VulkanShader.cpp" />
+    <ClCompile Include="src\backend\graphics\VulkanShaderManager.cpp" />
     <ClCompile Include="src\backend\VulkanBuffer.cpp" />
     <ClCompile Include="src\backend\VulkanGarbageCollector.cpp" />
     <ClCompile Include="src\backend\VulkanMemory.cpp" />
@@ -255,6 +258,8 @@
     <ClInclude Include="src\backend\graphics\Framebuffer.h" />
     <ClInclude Include="src\backend\graphics\Graphics.h" />
     <ClInclude Include="src\backend\graphics\GraphicsCaps.h" />
+    <ClInclude Include="src\backend\graphics\Pipeline.h" />
+    <ClInclude Include="src\backend\graphics\PipelineManager.h" />
     <ClInclude Include="src\backend\graphics\RenderPassImGUI.h" />
     <ClInclude Include="src\backend\graphics\Image.h" />
     <ClInclude Include="src\backend\graphics\RenderPass.h" />

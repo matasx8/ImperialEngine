@@ -1,0 +1,20 @@
+#pragma once
+#include "backend/VulkanResource.h"
+
+namespace imp
+{
+	class Pipeline : VulkanResource
+	{
+	public:
+		Pipeline();
+		Pipeline(VkPipeline pipeline, VkPipelineLayout layout);
+
+		VkPipeline GetPipeline() const;
+
+		void Destroy(VkDevice device) override;
+	private:
+
+		VkPipeline m_Pipeline;
+		VkPipelineLayout m_PipelineLayout;
+	};
+}
