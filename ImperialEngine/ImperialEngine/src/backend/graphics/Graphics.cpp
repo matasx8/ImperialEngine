@@ -140,7 +140,7 @@ void imp::Graphics::CreateAndUploadMaterials(const std::vector<CmdRsc::MaterialC
 {
     for (const auto& req : materialCreationData)
     {
-
+        m_ShaderManager.CreateVulkanShaderSet(m_LogicalDevice, req);
     }
 }
 
@@ -430,6 +430,14 @@ void imp::Graphics::CopyVulkanBuffer(const VulkanBuffer& src, VulkanBuffer& dst,
     bufferCopyRegion.size = src.GetSize();
 
     vkCmdCopyBuffer(cb.cmb, src.GetBuffer(), dst.GetBuffer(), 1, &bufferCopyRegion);
+}
+
+void imp::Graphics::EnsurePipeline(VkCommandBuffer cb, const RenderPassBase& rp)
+{
+    // Compare old material and new one
+    // if true: return
+    // else: get pipeline from pipeline manager
+
 }
 
 void imp::Graphics::PushConstants(VkCommandBuffer cb, const void* data, uint32_t size, VkPipelineLayout pipeLayout) const

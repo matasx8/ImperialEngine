@@ -29,7 +29,7 @@ namespace imp
 
 		//std::vector<VkImageView> GetAndEnsureRequestedSurfacesesViews(const std::vector<std::pair<uint32_t, SurfaceDesc>>& requestedSurfaces, const RenderPass& rp, uint32_t swapchainIndex);
 		Surface CreateSurface(const SurfaceDesc& desc, VkDevice device);
-
+		// TODO: later change to unordered set
 		std::unordered_map<SurfaceDesc, Surface> m_SurfacePool;
 		MemoryProps m_MemoryProps;
 	};

@@ -44,7 +44,7 @@ namespace imp
 		const auto materialCreationReqs = LoadShaders(paths);
 
 		// parse material creation requests and create materials
-		m_Engine.m_Q->add(std::mem_fn(&Engine::Cmd_UploadMeshes), std::make_shared<std::vector<imp::CmdRsc::MaterialCreationRequest>>(materialCreationReqs));
+		m_Engine.m_Q->add(std::mem_fn(&Engine::Cmd_UploadMaterials), std::make_shared<std::vector<imp::CmdRsc::MaterialCreationRequest>>(materialCreationReqs));
 
 		// should also create material entities.
 		// since we only have one no need for now.

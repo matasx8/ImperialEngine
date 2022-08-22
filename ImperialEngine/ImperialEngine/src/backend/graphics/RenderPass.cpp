@@ -15,8 +15,13 @@ void imp::RenderPass::Execute(Graphics& gfx)
 	cmb.Begin();
 	BeginRenderPass(gfx, cmb);
 
+	// since 
+
 	for (const auto& drawData : gfx.m_DrawData)
 	{
+		// if material of old drawData is not same
+		// then get pipeline of new material + renderpass
+		// gfx.EnsurePipeline(cb, drawData.material, *this) or something like that
 		gfx.BindMesh(cb, drawData.VertexBufferId);
 		gfx.PushConstants(cb, &drawData.Transform, sizeof(drawData.Transform), 0);
 	}

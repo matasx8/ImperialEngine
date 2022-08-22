@@ -19,3 +19,12 @@ namespace imp
 		VkShaderModule m_ShaderModule;
 	};
 }
+
+template <>
+struct std::hash<imp::VulkanShader>
+{
+	std::size_t operator()(const imp::VulkanShader& k) const
+	{
+		return std::hash<std::string>()(k.GetName());
+	}
+};
