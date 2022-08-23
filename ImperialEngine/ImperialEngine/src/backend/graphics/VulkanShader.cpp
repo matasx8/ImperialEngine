@@ -1,18 +1,13 @@
 #include "VulkanShader.h"
 
 imp::VulkanShader::VulkanShader()
-	: m_Name("Invalid"), m_ShaderModule(VK_NULL_HANDLE)
+	: m_ShaderModule(VK_NULL_HANDLE)
 {
 }
 
-imp::VulkanShader::VulkanShader(const std::string& name, VkShaderModule shaderModule)
-	: m_Name(name), m_ShaderModule(shaderModule)
+imp::VulkanShader::VulkanShader(VkShaderModule shaderModule)
+	: m_ShaderModule(shaderModule)
 {
-}
-
-const std::string& imp::VulkanShader::GetName() const
-{
-	return m_Name;
 }
 
 VkShaderModule imp::VulkanShader::GetShaderModule() const

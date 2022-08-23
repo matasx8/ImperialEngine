@@ -1,8 +1,17 @@
 #include "VulkanShaderManager.h"
+#include <optional>
 
 imp::VulkanShaderManager::VulkanShaderManager()
-	: m_ShaderSet()
+	: m_ShaderMap()
 {
+}
+
+imp::VulkanShader imp::VulkanShaderManager::GetShader(const std::string& shaderName)
+{
+	const auto shader = m_ShaderMap.find(shaderName);
+	if (shader != m_ShaderMap.end())
+		return shader->second;
+	return VulkanShader();	// TODO: return default/error shader
 }
 
 void imp::VulkanShaderManager::CreateVulkanShaderSet(VkDevice device, const CmdRsc::MaterialCreationRequest& req)
@@ -10,10 +19,10 @@ void imp::VulkanShaderManager::CreateVulkanShaderSet(VkDevice device, const CmdR
 	const auto vertexShaderModule = CreateShaderModule(device, *req.vertexSpv.get());
 	const auto fragmentShaderModule = CreateShaderModule(device, *req.fragmentSpv.get());
 
-	const VulkanShader vertexShader(req.shaderName + ".vert", vertexShaderModule);
-	const VulkanShader fragmentShader(req.shaderName + ".frag", fragmentShaderModule);
-	m_ShaderSet.insert(vertexShader);
-	m_ShaderSet.insert(fragmentShader);
+	const VulkanShader vertexShader(vertexShaderModule);
+	const VulkanShader fragmentShader(fragmentShaderModule);
+	m_ShaderMap[req.shaderName + ".vert"] = vertexShader;
+	m_ShaderMap[req.shaderName + ".frag"] = vertexShader;
 }
 
 VkShaderModule imp::VulkanShaderManager::CreateShaderModule(VkDevice device, const std::string& shaderCode)

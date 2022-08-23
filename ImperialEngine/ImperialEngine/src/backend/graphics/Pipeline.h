@@ -3,6 +3,12 @@
 
 namespace imp
 {
+	struct PipelineConfig
+	{
+		VkShaderModule vertModule;
+		VkShaderModule fragModule;
+
+	};
 	class Pipeline : VulkanResource
 	{
 	public:

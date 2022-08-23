@@ -437,7 +437,11 @@ void imp::Graphics::EnsurePipeline(VkCommandBuffer cb, const RenderPassBase& rp)
     // Compare old material and new one
     // if true: return
     // else: get pipeline from pipeline manager
+    // Material should store precalculates hash of shader name
+    const auto vertShader = m_ShaderManager.GetShader("basic.vert");
+    const auto fragShader = m_ShaderManager.GetShader("basic.frag");
 
+    m_Pipe
 }
 
 void imp::Graphics::PushConstants(VkCommandBuffer cb, const void* data, uint32_t size, VkPipelineLayout pipeLayout) const
