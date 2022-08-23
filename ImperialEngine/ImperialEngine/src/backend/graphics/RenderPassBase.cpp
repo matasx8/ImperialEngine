@@ -108,6 +108,28 @@ imp::RenderPassDesc imp::RenderPassBase::GetRenderPassDesc() const
 	return m_Desc;
 }
 
+VkViewport imp::RenderPassBase::GetViewport() const
+{
+	VkViewport vp;
+	vp.x = 0.0f;
+	vp.y = 0.0f;
+	vp.width = m_SurfaceDescriptions.front().width;
+	vp.height = m_SurfaceDescriptions.front().height;
+	vp.minDepth = 0.0f;
+	vp.maxDepth = 1.0f;
+	assert(vp.width && vp.height);
+	return vp;
+}
+
+VkRect2D imp::RenderPassBase::GetScissor() const
+{
+	VkRect2D rect;
+	rect.offset = {};
+	rect.extent = { m_SurfaceDescriptions.front().width, m_SurfaceDescriptions.front().height };
+	assert(rect.extent.width && rect.extent.height);
+	return rect;
+}
+
 std::vector<VkSemaphore> imp::RenderPassBase::GetSemaphoresToWaitOn()
 {
 	std::vector<VkSemaphore> sems;

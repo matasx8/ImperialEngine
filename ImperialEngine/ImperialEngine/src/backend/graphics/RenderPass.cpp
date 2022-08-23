@@ -1,5 +1,6 @@
 #include "RenderPass.h"
 #include "backend/graphics/Graphics.h"
+#include "GLM/gtc/matrix_transform.hpp"
 
 imp::RenderPass::RenderPass()
 	: RenderPassBase()
@@ -15,15 +16,20 @@ void imp::RenderPass::Execute(Graphics& gfx)
 	cmb.Begin();
 	BeginRenderPass(gfx, cmb);
 
-	// since 
+	glm::mat4x4 proj = glm::perspective(glm::radians(45.0f), (float)m_SurfaceDescriptions.front().width / (float)m_SurfaceDescriptions.front().height, 0.1f, 10000.0f);
+	glm::mat4x4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 150.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	std::array<glm::mat4x4, 2> pushData;
+	pushData[1] = proj * view;
 
 	for (const auto& drawData : gfx.m_DrawData)
 	{
 		// if material of old drawData is not same
 		// then get pipeline of new material + renderpass
-		// gfx.EnsurePipeline(cb, drawData.material, *this) or something like that
+		const auto pipe = gfx.EnsurePipeline(cb, *this);	// since we have to get pipeline, bind here and not in that func
 		gfx.BindMesh(cb, drawData.VertexBufferId);
-		gfx.PushConstants(cb, &drawData.Transform, sizeof(drawData.Transform), 0);
+		pushData[0] = drawData.Transform;
+		gfx.PushConstants(cb, &drawData.Transform, sizeof(pushData), pipe.GetPipelineLayout());
+
 	}
 
 	EndRenderPass(gfx, cmb);

@@ -55,6 +55,8 @@ namespace imp
 		const std::vector<SurfaceDesc>& GetResolveSurfaceDescriptions() const;
 		VkRenderPass GetVkRenderPass() const;
 		RenderPassDesc GetRenderPassDesc() const;
+		VkViewport GetViewport() const;
+		VkRect2D GetScissor() const;
 		std::vector<VkSemaphore> GetSemaphoresToWaitOn();
 		std::vector<Surface> GiveSurfaces();
 

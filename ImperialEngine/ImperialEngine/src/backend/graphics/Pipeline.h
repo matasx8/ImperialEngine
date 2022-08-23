@@ -16,6 +16,7 @@ namespace imp
 		Pipeline(VkPipeline pipeline, VkPipelineLayout layout);
 
 		VkPipeline GetPipeline() const;
+		VkPipelineLayout GetPipelineLayout() const;
 
 		void Destroy(VkDevice device) override;
 	private:

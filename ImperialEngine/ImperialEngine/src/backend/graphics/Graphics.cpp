@@ -9,8 +9,9 @@
 #include <cassert>
 #include <extern/IMGUI/backends/imgui_impl_vulkan.h>
 
-imp::Graphics::Graphics() : m_Settings(), m_GfxCaps(), m_ValidationLayers(), m_Window()
+imp::Graphics::Graphics() : m_Settings(), m_GfxCaps(), m_ValidationLayers(), m_Window(), m_PipelineManager()
 {
+    // TODO: init all variables
     m_CurrentFrame = 0;
 }
 
@@ -432,16 +433,19 @@ void imp::Graphics::CopyVulkanBuffer(const VulkanBuffer& src, VulkanBuffer& dst,
     vkCmdCopyBuffer(cb.cmb, src.GetBuffer(), dst.GetBuffer(), 1, &bufferCopyRegion);
 }
 
-void imp::Graphics::EnsurePipeline(VkCommandBuffer cb, const RenderPassBase& rp)
+const imp::Pipeline& imp::Graphics::EnsurePipeline(VkCommandBuffer cb, const RenderPassBase& rp)
 {
     // Compare old material and new one
     // if true: return
     // else: get pipeline from pipeline manager
     // Material should store precalculates hash of shader name
-    const auto vertShader = m_ShaderManager.GetShader("basic.vert");
-    const auto fragShader = m_ShaderManager.GetShader("basic.frag");
+    PipelineConfig tempConfig;
+    tempConfig.vertModule = m_ShaderManager.GetShader("basic.vert").GetShaderModule();
+    tempConfig.fragModule = m_ShaderManager.GetShader("basic.frag").GetShaderModule();
 
-    m_Pipe
+    const auto& pipeline = m_PipelineManager.GetOrCreatePipeline(m_LogicalDevice, rp, tempConfig);
+    vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.GetPipeline());
+    return pipeline;
 }
 
 void imp::Graphics::PushConstants(VkCommandBuffer cb, const void* data, uint32_t size, VkPipelineLayout pipeLayout) const
@@ -461,6 +465,14 @@ void imp::Graphics::BindMesh(VkCommandBuffer cb, uint32_t vtxBufferId) const
 
     vkCmdBindVertexBuffers(cb, 0, 1, &vertexBuffer, offsets);
     vkCmdBindIndexBuffer(cb, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+}
+
+void imp::Graphics::DrawIndexed(VkCommandBuffer cb, uint32_t vtxBufferId) const
+{
+    const auto indexedVertexBufferIt = m_VertexBuffers.find(vtxBufferId);
+    assert(indexedVertexBufferIt != m_VertexBuffers.end());
+    const auto& indexBuffer = indexedVertexBufferIt->second.indices;
+    vkCmdDrawIndexed(cb, indexBuffer.GetSize() / sizeof(uint32_t), 1, 0, 0, 0);
 }
 
 bool imp::Graphics::CheckExtensionsSupported(std::vector<const char*> extensions)

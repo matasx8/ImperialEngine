@@ -22,7 +22,8 @@ const std::shared_ptr<std::string> OS::ReadFileContents(const std::string& path)
 		return std::shared_ptr<std::string>();
 	}
 	size_t fileSize = static_cast<size_t>(file.tellg());
-	auto str = std::make_shared<std::string>(fileSize);
+	auto str = std::make_shared<std::string>();
+	str->resize(fileSize);
 
 	file.seekg(0);
 	file.read(str->data(), fileSize);

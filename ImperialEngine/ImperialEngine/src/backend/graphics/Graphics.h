@@ -1,6 +1,7 @@
 #pragma once
 #include "backend/graphics/CommandBufferManager.h"
 #include "backend/graphics/VulkanShaderManager.h"
+#include "backend/graphics/PipelineManager.h"
 #include "backend/graphics/SurfaceManager.h"
 #include "backend/graphics/GraphicsCaps.h"
 #include "backend/graphics/RenderPassImGUI.h"
@@ -54,9 +55,10 @@ namespace imp
 		VulkanBuffer UploadVulkanBuffer(VkBufferUsageFlags usageFlags, VkBufferUsageFlags dstUsageFlags, VkMemoryPropertyFlags memoryFlags, VkMemoryPropertyFlags dstMemoryFlags, const CommandBuffer& cb, uint32_t allocSize, const void* dataToUpload);
 		void CopyVulkanBuffer(const VulkanBuffer& src, VulkanBuffer& dst, const CommandBuffer& cb);
 
-		void EnsurePipeline(VkCommandBuffer cb, const RenderPassBase& rp /*, Material material*/);
+		const Pipeline& EnsurePipeline(VkCommandBuffer cb, const RenderPassBase& rp /*, Material material*/);
 		void PushConstants(VkCommandBuffer cb, const void* data, uint32_t size, VkPipelineLayout pipeLayout) const;
 		void BindMesh(VkCommandBuffer cb, uint32_t vtxBufferId) const;
+		void DrawIndexed(VkCommandBuffer cb, uint32_t vtxBufferId) const;
 		
 		bool CheckExtensionsSupported(std::vector<const char*> extensions);
 
@@ -79,6 +81,7 @@ namespace imp
 		CommandBufferManager m_CbManager;
 		SurfaceManager m_SurfaceManager;
 		VulkanShaderManager m_ShaderManager;
+		PipelineManager m_PipelineManager;
 
 		VkWindow m_Window;
 		VulkanGarbageCollector m_VulkanGarbageCollector;

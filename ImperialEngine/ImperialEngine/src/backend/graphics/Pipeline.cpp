@@ -15,6 +15,11 @@ VkPipeline imp::Pipeline::GetPipeline() const
 	return m_Pipeline;
 }
 
+VkPipelineLayout imp::Pipeline::GetPipelineLayout() const
+{
+	return m_PipelineLayout;
+}
+
 void imp::Pipeline::Destroy(VkDevice device)
 {
 	vkDestroyPipelineLayout(device, m_PipelineLayout, nullptr);

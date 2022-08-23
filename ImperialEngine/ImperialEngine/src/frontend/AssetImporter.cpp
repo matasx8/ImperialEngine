@@ -159,7 +159,8 @@ namespace imp
 		// Not likely we will have anything more than a vertex and fragment shader anytime soon.
 		// Easy way to find unique values only using shader file name without extension
 		for (const auto& shader : shaders)
-			shaderSet.insert(shader.filename().string());
+			shaderSet.insert(shader.parent_path().string() + "/" + shader.stem().string()); //TODO: fix this nonsense
+		// TODOOOOOOOO: damn I'm trying to load glsl not spv........!@#!@
 
 		std::vector<CmdRsc::MaterialCreationRequest> reqs;
 		for (const auto& shader : shaderSet)
@@ -181,6 +182,7 @@ namespace imp
 		req.shaderName = shaderPath.stem().string();
 		req.vertexSpv = OS::ReadFileContents(vertexShaderPath);
 		req.fragmentSpv = OS::ReadFileContents(fragmentShaderPath);
+		assert(req.vertexSpv.get());
 		return req;
 	}
 
