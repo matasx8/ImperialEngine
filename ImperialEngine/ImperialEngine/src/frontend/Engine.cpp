@@ -13,6 +13,7 @@ namespace imp
 
 	bool Engine::Initialize(EngineSettings settings)
 	{
+		std::filesystem::current_path("D:\\source\\ImperialEngine\\ImperialEngine\\ImperialEngine");
 		m_EngineSettings = settings;
 		InitThreading(m_EngineSettings.threadingMode);
 		InitImgui();
@@ -29,7 +30,7 @@ namespace imp
 	void Engine::LoadScene()
 	{
 		m_AssetImporter.LoadScene("Scene/");
-		m_AssetImporter.LoadMaterials("Shaders/glsl");
+		m_AssetImporter.LoadMaterials("Shaders/spir-v");
 	}
 
 	void Engine::StartFrame()
@@ -183,7 +184,7 @@ namespace imp
 			const auto& mesh = meshes.get<Comp::Mesh>(ent);
 			const auto& transform = transforms.get<Comp::Transform>(mesh.e);
 
-			m_Gfx.m_DrawData.emplace_back(transform.transform, static_cast<uint32_t>(mesh.e));
+			m_Gfx.m_DrawData.emplace_back(transform.transform, static_cast<uint32_t>(ent));
 		}
 	}
 

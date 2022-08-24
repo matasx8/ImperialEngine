@@ -26,10 +26,10 @@ void imp::RenderPass::Execute(Graphics& gfx)
 		// if material of old drawData is not same
 		// then get pipeline of new material + renderpass
 		const auto pipe = gfx.EnsurePipeline(cb, *this);	// since we have to get pipeline, bind here and not in that func
-		gfx.BindMesh(cb, drawData.VertexBufferId);
 		pushData[0] = drawData.Transform;
-		gfx.PushConstants(cb, &drawData.Transform, sizeof(pushData), pipe.GetPipelineLayout());
-
+		gfx.PushConstants(cb, pushData.data(), sizeof(pushData), pipe.GetPipelineLayout());
+		gfx.BindMesh(cb, drawData.VertexBufferId);
+		gfx.DrawIndexed(cb, drawData.VertexBufferId);
 	}
 
 	EndRenderPass(gfx, cmb);

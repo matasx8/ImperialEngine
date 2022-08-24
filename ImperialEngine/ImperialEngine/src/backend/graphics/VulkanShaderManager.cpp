@@ -22,7 +22,7 @@ void imp::VulkanShaderManager::CreateVulkanShaderSet(VkDevice device, const CmdR
 	const VulkanShader vertexShader(vertexShaderModule);
 	const VulkanShader fragmentShader(fragmentShaderModule);
 	m_ShaderMap[req.shaderName + ".vert"] = vertexShader;
-	m_ShaderMap[req.shaderName + ".frag"] = vertexShader;
+	m_ShaderMap[req.shaderName + ".frag"] = fragmentShader;
 }
 
 VkShaderModule imp::VulkanShaderManager::CreateShaderModule(VkDevice device, const std::string& shaderCode)

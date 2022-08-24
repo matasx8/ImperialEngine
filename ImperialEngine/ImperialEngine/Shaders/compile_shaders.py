@@ -2,6 +2,9 @@
 #if hash is different then compile shaders
 import hashlib, os
 COMPILER_PATH = os.environ.get("VK_SDK_PATH") + "\\Bin\\glslangValidator.exe"
+FORCE_COMPILE = True
+
+# TODO: I think currently this tries to compile spv files cus they have the '.frag' and etc in their name
 
 def CompileDir(directory):
     #gather all .frag, .vert files
@@ -12,7 +15,7 @@ def CompileDir(directory):
             if pos > 0:
                 fn = names[:pos]
                 ft = names[pos + 1:]
-                renamed = directory + "\\spir-v\\" + fn + "_" + ft + ".spv"
+                renamed = directory + "\\spir-v\\" + fn + "." + ft + ".spv"
                 args = COMPILER_PATH + " -V" + " -o" + " " + renamed + " " + directory + "\\glsl\\" + names
                 os.system(args)
 
@@ -61,7 +64,7 @@ if curdir.rfind("Shaders") < 0:
 hash = GetHashofDirs(os.getcwd())
 f = open(".dirhash", "r+")
 oldhash = f.read(32)
-if hash != oldhash:
+if hash != oldhash or FORCE_COMPILE:
   print("Compiling shaders..")
   CompileDir(os.getcwd())
   hash = GetHashofDirs(os.getcwd())

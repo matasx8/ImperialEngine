@@ -19,16 +19,35 @@ namespace imp
 		shaderStages[0] = MakeShaderStageCI(config.vertModule, VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = MakeShaderStageCI(config.fragModule, VK_SHADER_STAGE_FRAGMENT_BIT);
 
-		const auto vertInputState = MakeVertexInputStateCI();
+		const auto vertInputBindingDesc = MakeVertexBindingDesc();
+		const auto vertInputAttrDesc = MakeVertexAttrDescs();
+		const auto vertInputState = MakeVertexInputStateCI(vertInputBindingDesc, vertInputAttrDesc);
 		const auto inputAssembly = MakeInputAssemblyCI();
 
-		const auto viewportState = MakeViewportStateCI(rp);
+		const auto viewport = rp.GetViewport();
+		const auto scissor = rp.GetScissor();
+		const auto viewportState = MakeViewportStateCI(viewport, scissor);
 		const auto rasterizationState = MakeRasterizationSateCI();
 		const auto msaaState = MakeMSAAStateCI(rp);
-		const auto colorBlendState = MakeColorBlendStateCI();
+
+		VkPipelineColorBlendAttachmentState state;
+		state.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+		state.blendEnable = VK_FALSE;
+		state.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+		state.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+		state.colorBlendOp = VK_BLEND_OP_ADD;
+		state.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+		state.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+		state.alphaBlendOp = VK_BLEND_OP_ADD;
+		const auto colorBlendState = MakeColorBlendStateCI(state);
 		const auto depthStencilState = MakeDepthStencilStateCI();
 
-		const auto pipelineLayout = MakePipelineLayout(device, rp);
+		VkPushConstantRange pushRange;
+		pushRange.size = sizeof(glm::mat4x4) * 2;	// temporary so I can push ViewProjection matrix without having descriptors
+		pushRange.offset = 0;
+		pushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		const auto pipelineLayoutCI = MakePipelineLayoutCI(pushRange);
+		const auto pipelineLayout = MakePipelineLayout(device, pipelineLayoutCI);
 
 		const auto pipelineCI = MakePipelineCI(shaderStages, &vertInputState, &inputAssembly, &viewportState, nullptr, &rasterizationState, &msaaState, &colorBlendState, &depthStencilState, pipelineLayout, rp.GetVkRenderPass(), 0);
 		const auto pipeline = MakePipeline(device, pipelineCI);
@@ -91,11 +110,8 @@ namespace imp
 		return desc;
 	}
 
-	VkPipelineVertexInputStateCreateInfo PipelineManager::MakeVertexInputStateCI() const
+	VkPipelineVertexInputStateCreateInfo PipelineManager::MakeVertexInputStateCI(const auto& vertInputBindingDesc, const auto& vertInputAttrDesc) const
 	{
-		const auto vertInputBindingDesc = MakeVertexBindingDesc();
-		const auto vertInputAttrDesc = MakeVertexAttrDescs();
-
 		VkPipelineVertexInputStateCreateInfo ci;
 		ci.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 		ci.vertexBindingDescriptionCount = 1;
@@ -118,11 +134,8 @@ namespace imp
 		return ci;
 	}
 
-	VkPipelineViewportStateCreateInfo PipelineManager::MakeViewportStateCI(const RenderPassBase& rp) const
+	VkPipelineViewportStateCreateInfo PipelineManager::MakeViewportStateCI(const auto& viewport, const auto& scissor) const
 	{
-		const auto viewport = rp.GetViewport();
-		const auto scissor = rp.GetScissor();
-
 		VkPipelineViewportStateCreateInfo ci;
 		ci.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
 		ci.viewportCount = 1;
@@ -154,22 +167,12 @@ namespace imp
 		return ci;
 	}
 
-	VkPipelineColorBlendStateCreateInfo PipelineManager::MakeColorBlendStateCI() const
+	VkPipelineColorBlendStateCreateInfo PipelineManager::MakeColorBlendStateCI(const auto& blendAttState) const
 	{
-		VkPipelineColorBlendAttachmentState state;
-		state.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-		state.blendEnable = VK_FALSE;
-		state.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-		state.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-		state.colorBlendOp = VK_BLEND_OP_ADD;
-		state.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-		state.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-		state.alphaBlendOp = VK_BLEND_OP_ADD;
-
 		VkPipelineColorBlendStateCreateInfo ci = {};
 		ci.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 		ci.attachmentCount = 1;
-		ci.pAttachments = &state;
+		ci.pAttachments = &blendAttState;
 		return ci;
 	}
 
@@ -183,13 +186,9 @@ namespace imp
 		return ci;
 	}
 
-	VkPipelineLayoutCreateInfo PipelineManager::MakePipelineLayoutCI(const RenderPassBase& rp) const
+	VkPipelineLayoutCreateInfo PipelineManager::MakePipelineLayoutCI(const auto& pushRange) const
 	{
-		VkPushConstantRange pushRange;
-		pushRange.size = sizeof(glm::mat4x4) * 2;	// temporary so I can push ViewProjection matrix without having descriptors
-		pushRange.offset = 0;
-		pushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
+		assert(pushRange.size);
 		VkPipelineLayoutCreateInfo ci;
 		ci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		ci.setLayoutCount = 0;
@@ -201,10 +200,8 @@ namespace imp
 		return ci;
 	}
 
-	VkPipelineLayout PipelineManager::MakePipelineLayout(VkDevice device, const RenderPassBase& rp) const
+	VkPipelineLayout PipelineManager::MakePipelineLayout(VkDevice device, const VkPipelineLayoutCreateInfo& ci) const
 	{
-		const auto ci = MakePipelineLayoutCI(rp);
-		
 		VkPipelineLayout layout;
 		const auto res = vkCreatePipelineLayout(device, &ci, nullptr, &layout);
 		assert(res == VK_SUCCESS);
@@ -218,6 +215,7 @@ namespace imp
 		VkPipelineDepthStencilStateCreateInfo* depthStencilCreateInfo, const VkPipelineLayout pipelineLayout, const
 		VkRenderPass renderPass, VkPipelineCreateFlags flags) const
 	{
+		const auto stage = shaderStages[1];
 		VkGraphicsPipelineCreateInfo ci = {};
 		ci.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 		ci.stageCount = 2;

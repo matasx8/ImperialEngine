@@ -24,15 +24,15 @@ namespace imp
 		VkVertexInputBindingDescription MakeVertexBindingDesc() const;
 		std::vector<VkVertexInputAttributeDescription> MakeVertexAttrDescs() const;
 		VkVertexInputAttributeDescription MakeVertexAttrDesc(uint32_t binding, uint32_t location, VkFormat format, uint32_t offset) const;
-		VkPipelineVertexInputStateCreateInfo MakeVertexInputStateCI() const;
+		VkPipelineVertexInputStateCreateInfo MakeVertexInputStateCI(const auto& vertInputBindingDesc, const auto& vertInputAttrDesc) const;
 		VkPipelineInputAssemblyStateCreateInfo MakeInputAssemblyCI() const;
-		VkPipelineViewportStateCreateInfo MakeViewportStateCI(const RenderPassBase& rp) const;
+		VkPipelineViewportStateCreateInfo MakeViewportStateCI(const auto& viewport, const auto& scissor) const;
 		VkPipelineRasterizationStateCreateInfo MakeRasterizationSateCI() const;
 		VkPipelineMultisampleStateCreateInfo MakeMSAAStateCI(const RenderPassBase& rp) const;
-		VkPipelineColorBlendStateCreateInfo MakeColorBlendStateCI() const;
+		VkPipelineColorBlendStateCreateInfo MakeColorBlendStateCI(const auto& blendAttState) const;
 		VkPipelineDepthStencilStateCreateInfo MakeDepthStencilStateCI() const;
-		VkPipelineLayoutCreateInfo MakePipelineLayoutCI(const RenderPassBase& rp) const;
-		VkPipelineLayout MakePipelineLayout(VkDevice device, const RenderPassBase& rp) const;
+		VkPipelineLayoutCreateInfo MakePipelineLayoutCI(const auto& pushRange) const;
+		VkPipelineLayout MakePipelineLayout(VkDevice device, const VkPipelineLayoutCreateInfo& ci) const;
 		VkGraphicsPipelineCreateInfo MakePipelineCI(const VkPipelineShaderStageCreateInfo* shaderStages, const VkPipelineVertexInputStateCreateInfo* vertexInputCreateInfo, const
 			VkPipelineInputAssemblyStateCreateInfo* inputAssembly, const VkPipelineViewportStateCreateInfo* viewportStateCreateInfo, const
 			VkPipelineDynamicStateCreateInfo* dynamicState, const VkPipelineRasterizationStateCreateInfo* rasterizerCreateInfo, const
