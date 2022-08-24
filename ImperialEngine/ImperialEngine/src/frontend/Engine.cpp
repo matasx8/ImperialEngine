@@ -3,6 +3,7 @@
 #include <barrier>
 #include <extern/IMGUI/imgui.h>
 #include "Components/Components.h"
+#include <extern/GLM/ext/matrix_transform.hpp>
 
 namespace imp
 {
@@ -31,6 +32,7 @@ namespace imp
 	{
 		m_AssetImporter.LoadScene("Scene/");
 		m_AssetImporter.LoadMaterials("Shaders/spir-v");
+		LoadDefaultStuff();
 	}
 
 	void Engine::StartFrame()
@@ -107,7 +109,7 @@ namespace imp
 	void Engine::InitWindow()
 	{
 		const std::string windowName = "TestWindow";
-		m_Window.Initialize(windowName, 1280 , 720 );
+		m_Window.Initialize(windowName, 1280, 720);
 	}
 
 	void Engine::InitGraphics()
@@ -155,6 +157,20 @@ namespace imp
 		m_AssetImporter.Destroy();
 	}
 
+	void Engine::LoadDefaultStuff()
+	{			
+		// create main entity, that the renderable entities will point to
+		//const entt::entity mainEntity = m_Engine.m_Entities.create();
+		//auto& reg = m_Engine.m_Entities;
+		//reg.emplace<Comp::Transform>(mainEntity, glm::mat4x4(1.0f));
+		// camera
+		const auto camera = m_Entities.create();
+		const auto identity = glm::mat4x4(1.0f);
+		const auto defaultCameraTransform = glm::translate(identity, glm::vec3(0.0f, 0.0f, 150.0f));
+		m_Entities.emplace<Comp::Transform>(camera, defaultCameraTransform);
+		m_Entities.emplace<Comp::CameraComponent>(camera, 0.0f, 0.0f);
+	}
+
 	void Engine::RenderCameras()
 	{
 		m_Q->add(std::mem_fn(&Engine::Cmd_RenderCameras), std::shared_ptr<void>());
@@ -186,6 +202,8 @@ namespace imp
 
 			m_Gfx.m_DrawData.emplace_back(transform.transform, static_cast<uint32_t>(ent));
 		}
+
+		//fisnish here, copy camera
 	}
 
 }

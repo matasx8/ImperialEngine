@@ -28,8 +28,8 @@ void imp::RenderPass::Execute(Graphics& gfx)
 		const auto pipe = gfx.EnsurePipeline(cb, *this);	// since we have to get pipeline, bind here and not in that func
 		pushData[0] = drawData.Transform;
 		gfx.PushConstants(cb, pushData.data(), sizeof(pushData), pipe.GetPipelineLayout());
-		gfx.BindMesh(cb, drawData.VertexBufferId);
-		gfx.DrawIndexed(cb, drawData.VertexBufferId);
+		const auto indexCount = gfx.BindMesh(cb, drawData.VertexBufferId);
+		gfx.DrawIndexed(cb, indexCount);
 	}
 
 	EndRenderPass(gfx, cmb);

@@ -45,6 +45,8 @@ namespace imp
 		void CleanUpUI();
 		void CleanUpAssetImporter();
 
+		void LoadDefaultStuff();
+
 		void RenderCameras();
 		void RenderImGUI();
 

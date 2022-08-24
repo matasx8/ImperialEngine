@@ -57,8 +57,9 @@ namespace imp
 
 		const Pipeline& EnsurePipeline(VkCommandBuffer cb, const RenderPassBase& rp /*, Material material*/);
 		void PushConstants(VkCommandBuffer cb, const void* data, uint32_t size, VkPipelineLayout pipeLayout) const;
-		void BindMesh(VkCommandBuffer cb, uint32_t vtxBufferId) const;
-		void DrawIndexed(VkCommandBuffer cb, uint32_t vtxBufferId) const;
+		// returns index count
+		uint32_t BindMesh(VkCommandBuffer cb, uint32_t vtxBufferId) const;
+		void DrawIndexed(VkCommandBuffer cb, uint32_t indexCount) const;
 		
 		bool CheckExtensionsSupported(std::vector<const char*> extensions);
 
@@ -93,13 +94,20 @@ namespace imp
 		// On the other side, a system that has access to a view or a group can only iterate, read and update entities and components.
 		// only have a group or view? Dunno if that would work threaded
 	public:
-		//entt::registry m_GfxEntities;
+		// alright this is nonsense, try to copy entity registry.. Has to work somehow
 		struct DrawDataSingle
 		{
 			glm::mat4x4 Transform;
 			uint32_t VertexBufferId;
 		};
+		struct CameraData
+		{
+			glm::mat4x4 Transform;
+			float yaw;
+			float pitch;
+		};
 		std::vector<DrawDataSingle> m_DrawData;
+		std::vector<CameraData>		m_CameraData;
 		//DrawData<DrawDataSingle> m_DrawData;
 	private:
 

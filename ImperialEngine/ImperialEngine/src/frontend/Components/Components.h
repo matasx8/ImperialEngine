@@ -3,11 +3,24 @@
 #include <ENTT/entt.hpp>
 #include "backend/VulkanBuffer.h"
 
+// seperate components and entities
+
 namespace Comp
 {
 	struct Transform
 	{
 		glm::mat4x4 transform;
+	};
+
+	struct Camera
+	{
+		entt::entity e;
+	};
+
+	struct CameraComponent
+	{
+		float yaw;
+		float pitch;
 	};
 
 	struct Material

@@ -455,7 +455,7 @@ void imp::Graphics::PushConstants(VkCommandBuffer cb, const void* data, uint32_t
     vkCmdPushConstants(cb, pipeLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, size, data);
 }
 
-void imp::Graphics::BindMesh(VkCommandBuffer cb, uint32_t vtxBufferId) const
+uint32_t imp::Graphics::BindMesh(VkCommandBuffer cb, uint32_t vtxBufferId) const
 {
     const auto indexedVertexBufferIt = m_VertexBuffers.find(vtxBufferId);
     assert(indexedVertexBufferIt != m_VertexBuffers.end());
@@ -465,14 +465,12 @@ void imp::Graphics::BindMesh(VkCommandBuffer cb, uint32_t vtxBufferId) const
 
     vkCmdBindVertexBuffers(cb, 0, 1, &vertexBuffer, offsets);
     vkCmdBindIndexBuffer(cb, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+    return indexedVertexBufferIt->second.indices.GetSize() / sizeof(uint32_t);
 }
 
-void imp::Graphics::DrawIndexed(VkCommandBuffer cb, uint32_t vtxBufferId) const
+void imp::Graphics::DrawIndexed(VkCommandBuffer cb, uint32_t indexCount) const
 {
-    const auto indexedVertexBufferIt = m_VertexBuffers.find(vtxBufferId);
-    assert(indexedVertexBufferIt != m_VertexBuffers.end());
-    const auto& indexBuffer = indexedVertexBufferIt->second.indices;
-    vkCmdDrawIndexed(cb, indexBuffer.GetSize() / sizeof(uint32_t), 1, 0, 0, 0);
+    vkCmdDrawIndexed(cb, indexCount, 1, 0, 0, 0);
 }
 
 bool imp::Graphics::CheckExtensionsSupported(std::vector<const char*> extensions)
