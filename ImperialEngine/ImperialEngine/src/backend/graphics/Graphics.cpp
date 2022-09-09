@@ -90,6 +90,19 @@ void imp::Graphics::PrototypeRenderPass()
     m_SurfaceManager.ReturnSurfaces(surfaces);
 }
 
+void imp::Graphics::RenderCameras()
+{
+    // generate container of renderpasses
+    // first can be a simple vector of renderpasses but in the future can be a render graph
+    // iterate and execute
+
+    const auto renderpassContainer = m_RenderPassGenerator->GenerateRenderPasses();
+    for (auto& rp : renderpassContainer)
+    {
+        rp->Execute(*this);
+    }
+}
+
 void imp::Graphics::RenderImGUI()
 {
     renderpassgui->Execute(*this);

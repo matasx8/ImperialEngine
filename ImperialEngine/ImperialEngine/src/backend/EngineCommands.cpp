@@ -21,7 +21,8 @@ namespace imp
 		// --
 		// Surface manager will have to take and give surfaces
 		// camera with its stack of render passes will have to pass on surfaces to next render passes
-		m_Gfx.PrototypeRenderPass();
+		//m_Gfx.PrototypeRenderPass();
+		m_Gfx.RenderCameras();
 	}
 
 	void Engine::Cmd_EndFrame(std::shared_ptr<void> rsc)

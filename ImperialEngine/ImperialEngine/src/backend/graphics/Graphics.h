@@ -28,6 +28,7 @@ namespace imp
 		void Initialize(const EngineGraphicsSettings& settings, Window* window);
 
 		void PrototypeRenderPass();
+		void RenderCameras();
 		void RenderImGUI();
 		void EndFrame();
 
@@ -91,10 +92,8 @@ namespace imp
 
 		std::unordered_map<uint32_t, Comp::IndexedVertexBuffers> m_VertexBuffers;
 
-		// On the other side, a system that has access to a view or a group can only iterate, read and update entities and components.
-		// only have a group or view? Dunno if that would work threaded
 	public:
-		// alright this is nonsense, try to copy entity registry.. Has to work somehow
+		// TODO: remove this section
 		struct DrawDataSingle
 		{
 			glm::mat4x4 Transform;

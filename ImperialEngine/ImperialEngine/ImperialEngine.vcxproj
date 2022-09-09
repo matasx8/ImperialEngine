@@ -260,6 +260,8 @@
     <ClInclude Include="src\backend\graphics\GraphicsCaps.h" />
     <ClInclude Include="src\backend\graphics\Pipeline.h" />
     <ClInclude Include="src\backend\graphics\PipelineManager.h" />
+    <ClInclude Include="src\backend\graphics\RenderPassGeneratorBase.h" />
+    <ClInclude Include="src\backend\graphics\RenderPassGeneratorSimple.h" />
     <ClInclude Include="src\backend\graphics\RenderPassImGUI.h" />
     <ClInclude Include="src\backend\graphics\Image.h" />
     <ClInclude Include="src\backend\graphics\RenderPass.h" />

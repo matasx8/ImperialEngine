@@ -14,11 +14,6 @@ namespace Comp
 
 	struct Camera
 	{
-		entt::entity e;
-	};
-
-	struct CameraComponent
-	{
 		float yaw;
 		float pitch;
 	};

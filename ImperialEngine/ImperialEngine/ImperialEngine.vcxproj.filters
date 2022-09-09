@@ -230,5 +230,11 @@
     <ClInclude Include="src\backend\graphics\Pipeline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\backend\graphics\RenderPassGeneratorBase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\backend\graphics\RenderPassGeneratorSimple.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

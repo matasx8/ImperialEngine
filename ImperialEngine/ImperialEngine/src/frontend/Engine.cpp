@@ -192,6 +192,7 @@ namespace imp
 	{
 		m_Window.UpdateDeltaTime();
 		m_Gfx.m_DrawData.clear();
+		m_Gfx.m_CameraData.clear();
 
 		const auto meshes = m_Entities.view<Comp::Mesh>();
 		const auto transforms = m_Entities.view<Comp::Transform>();
@@ -203,7 +204,15 @@ namespace imp
 			m_Gfx.m_DrawData.emplace_back(transform.transform, static_cast<uint32_t>(ent));
 		}
 
-		//fisnish here, copy camera
+		const auto cameras = m_Entities.view<Comp::Transform, Comp::Camera>();
+		for (auto ent : cameras)
+		{
+			const auto& transform = cameras.get<Comp::Transform>(ent);
+			const auto& cam = cameras.get<Comp::Camera>(ent);
+
+			// should try to save bandwidth and do most calculation on main thread then send the data to render thread
+			m_Gfx.m_CameraData.emplace_back(transform.transform, cam.yaw, cam.pitch);
+		}
 	}
 
 }
