@@ -12,6 +12,9 @@ def CompileDir(directory):
     for root, dirs, files in os.walk(directory):
         for names in files:
             pos = max(names.rfind(".frag"), names.rfind(".vert"))
+
+            if names.find(".spv") != -1 or names.find(".bak") != -1:
+              continue
             if pos > 0:
                 fn = names[:pos]
                 ft = names[pos + 1:]
