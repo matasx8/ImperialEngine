@@ -9,7 +9,7 @@ namespace imp
 	public:
 		RenderPass();
 
-		void Execute(Graphics& gfx) override;
+		void Execute(Graphics& gfx, const CameraData& cam) override;
 	private:
 
 

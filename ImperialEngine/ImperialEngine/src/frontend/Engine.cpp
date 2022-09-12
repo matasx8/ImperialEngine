@@ -4,6 +4,8 @@
 #include <extern/IMGUI/imgui.h>
 #include "Components/Components.h"
 #include <extern/GLM/ext/matrix_transform.hpp>
+#include <extern/GLM/ext/matrix_clip_space.hpp>
+#include <extern/GLM/gtx/quaternion.hpp>
 
 namespace imp
 {
@@ -46,6 +48,8 @@ namespace imp
 		// not sure if this should be here
 		m_Window.UpdateImGUI();
 		m_Window.Update();
+		UpdateRegistry();
+
 	}
 
 	void Engine::Render()
@@ -66,7 +70,7 @@ namespace imp
 
 	void Engine::SyncGameThread()
 	{
-		if (m_EngineSettings.threadingMode == kEngineMultiThreaded)
+		//if (m_EngineSettings.threadingMode == kEngineMultiThreaded)
 			m_SyncPoint->arrive_and_wait();
 	}
 
@@ -168,9 +172,11 @@ namespace imp
 		// camera
 		const auto camera = m_Entities.create();
 		const auto identity = glm::mat4x4(1.0f);
-		const auto defaultCameraTransform = glm::translate(identity, glm::vec3(0.0f, 0.0f, 150.0f));
+		const auto defaultCameraTransform = glm::translate(identity, glm::vec3(-15.0f, 0.0f, 0.0f));
 		m_Entities.emplace<Comp::Transform>(camera, defaultCameraTransform);
-		m_Entities.emplace<Comp::Camera>(camera, 0.0f, 0.0f);
+		glm::mat4x4 proj = glm::perspective(glm::radians(45.0f), (float)m_Window.GetWidth() / (float)m_Window.GetHeight(), 0.1f, 10000.0f);
+		const auto emptyvec = glm::vec3();
+		m_Entities.emplace<Comp::Camera>(camera, proj);
 	}
 
 	void Engine::RenderCameras()
@@ -180,12 +186,45 @@ namespace imp
 
 	void Engine::RenderImGUI()
 	{
+		// TODO:
 		// Because dear imgui uses static globals I can't copy relevant data
-		// TODO: find out how to better paralelize imgui
-		m_UI.Update();
+		// So I need to update imgui right before launching render command
+		// This brings the issue of latency for UI
+		m_UI.Update(m_Entities);
 		m_Q->add(std::mem_fn(&Engine::Cmd_RenderImGUI), std::shared_ptr<void>());
 	}
 
+	void Engine::UpdateRegistry()
+	{
+		UpdateCameras();
+	}
+
+	void Engine::UpdateCameras()
+	{
+		static constexpr glm::vec3 worldUp(0.0f, 1.0f, 0.0f);
+		const auto cameras = m_Entities.view<Comp::Transform, Comp::Camera>();
+		for (auto ent : cameras)
+		{
+			const auto& transform = cameras.get<Comp::Transform>(ent);
+			auto& cam = cameras.get<Comp::Camera>(ent);
+
+			// update front, right up
+			// !HERE rotate this using transform..
+			static constexpr glm::vec3 front(1.0f, 0.0f, 0.0f);
+			static constexpr glm::vec3 right(0.0f, 0.0f, 1.0f);
+			static constexpr glm::vec3 up(0.0f, 1.0f, 0.0f);
+
+			const auto quat = glm::toQuat(transform.transform);
+			const auto newFront = glm::rotate(quat, front);
+
+			const auto newRight = glm::normalize(glm::cross(newFront, worldUp));
+			const auto newUp = glm::normalize(glm::cross(newRight, newFront));
+
+			// update view matrix
+			const auto pos = transform.GetPosition();
+			cam.view = glm::lookAt(pos, pos + newFront, newUp);
+		}
+	}
 
 	// This member function gets executed when both main and render thread arrive at the barrier.
 	// Can be used to sync data.
@@ -213,7 +252,7 @@ namespace imp
 			const auto& cam = cameras.get<Comp::Camera>(ent);
 
 			// should try to save bandwidth and do most calculation on main thread then send the data to render thread
-			m_Gfx.m_CameraData.emplace_back(transform.transform, cam.yaw, cam.pitch);
+			m_Gfx.m_CameraData.emplace_back(cam.projection, cam.view);
 		}
 	}
 

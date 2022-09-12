@@ -39,6 +39,7 @@ namespace imp
 	};
 
 	class Graphics;
+	struct CameraData;
 
 	class RenderPassBase
 	{
@@ -47,7 +48,7 @@ namespace imp
 
 		void Create(VkDevice device, const RenderPassDesc& desc);
 
-		virtual void Execute(Graphics& gfx) = 0;
+		virtual void Execute(Graphics& gfx, const CameraData& cam) = 0;
 
 		bool HasBackbuffer() const;
 		const std::array<SurfaceDesc, kMaxColorAttachmentCount>& GetSurfaceDescriptions() const;

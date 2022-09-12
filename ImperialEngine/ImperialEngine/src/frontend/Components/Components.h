@@ -10,12 +10,15 @@ namespace Comp
 	struct Transform
 	{
 		glm::mat4x4 transform;
+
+		glm::vec3 GetPosition() const;
+		glm::vec4& GetPosition();
 	};
 
 	struct Camera
 	{
-		float yaw;
-		float pitch;
+		glm::mat4x4 projection;
+		glm::mat4x4 view;
 	};
 
 	struct Material

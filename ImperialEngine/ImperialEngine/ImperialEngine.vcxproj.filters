@@ -117,6 +117,12 @@
     <ClCompile Include="src\backend\graphics\RenderPassGeneratorSimple.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\frontend\Components\Components.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\extern\IMGUI\imGuIZMOquat.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\frontend\Engine.h">
@@ -242,5 +248,23 @@
     <ClInclude Include="src\backend\graphics\RenderPassGeneratorSimple.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\extern\IMGUI\vgMath.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\extern\IMGUI\vGizmoMath.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\extern\IMGUI\vGizmo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\extern\IMGUI\vgConfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\extern\IMGUI\imGuIZMOquat.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="src\extern\IMGUI\vGizmo.h.bak" />
   </ItemGroup>
 </Project>

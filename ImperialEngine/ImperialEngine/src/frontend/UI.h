@@ -1,6 +1,6 @@
 #pragma once
 #include "Utils/NonCopyable.h"
-
+#include <extern/ENTT/entt.hpp>
 
 namespace imp
 {
@@ -10,7 +10,7 @@ namespace imp
 		UI();
 		void Initialize();
 
-		void Update();
+		void Update(entt::registry& reg);
 
 		void Destroy();
 

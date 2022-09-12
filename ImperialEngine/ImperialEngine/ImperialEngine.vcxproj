@@ -244,7 +244,9 @@
     <ClCompile Include="src\backend\VkWindow.cpp" />
     <ClCompile Include="src\extern\IMGUI\backends\imgui_impl_glfw.cpp" />
     <ClCompile Include="src\extern\IMGUI\backends\imgui_impl_vulkan.cpp" />
+    <ClCompile Include="src\extern\IMGUI\imGuIZMOquat.cpp" />
     <ClCompile Include="src\frontend\AssetImporter.cpp" />
+    <ClCompile Include="src\frontend\Components\Components.cpp" />
     <ClCompile Include="src\frontend\EngineSettings.cpp" />
     <ClCompile Include="src\frontend\Engine.cpp" />
     <ClCompile Include="main.cpp" />
@@ -281,6 +283,11 @@
     <ClInclude Include="src\backend\VkWindow.h" />
     <ClInclude Include="src\extern\IMGUI\backends\imgui_impl_glfw.h" />
     <ClInclude Include="src\extern\IMGUI\backends\imgui_impl_vulkan.h" />
+    <ClInclude Include="src\extern\IMGUI\imGuIZMOquat.h" />
+    <ClInclude Include="src\extern\IMGUI\vgConfig.h" />
+    <ClInclude Include="src\extern\IMGUI\vGizmo.h" />
+    <ClInclude Include="src\extern\IMGUI\vGizmoMath.h" />
+    <ClInclude Include="src\extern\IMGUI\vgMath.h" />
     <ClInclude Include="src\frontend\AssetImporter.h" />
     <ClInclude Include="src\frontend\Debug.h" />
     <ClInclude Include="src\frontend\EngineSettings.h" />
@@ -294,6 +301,9 @@
     <ClInclude Include="src\Utils\Utilities.h" />
     <ClInclude Include="src\Utils\NonCopyable.h" />
     <ClInclude Include="src\frontend\Window.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="src\extern\IMGUI\vGizmo.h.bak" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

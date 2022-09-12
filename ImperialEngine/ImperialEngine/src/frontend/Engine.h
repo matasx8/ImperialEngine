@@ -48,7 +48,12 @@ namespace imp
 		void RenderCameras();
 		void RenderImGUI();
 
+		// update systems
+		void UpdateRegistry();
+		void UpdateCameras();
+
 		void EngineThreadSyncFunc()  noexcept;
+
 
 
 		// entity stuff

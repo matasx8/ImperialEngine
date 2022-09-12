@@ -51,7 +51,7 @@ void imp::Graphics::RenderCameras()
         auto rps = m_RenderPassManager->GenerateRenderPasses(m_LogicalDevice, camera, m_Swapchain);
         for (auto& rp : rps)
         {
-            rp->Execute(*this);
+            rp->Execute(*this, camera);
             auto surfaces = rp->GiveSurfaces();
             m_SurfaceManager.ReturnSurfaces(surfaces);
         }
@@ -61,7 +61,7 @@ void imp::Graphics::RenderCameras()
 
 void imp::Graphics::RenderImGUI()
 {
-    renderpassgui->Execute(*this);
+    renderpassgui->Execute(*this, m_CameraData[0]);
     auto surfaces = renderpassgui->GiveSurfaces();
     m_SurfaceManager.ReturnSurfaces(surfaces);
 }

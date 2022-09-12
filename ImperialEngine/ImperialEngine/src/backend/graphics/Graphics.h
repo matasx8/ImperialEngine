@@ -29,9 +29,8 @@ namespace imp
 	};
 	struct CameraData
 	{
-		glm::mat4x4 Transform;
-		float yaw;
-		float pitch;
+		glm::mat4x4 Projection;
+		glm::mat4x4 View;
 		bool hasUI;
 	};
 
@@ -41,7 +40,6 @@ namespace imp
 		Graphics();
 		void Initialize(const EngineGraphicsSettings& settings, Window* window);
 
-		void PrototypeRenderPass();
 		void RenderCameras();
 		void RenderImGUI();
 		void EndFrame();
