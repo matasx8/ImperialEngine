@@ -163,7 +163,7 @@ namespace imp
 	{
 		VkPipelineMultisampleStateCreateInfo ci = {};
 		ci.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-		ci.rasterizationSamples = static_cast<VkSampleCountFlagBits>(rp.GetRenderPassDesc().msaaCount);
+		ci.rasterizationSamples = static_cast<VkSampleCountFlagBits>(rp.GetRenderPassDesc().colorSurfaces[0].msaaCount);
 		return ci;
 	}
 

@@ -1,3 +1,4 @@
+#include "backend/graphics/RenderPassGeneratorSimple.h"
 #include "backend/EngineCommandResources.h"
 #include "backend/graphics/Graphics.h"
 #include "backend/VulkanBuffer.h"
@@ -26,68 +27,16 @@ void imp::Graphics::Initialize(const EngineGraphicsSettings& settings, Window* w
     CreateCommandBufferManager();
     CreateSurfaceManager();
     CreateGarbageCollector();
+    CreateRenderPassGenerator();
 
 
-    // create renderpass..
-    renderpass = new RenderPass();
-    RenderPassDesc defaultpass =
-    {
-        1,	// msaaCount
-        1, // collor att count
-        VK_FORMAT_R8G8B8A8_UNORM,
-        kLoadOpClear,
-        kStoreOpStore,
-        VK_FORMAT_D32_SFLOAT,
-        kLoadOpClear,
-        kStoreOpDontCare
-    };
-    SurfaceDesc colorDesc =  m_Swapchain.GetSwapchainImageSurfaceDesc();
-    colorDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    const SurfaceDesc depthDesc = {
-        colorDesc.width,
-        colorDesc.height,
-        VK_FORMAT_D32_SFLOAT,
-        1,
-        0, // udnefined
-        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-        false,
-        false
-    };
-
-    std::vector<SurfaceDesc> surfaceDescriptions;
-    std::vector<SurfaceDesc> resolveDescs;
-    surfaceDescriptions.push_back(colorDesc);
-    surfaceDescriptions.push_back(depthDesc);
-    renderpass->Create(m_LogicalDevice, defaultpass, surfaceDescriptions, resolveDescs);
-
-    // create renderpass..
-    renderpassgui = new RenderPassImGUI();
-    RenderPassDesc defaultpass2 =
-    {
-        1,	// msaaCount
-        1, // collor att count
-        VK_FORMAT_R8G8B8A8_UNORM,
-        kLoadOpLoad,
-        kStoreOpStore,
-        VK_FORMAT_UNDEFINED,
-        kStoreOpDontCare,
-        kStoreOpDontCare
-    };
-    SurfaceDesc colorDesc2 = m_Swapchain.GetSwapchainImageSurfaceDesc();
-    colorDesc2.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    std::vector<SurfaceDesc> surfaceDescriptions2;
-    std::vector<SurfaceDesc> resolveDescs2;
-    surfaceDescriptions2.push_back(colorDesc2);
-    renderpassgui->Create(m_LogicalDevice, defaultpass2, surfaceDescriptions2, resolveDescs2);
+    // Until we haven't made custom vulkan backend for imgui we can't fully have dynamic RenderPassGenerator
+    // since CreateImGUI needs a renderpass
+    // so as a temporary workaround we must create the imguiPass upfront and save it
+    // this will work while the imgui pass remains completely static
+    auto temp = CameraData();
+    renderpassgui = static_cast<RenderPassGeneratorSimple*>(m_RenderPassManager)->GenerateForImGUIPass(m_LogicalDevice, temp, m_Swapchain);
     CreateImGUI();
-}
-
-void imp::Graphics::PrototypeRenderPass()
-{
-    renderpass->Execute(*this);
-    // should always return owned surfaces
-    auto surfaces = renderpass->GiveSurfaces();
-    m_SurfaceManager.ReturnSurfaces(surfaces);
 }
 
 void imp::Graphics::RenderCameras()
@@ -96,11 +45,18 @@ void imp::Graphics::RenderCameras()
     // first can be a simple vector of renderpasses but in the future can be a render graph
     // iterate and execute
 
-    const auto renderpassContainer = m_RenderPassGenerator->GenerateRenderPasses();
-    for (auto& rp : renderpassContainer)
+    for (const auto& camera : m_CameraData)
     {
-        rp->Execute(*this);
+        // GenerateRenderPasses must ensure that sequentially executed render passes will have correct sequence and inputs
+        auto rps = m_RenderPassManager->GenerateRenderPasses(m_LogicalDevice, camera, m_Swapchain);
+        for (auto& rp : rps)
+        {
+            rp->Execute(*this);
+            auto surfaces = rp->GiveSurfaces();
+            m_SurfaceManager.ReturnSurfaces(surfaces);
+        }
     }
+    //RenderImGUI();
 }
 
 void imp::Graphics::RenderImGUI()
@@ -163,10 +119,10 @@ void imp::Graphics::Destroy()
     vkDeviceWaitIdle(m_LogicalDevice);
 
     // prototyping stuff ---
-    renderpass->Destroy(m_LogicalDevice);
     renderpassgui->Destroy(m_LogicalDevice);
     // prototyping stuff ---
 
+    delete m_RenderPassManager;
     m_SurfaceManager.Destroy(m_LogicalDevice);
     m_VulkanGarbageCollector.DestroyAllImmediate(m_LogicalDevice);
     m_CbManager.Destroy(m_LogicalDevice);
@@ -400,6 +356,11 @@ void imp::Graphics::CreateImGUI()
 void imp::Graphics::CreateVulkanMemoryManager()
 {
     m_MemoryManager.Initialize();
+}
+
+void imp::Graphics::CreateRenderPassGenerator()
+{
+    m_RenderPassManager = new RenderPassGeneratorSimple();
 }
 
 imp::VulkanBuffer imp::Graphics::UploadVulkanBuffer(VkBufferUsageFlags usageFlags, VkBufferUsageFlags dstUsageFlags, VkMemoryPropertyFlags memoryFlags, VkMemoryPropertyFlags dstMemoryFlags, const CommandBuffer& cb, uint32_t allocSize, const void* dataToUpload)

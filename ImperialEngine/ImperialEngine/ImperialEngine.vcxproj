@@ -228,6 +228,8 @@
     <ClCompile Include="src\backend\graphics\PipelineManager.cpp" />
     <ClCompile Include="src\backend\graphics\RenderPass.cpp" />
     <ClCompile Include="src\backend\graphics\RenderPassBase.cpp" />
+    <ClCompile Include="src\backend\graphics\RenderPassGeneratorBase.cpp" />
+    <ClCompile Include="src\backend\graphics\RenderPassGeneratorSimple.cpp" />
     <ClCompile Include="src\backend\graphics\RenderPassImGUI.cpp" />
     <ClCompile Include="src\backend\graphics\Surface.cpp" />
     <ClCompile Include="src\backend\graphics\SurfaceManager.cpp" />

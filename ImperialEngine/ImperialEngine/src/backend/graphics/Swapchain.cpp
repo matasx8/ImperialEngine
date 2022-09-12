@@ -2,6 +2,7 @@
 #include "backend/graphics/GraphicsCaps.h"
 #include <stdexcept>
 #include <cassert>
+#include <backend/graphics/RenderPassBase.h>
 
 imp::Swapchain::Swapchain()
     : m_Swapchain(), m_Format(), m_Extent(), m_PresentMode(), m_ImageCount(), m_SwapchainIndex(), m_FrameClock(), m_NeedsAcquiring(), m_SwapchainImages(), m_Semaphores()
@@ -101,6 +102,8 @@ imp::SurfaceDesc imp::Swapchain::GetSwapchainImageSurfaceDesc() const
     desc.msaaCount = 1;
     desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     desc.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    desc.loadOp = kLoadOpDontCare;
+    desc.storeOp = kStoreOpStore;
     desc.isColor = true;
     desc.isBackbuffer = true;
     return desc;

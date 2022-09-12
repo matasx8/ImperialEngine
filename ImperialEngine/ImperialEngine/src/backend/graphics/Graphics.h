@@ -1,4 +1,5 @@
 #pragma once
+#include "backend/graphics/RenderPassGeneratorBase.h"
 #include "backend/graphics/CommandBufferManager.h"
 #include "backend/graphics/VulkanShaderManager.h"
 #include "backend/graphics/PipelineManager.h"
@@ -20,6 +21,19 @@ namespace imp
 {
 	class Window;
 	namespace CmdRsc { struct MeshCreationRequest; }
+
+	struct DrawDataSingle
+	{
+		glm::mat4x4 Transform;
+		uint32_t VertexBufferId;
+	};
+	struct CameraData
+	{
+		glm::mat4x4 Transform;
+		float yaw;
+		float pitch;
+		bool hasUI;
+	};
 
 	class Graphics : NonCopyable
 	{
@@ -50,6 +64,7 @@ namespace imp
 		void CreateGarbageCollector();
 		void CreateImGUI();
 		void CreateVulkanMemoryManager();
+		void CreateRenderPassGenerator();
 		
 
 		// transfer commands
@@ -84,6 +99,7 @@ namespace imp
 		SurfaceManager m_SurfaceManager;
 		VulkanShaderManager m_ShaderManager;
 		PipelineManager m_PipelineManager;
+		RenderPassGeneratorBase* m_RenderPassManager;
 
 		VkWindow m_Window;
 		VulkanGarbageCollector m_VulkanGarbageCollector;
@@ -94,17 +110,7 @@ namespace imp
 
 	public:
 		// TODO: remove this section
-		struct DrawDataSingle
-		{
-			glm::mat4x4 Transform;
-			uint32_t VertexBufferId;
-		};
-		struct CameraData
-		{
-			glm::mat4x4 Transform;
-			float yaw;
-			float pitch;
-		};
+
 		std::vector<DrawDataSingle> m_DrawData;
 		std::vector<CameraData>		m_CameraData;
 		//DrawData<DrawDataSingle> m_DrawData;
@@ -114,7 +120,7 @@ namespace imp
 		friend class RenderPass;
 		friend class RenderPassImGUI;
 		// prototyping..
-		RenderPassBase* renderpass;
-		RenderPassBase* renderpassgui;
+		//RenderPassBase* renderpass;
+		std::shared_ptr<RenderPassBase> renderpassgui;
 	};
 }

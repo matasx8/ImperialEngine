@@ -83,6 +83,7 @@ static std::vector<VkImageView> GetImageViews(const std::vector<imp::Surface>& s
 
 imp::Framebuffer imp::SurfaceManager::CreateFramebuffer(const RenderPassBase& rp, const std::vector<Surface>& surfaces, VkDevice device)
 {
+    assert(surfaces.size());
     const auto desc = rp.GetRenderPassDesc();
     const auto views = GetImageViews(surfaces);
     VkFramebufferCreateInfo framebufferCreateInfo = {};

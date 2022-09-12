@@ -4,18 +4,22 @@
 #include <cassert>
 
 imp::RenderPassBase::RenderPassBase()
-	: m_RenderPass(), m_SurfaceDescriptions(), m_Desc(), m_Framebuffer(0)
+	: m_RenderPass(), m_Desc(), m_Framebuffer(0)
 {
 }
 
-void imp::RenderPassBase::Create(VkDevice device, RenderPassDesc& desc, std::vector<SurfaceDesc>& surfaceDescs, std::vector<SurfaceDesc>& resolveDescs)
+void imp::RenderPassBase::Create(VkDevice device, const RenderPassDesc& desc)
 {
 	m_Desc = desc;
-	m_SurfaceDescriptions = surfaceDescs;
-	m_ResolveDescriptions = resolveDescs;
 
-	auto attachmentDescriptions = CreateAttachmentDescs(m_Desc, m_SurfaceDescriptions);
-	auto resolveDescriptions = CreateResolveAttachmentDescs(m_Desc, m_ResolveDescriptions);
+	auto attachmentDescriptions = CreateAttachmentDescs(m_Desc.colorSurfaces.data(), m_Desc.colorAttachmentCount);
+	if (desc.depthSurface.format)
+	{
+		auto depthDescriptions = CreateAttachmentDescs(&m_Desc.depthSurface, 1);
+		attachmentDescriptions.insert(attachmentDescriptions.end(), depthDescriptions.begin(), depthDescriptions.end());
+	}
+	// TODO: not implemented!! supposed to be empty rn
+	auto resolveDescriptions = CreateResolveAttachmentDescs(m_Desc.colorSurfaces.data(), m_Desc.colorAttachmentCount);
 
 	std::vector<VkAttachmentReference> colorAttachments;
 	colorAttachments.resize(desc.colorAttachmentCount);
@@ -26,7 +30,7 @@ void imp::RenderPassBase::Create(VkDevice device, RenderPassDesc& desc, std::vec
 	}
 
 	VkAttachmentReference depthAttachmentReference;
-	if (desc.depthFormat)
+	if (desc.depthSurface.format)
 	{
 		depthAttachmentReference.attachment = desc.colorAttachmentCount; // depth is indexed after color
 		depthAttachmentReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -35,24 +39,24 @@ void imp::RenderPassBase::Create(VkDevice device, RenderPassDesc& desc, std::vec
 	// TODO: only works with one
 	assert(resolveDescriptions.size() <= 1);
 	VkAttachmentReference colorAttachmentResolveReference;
-	if (resolveDescs.size())
+	if (resolveDescriptions.size())
 	{
-		assert(desc.msaaCount > 1);
-		if (desc.depthFormat)
+		assert(desc.resolveSurfaces[0].msaaCount > 1);
+		if (desc.depthSurface.format)
 			colorAttachmentResolveReference.attachment = desc.colorAttachmentCount + 1;
 		else
 			colorAttachmentResolveReference.attachment = desc.colorAttachmentCount;
 		colorAttachmentResolveReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	}
-	if (desc.msaaCount > 1)
+	if (desc.resolveSurfaces[0].msaaCount > 1)
 		attachmentDescriptions.push_back(std::move(resolveDescriptions[0]));
 
 	VkSubpassDescription subpass = {};
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	subpass.colorAttachmentCount = desc.colorAttachmentCount;
 	subpass.pColorAttachments = desc.colorAttachmentCount ? colorAttachments.data() : nullptr;
-	subpass.pDepthStencilAttachment = desc.depthFormat ? &depthAttachmentReference : nullptr;
-	subpass.pResolveAttachments = desc.msaaCount > 1 ? &colorAttachmentResolveReference : nullptr;
+	subpass.pDepthStencilAttachment = desc.depthSurface.format ? &depthAttachmentReference : nullptr;
+	subpass.pResolveAttachments = desc.resolveSurfaces[0].msaaCount > 1 ? &colorAttachmentResolveReference : nullptr;
 
 	// so far we have 1 subpass supported so leave this
 	VkSubpassDependency dependency{};
@@ -80,22 +84,18 @@ void imp::RenderPassBase::Create(VkDevice device, RenderPassDesc& desc, std::vec
 
 bool imp::RenderPassBase::HasBackbuffer() const
 {
-	bool hasBB = false;
-	if (m_SurfaceDescriptions.size())
-		hasBB = m_SurfaceDescriptions[0].isBackbuffer;
-	if (m_ResolveDescriptions.size())
-		hasBB = m_ResolveDescriptions[0].isBackbuffer;
-	return hasBB;
+	throw std::runtime_error("Not implemented");
+	return false;
 }
 
-const std::vector<imp::SurfaceDesc>& imp::RenderPassBase::GetSurfaceDescriptions() const
+const std::array<imp::SurfaceDesc, imp::kMaxColorAttachmentCount>& imp::RenderPassBase::GetSurfaceDescriptions() const
 {
-	return m_SurfaceDescriptions;
+	return m_Desc.colorSurfaces;
 }
 
-const std::vector<imp::SurfaceDesc>& imp::RenderPassBase::GetResolveSurfaceDescriptions() const
+const std::array<imp::SurfaceDesc, imp::kMaxColorAttachmentCount>& imp::RenderPassBase::GetResolveSurfaceDescriptions() const
 {
-	return m_ResolveDescriptions;
+	return m_Desc.resolveSurfaces;
 }
 
 VkRenderPass imp::RenderPassBase::GetVkRenderPass() const
@@ -113,8 +113,8 @@ VkViewport imp::RenderPassBase::GetViewport() const
 	VkViewport vp;
 	vp.x = 0.0f;
 	vp.y = 0.0f;
-	vp.width = m_SurfaceDescriptions.front().width;
-	vp.height = m_SurfaceDescriptions.front().height;
+	vp.width = GetSurfaceDescriptions().front().width;
+	vp.height = GetSurfaceDescriptions().front().height;
 	vp.minDepth = 0.0f;
 	vp.maxDepth = 1.0f;
 	assert(vp.width && vp.height);
@@ -125,7 +125,7 @@ VkRect2D imp::RenderPassBase::GetScissor() const
 {
 	VkRect2D rect;
 	rect.offset = {};
-	rect.extent = { m_SurfaceDescriptions.front().width, m_SurfaceDescriptions.front().height };
+	rect.extent = { GetSurfaceDescriptions().front().width, GetSurfaceDescriptions().front().height };
 	assert(rect.extent.width && rect.extent.height);
 	return rect;
 }
@@ -171,14 +171,17 @@ void imp::RenderPassBase::BeginRenderPass(Graphics& gfx, CommandBuffer cmb)
 	}
 	for (const auto& surfDesc : GetSurfaceDescriptions())
 	{
-		if (surfDesc.isBackbuffer)
-			surfaces.push_back(gfx.m_Swapchain.GetSwapchainImageSurface(gfx.m_LogicalDevice));
-		else
-			surfaces.push_back(gfx.m_SurfaceManager.GetSurface(surfDesc, gfx.m_LogicalDevice)); // TODO: change to emplace?
+		if (surfDesc.format)
+		{
+			if (surfDesc.isBackbuffer)
+				surfaces.push_back(gfx.m_Swapchain.GetSwapchainImageSurface(gfx.m_LogicalDevice));
+			else
+				surfaces.push_back(gfx.m_SurfaceManager.GetSurface(surfDesc, gfx.m_LogicalDevice)); // TODO: change to emplace?
+		}
 	}
+	if(m_Desc.depthSurface.format)
+		surfaces.push_back(gfx.m_SurfaceManager.GetSurface(m_Desc.depthSurface, gfx.m_LogicalDevice));
 	// check if framebuffer we have still is good
-	// TODO: make framebuffer system, creating many fbs causes memory leak
-	// can't destroy them immediately either
 	if (!m_Framebuffer.StillValid(surfaces))
 	{
 		if(m_Framebuffer.GetVkFramebuffer()) // TODO: this is a fast work around to not destroy an empty frame buffer
@@ -197,9 +200,9 @@ void imp::RenderPassBase::BeginRenderPass(Graphics& gfx, CommandBuffer cmb)
 	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassBeginInfo.renderPass = m_RenderPass;
 	renderPassBeginInfo.renderArea.offset = { 0, 0 };
-	renderPassBeginInfo.renderArea.extent = { m_SurfaceDescriptions[0].width, m_SurfaceDescriptions[0].height };
+	renderPassBeginInfo.renderArea.extent = { GetSurfaceDescriptions()[0].width, GetSurfaceDescriptions()[0].height};
 	// temp way to know if clear
-	bool clear = (m_Desc.colorLoadOp == kLoadOpClear || m_Desc.depthLoadOp == kLoadOpClear);
+	bool clear = (m_Desc.colorSurfaces[0].loadOp == kLoadOpClear || m_Desc.depthSurface.loadOp == kLoadOpClear);
 	renderPassBeginInfo.pClearValues = clear ? clearValues.data() : nullptr;
 	renderPassBeginInfo.clearValueCount = clear ? clearValues.size() : 0;
 	renderPassBeginInfo.framebuffer = m_Framebuffer.GetVkFramebuffer();
@@ -212,43 +215,45 @@ void imp::RenderPassBase::EndRenderPass(Graphics& gfx, CommandBuffer cmb)
 	vkCmdEndRenderPass(cmb.cmb);
 }
 
-std::vector<VkAttachmentDescription> imp::RenderPassBase::CreateAttachmentDescs(const RenderPassDesc& desc, const std::vector<SurfaceDesc>& surfaceDescs) const
+std::vector<VkAttachmentDescription> imp::RenderPassBase::CreateAttachmentDescs(const SurfaceDesc* descs, const uint32_t descCount) const
 {
-	auto descs = std::vector<VkAttachmentDescription>();
+	auto attDescs = std::vector<VkAttachmentDescription>();
 
-	for (auto& descr : surfaceDescs)
+	for(auto i = 0; i < descCount; i++)
 	{
+		const auto& descr = descs[i];
 		VkAttachmentDescription attDesc = {};
 		attDesc.flags = 1; // TODO: what are these?
 		attDesc.format = descr.format;
 		attDesc.samples = static_cast<VkSampleCountFlagBits>(descr.msaaCount);
-		attDesc.loadOp = static_cast<VkAttachmentLoadOp>(descr.isColor ? desc.colorLoadOp : desc.depthLoadOp);
-		attDesc.storeOp = static_cast<VkAttachmentStoreOp>(descr.isColor ? desc.colorStoreOp : desc.depthStoreOp);
+		attDesc.loadOp = static_cast<VkAttachmentLoadOp>(descr.loadOp);
+		attDesc.storeOp = static_cast<VkAttachmentStoreOp>(descr.storeOp);
 		attDesc.initialLayout = static_cast<VkImageLayout>(descr.initialLayout);
 		attDesc.finalLayout = static_cast<VkImageLayout>(descr.finalLayout);
 
-		descs.emplace_back(attDesc);
+		attDescs.emplace_back(attDesc);
 	}
-	return descs;
+	return attDescs;
 }
 
-std::vector<VkAttachmentDescription> imp::RenderPassBase::CreateResolveAttachmentDescs(const RenderPassDesc& desc, const std::vector<SurfaceDesc>& surfaceDescs) const
+std::vector<VkAttachmentDescription> imp::RenderPassBase::CreateResolveAttachmentDescs(const SurfaceDesc* descs, const uint32_t descCount) const
 {
-	auto descs = std::vector<VkAttachmentDescription>();
+	auto attDescs = std::vector<VkAttachmentDescription>();
 
-	for (auto& descr : surfaceDescs)
-	{
-		VkAttachmentDescription attDesc = {};
-		attDesc.flags = 1;
-		attDesc.format = descr.format;
-		attDesc.samples = VK_SAMPLE_COUNT_1_BIT;
-		attDesc.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		attDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		attDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		attDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		attDesc.finalLayout = static_cast<VkImageLayout>(descr.finalLayout);
+	//for (auto& descr : surfaceDescs)
+	//{
+	//	VkAttachmentDescription attDesc = {};
+	//	attDesc.flags = 1;
+	//	attDesc.format = descr.format;
+	//	attDesc.samples = VK_SAMPLE_COUNT_1_BIT;
+	//	attDesc.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	//	attDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	//	attDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	//	attDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	//	attDesc.finalLayout = static_cast<VkImageLayout>(descr.finalLayout);
 
-		descs.emplace_back(attDesc);
-	}
-	return descs;
+	//	descs.emplace_back(attDesc);
+	//}
+	// TODO: not implemented
+	return attDescs;
 }

@@ -14,7 +14,9 @@ namespace imp
 
 	bool Engine::Initialize(EngineSettings settings)
 	{
-		std::filesystem::current_path("D:\\source\\ImperialEngine\\ImperialEngine\\ImperialEngine");
+		// TODO: this is needed as a workaround when launching the actual .exe since it will have different current path it won't know how to access Assets
+		//std::filesystem::current_path("D:\\source\\ImperialEngine\\ImperialEngine\\ImperialEngine");
+		std::filesystem::current_path("C:\\Users\\mtunk\\source\\repos\\ImperialEngine\\ImperialEngine\\ImperialEngine");
 		m_EngineSettings = settings;
 		InitThreading(m_EngineSettings.threadingMode);
 		InitImgui();
@@ -168,7 +170,7 @@ namespace imp
 		const auto identity = glm::mat4x4(1.0f);
 		const auto defaultCameraTransform = glm::translate(identity, glm::vec3(0.0f, 0.0f, 150.0f));
 		m_Entities.emplace<Comp::Transform>(camera, defaultCameraTransform);
-		m_Entities.emplace<Comp::CameraComponent>(camera, 0.0f, 0.0f);
+		m_Entities.emplace<Comp::Camera>(camera, 0.0f, 0.0f);
 	}
 
 	void Engine::RenderCameras()
