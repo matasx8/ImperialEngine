@@ -9,8 +9,9 @@
 #include <set>
 #include <cassert>
 #include <extern/IMGUI/backends/imgui_impl_vulkan.h>
+#include <numeric>
 
-imp::Graphics::Graphics() : m_Settings(), m_GfxCaps(), m_ValidationLayers(), m_Window(), m_PipelineManager()
+imp::Graphics::Graphics() : m_Settings(), m_GfxCaps(), m_ValidationLayers(), m_Window(), m_PipelineManager(), m_MemoryManager()
 {
     // TODO: init all variables
     m_CurrentFrame = 0;
@@ -29,6 +30,7 @@ void imp::Graphics::Initialize(const EngineGraphicsSettings& settings, Window* w
     CreateGarbageCollector();
     CreateRenderPassGenerator();
 
+    InitializeVulkanMemory();
 
     // Until we haven't made custom vulkan backend for imgui we can't fully have dynamic RenderPassGenerator
     // since CreateImGUI needs a renderpass
@@ -82,27 +84,39 @@ void imp::Graphics::CreateAndUploadMeshes(const std::vector<CmdRsc::MeshCreation
 
     cb.Begin();
 
+
+    //auto allocSize = std::accumulate(meshCreationData.begin(), meshCreationData.end(), 0u, [](const auto& a, const auto& b) { return a + b.vertices.size(); });//.vertices.size() * sizeof(Vertex);
+    //UploadVulkanBuffer(usageFlags, dstUsageFlags, memoryFlags, dstMemoryFlags, cb, allocSize, req.vertices.data());
+
+    // TODO: this can be abstracted to not differentiate between indices and vertices
+    uint32_t vtxAllocSize = 0;
+    uint32_t idxAllocSize = 0;
+    std::vector<Vertex> verts;
+    std::vector<uint32_t> idxs;
     for (const auto& req : meshCreationData)
     {
-        Comp::IndexedVertexBuffers component;
+        VulkanSubBuffer vtxSub = VulkanSubBuffer(verts.size(), req.vertices.size());
+        VulkanSubBuffer idxSub = VulkanSubBuffer(idxs.size(), req.indices.size());
+        verts.insert(verts.end(), req.vertices.begin(), req.vertices.end());
+        idxs.insert(idxs.end(), req.indices.begin(), req.indices.end());
+        vtxAllocSize += req.vertices.size() * sizeof(Vertex);
+        idxAllocSize += req.indices.size() * sizeof(uint32_t);
 
-        const auto usageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-        auto dstUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-
-        const auto memoryFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-        const auto dstMemoryFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-
-        auto allocSize = req.vertices.size() * sizeof(Vertex);
-        component.vertices = UploadVulkanBuffer(usageFlags, dstUsageFlags, memoryFlags, dstMemoryFlags, cb, allocSize, req.vertices.data());
-
-        dstUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-        allocSize = req.indices.size() * sizeof(uint32_t); // * SIZE_OF_INDEX; or something like that
-        component.indices = UploadVulkanBuffer(usageFlags, dstUsageFlags, memoryFlags, dstMemoryFlags, cb, allocSize, req.indices.data());
-
-        m_VertexBuffers[req.id] = component;
+        m_VertexBuffers[req.id] = { vtxSub, idxSub };
     }
 
+    const auto usageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    const auto memoryFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
+    // upload vertices
+    UploadVulkanBuffer(usageFlags, memoryFlags, m_VertexBuffer, cb, vtxAllocSize, verts.data());
+
+    // upload indices
+    UploadVulkanBuffer(usageFlags, memoryFlags, m_IndexBuffer, cb, idxAllocSize, idxs.data());
+
     cb.End();
+    // how do we know when we can use the mesh? did i miss this?
+    // add semaphore to the huge vertex buffer
     m_CbManager.Submit(m_GfxQueue, m_LogicalDevice, cbs, {});
 }
 
@@ -363,16 +377,21 @@ void imp::Graphics::CreateRenderPassGenerator()
     m_RenderPassManager = new RenderPassGeneratorSimple();
 }
 
+void imp::Graphics::InitializeVulkanMemory()
+{
+    static constexpr VkDeviceSize allocSize = 128 * 1024 * 1024;
+    m_VertexBuffer  = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
+    m_IndexBuffer   = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
+    m_MeshBuffer    = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
+}
+
 imp::VulkanBuffer imp::Graphics::UploadVulkanBuffer(VkBufferUsageFlags usageFlags, VkBufferUsageFlags dstUsageFlags, VkMemoryPropertyFlags memoryFlags, VkMemoryPropertyFlags dstMemoryFlags, const CommandBuffer& cb, uint32_t allocSize, const void* dataToUpload)
 {
-    //const auto usageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    //const auto memoryFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    //const auto allocSize = req.vertices.size() * sizeof(Vertex);
+    // TODO: later change this so it returns buffer that's on scratch memory
     auto stagingBuffer = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, usageFlags, memoryFlags, m_DeviceMemoryProps);
+    // then as a vulkan resource we can override the destruction so it doesn't try to deallocate a sub-buffer and just notifies the scratch there's a spot open
     stagingBuffer.UpdateLastUsed(m_CurrentFrame);
-
-    //const auto dstUsageFlags = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-    //const auto dstMemoryFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    // continue here.. going off to create storage buffers
     auto uploadedBuffer = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, dstUsageFlags, dstMemoryFlags, m_DeviceMemoryProps);
 
     // copy cpu data to host visible buffer
@@ -387,12 +406,33 @@ imp::VulkanBuffer imp::Graphics::UploadVulkanBuffer(VkBufferUsageFlags usageFlag
     // do host visible buffer to device local buffer
     CopyVulkanBuffer(stagingBuffer, uploadedBuffer, cb);
 
-    // assign to component
-    //component.vertices = vertexBuffer;
-
     m_VulkanGarbageCollector.AddGarbageResource(std::make_shared<VulkanBuffer>(stagingBuffer));
 
     return uploadedBuffer;
+}
+
+void imp::Graphics::UploadVulkanBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags, VulkanBuffer& dst, const CommandBuffer& cb, uint32_t allocSize, const void* dataToUpload)
+{
+    // TODO: "Calling a second time won't work since it will overwrite the dst buffer"
+    // 
+    // TODO: later change this so it returns buffer that's on scratch memory
+    auto stagingBuffer = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, usageFlags, memoryFlags, m_DeviceMemoryProps);
+    // then as a vulkan resource we can override the destruction so it doesn't try to deallocate a sub-buffer and just notifies the scratch there's a spot open
+    stagingBuffer.UpdateLastUsed(m_CurrentFrame);
+
+    // copy cpu data to host visible buffer
+    void* data;
+    const VkMemoryMapFlags flags = 0;   // don't exist yet
+    const VkDeviceSize offset = 0;      // so far we have whole buffers
+    const auto res = vkMapMemory(m_LogicalDevice, stagingBuffer.GetMemory(), offset, stagingBuffer.GetSize(), flags, &data);
+    assert(res == VK_SUCCESS);
+    memcpy(data, dataToUpload, stagingBuffer.GetSize());
+    vkUnmapMemory(m_LogicalDevice, stagingBuffer.GetMemory());
+
+    // do host visible buffer to device local buffer
+    CopyVulkanBuffer(stagingBuffer, dst, cb);
+
+    m_VulkanGarbageCollector.AddGarbageResource(std::make_shared<VulkanBuffer>(stagingBuffer));
 }
 
 void imp::Graphics::CopyVulkanBuffer(const VulkanBuffer& src, VulkanBuffer& dst, const CommandBuffer& cb)
@@ -431,15 +471,16 @@ void imp::Graphics::PushConstants(VkCommandBuffer cb, const void* data, uint32_t
 
 uint32_t imp::Graphics::BindMesh(VkCommandBuffer cb, uint32_t vtxBufferId) const
 {
-    const auto indexedVertexBufferIt = m_VertexBuffers.find(vtxBufferId);
-    assert(indexedVertexBufferIt != m_VertexBuffers.end());
-    const auto& vertexBuffer = indexedVertexBufferIt->second.vertices.GetBuffer();
-    const auto& indexBuffer = indexedVertexBufferIt->second.indices.GetBuffer();
-    VkDeviceSize offsets[] = { 0 };
+    //const auto indexedVertexBufferIt = m_VertexBuffers.find(vtxBufferId);
+    //assert(indexedVertexBufferIt != m_VertexBuffers.end());
+    //const auto& vertexBuffer = indexedVertexBufferIt->second.vertices.GetBuffer();
+    //const auto& indexBuffer = indexedVertexBufferIt->second.indices.GetBuffer();
+    //VkDeviceSize offsets[] = { 0 };
 
-    vkCmdBindVertexBuffers(cb, 0, 1, &vertexBuffer, offsets);
-    vkCmdBindIndexBuffer(cb, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-    return indexedVertexBufferIt->second.indices.GetSize() / sizeof(uint32_t);
+    //vkCmdBindVertexBuffers(cb, 0, 1, &vertexBuffer, offsets);
+    //vkCmdBindIndexBuffer(cb, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+    //return indexedVertexBufferIt->second.indices.GetSize() / sizeof(uint32_t);
+    return 0;
 }
 
 void imp::Graphics::DrawIndexed(VkCommandBuffer cb, uint32_t indexCount) const

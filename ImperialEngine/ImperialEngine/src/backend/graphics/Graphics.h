@@ -64,9 +64,11 @@ namespace imp
 		void CreateVulkanMemoryManager();
 		void CreateRenderPassGenerator();
 		
+		void InitializeVulkanMemory();
 
 		// transfer commands
 		VulkanBuffer UploadVulkanBuffer(VkBufferUsageFlags usageFlags, VkBufferUsageFlags dstUsageFlags, VkMemoryPropertyFlags memoryFlags, VkMemoryPropertyFlags dstMemoryFlags, const CommandBuffer& cb, uint32_t allocSize, const void* dataToUpload);
+		void UploadVulkanBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags, VulkanBuffer& dst, const CommandBuffer& cb, uint32_t allocSize, const void* dataToUpload);
 		void CopyVulkanBuffer(const VulkanBuffer& src, VulkanBuffer& dst, const CommandBuffer& cb);
 
 		const Pipeline& EnsurePipeline(VkCommandBuffer cb, const RenderPassBase& rp /*, Material material*/);
@@ -103,6 +105,10 @@ namespace imp
 		VulkanGarbageCollector m_VulkanGarbageCollector;
 		VulkanMemory m_MemoryManager;
 		MemoryProps m_DeviceMemoryProps;
+
+		VulkanBuffer m_VertexBuffer;
+		VulkanBuffer m_IndexBuffer;
+		VulkanBuffer m_MeshBuffer;
 
 		std::unordered_map<uint32_t, Comp::IndexedVertexBuffers> m_VertexBuffers;
 

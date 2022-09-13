@@ -1,4 +1,5 @@
 #include "VulkanBuffer.h"
+#include <stdio.h>
 
 imp::VulkanBuffer::VulkanBuffer()
 	: m_Buffer(VK_NULL_HANDLE), m_Memory(VK_NULL_HANDLE), m_Size(0)
@@ -29,4 +30,34 @@ void imp::VulkanBuffer::Destroy(VkDevice device)
 {
 	vkDestroyBuffer(device, m_Buffer, nullptr);
 	vkFreeMemory(device, m_Memory, nullptr);
+}
+
+imp::VulkanSubBuffer::VulkanSubBuffer()
+	: m_Offset(0), m_Count(0)
+{
+}
+
+imp::VulkanSubBuffer::VulkanSubBuffer(uint32_t offset, uint32_t count)
+	: m_Offset(offset), m_Count(count)
+{
+}
+
+uint32_t imp::VulkanSubBuffer::GetOffset() const
+{
+	return m_Offset;
+}
+
+uint32_t imp::VulkanSubBuffer::GetCount() const
+{
+	return m_Count;
+}
+
+size_t imp::VulkanSubBuffer::GetSize(size_t elementSize) const
+{
+	return elementSize * m_Count;
+}
+
+void imp::VulkanSubBuffer::Destroy(VkDevice device)
+{
+	printf("TODO:");
 }

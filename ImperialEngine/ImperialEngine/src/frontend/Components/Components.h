@@ -33,7 +33,7 @@ namespace Comp
 
 	struct IndexedVertexBuffers
 	{
-		imp::VulkanBuffer indices;
-		imp::VulkanBuffer vertices;
+		imp::VulkanSubBuffer indices;
+		imp::VulkanSubBuffer vertices;
 	};
 }
