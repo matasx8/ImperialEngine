@@ -216,8 +216,9 @@ namespace imp
 
 			const auto quat = glm::toQuat(transform.transform);
 			const auto newFront = glm::rotate(quat, front);
+			const auto newWorldUp = glm::rotate(quat, worldUp);
 
-			const auto newRight = glm::normalize(glm::cross(newFront, worldUp));
+			const auto newRight = glm::normalize(glm::cross(newFront, newWorldUp));
 			const auto newUp = glm::normalize(glm::cross(newRight, newFront));
 
 			// update view matrix

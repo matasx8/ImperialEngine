@@ -49,6 +49,8 @@ namespace imp
 
 		void Destroy();
 
+		static VkSemaphore GetSemaphore(VkDevice device);
+
 	private:
 
 

@@ -115,9 +115,10 @@ void imp::Graphics::CreateAndUploadMeshes(const std::vector<CmdRsc::MeshCreation
     UploadVulkanBuffer(usageFlags, memoryFlags, m_IndexBuffer, cb, idxAllocSize, idxs.data());
 
     cb.End();
-    // how do we know when we can use the mesh? did i miss this?
-    // add semaphore to the huge vertex buffer
-    m_CbManager.Submit(m_GfxQueue, m_LogicalDevice, cbs, {});
+    
+    auto synchs = m_CbManager.Submit(m_GfxQueue, m_LogicalDevice, cbs, {});
+    m_VertexBuffer.GiveSemaphore(synchs.semaphore);
+    m_IndexBuffer.GiveSemaphore(synchs.semaphore);
 }
 
 void imp::Graphics::CreateAndUploadMaterials(const std::vector<CmdRsc::MaterialCreationRequest>& materialCreationData)
@@ -145,6 +146,16 @@ void imp::Graphics::Destroy()
     m_Window.Destroy(m_VkInstance);
     m_ValidationLayers.Destroy(m_VkInstance);
     vkDestroyInstance(m_VkInstance, nullptr);
+}
+
+VkSemaphore imp::Graphics::GetSemaphore(VkDevice device)
+{
+    VkSemaphoreCreateInfo semaphoreCreateInfo = {};
+    semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    VkSemaphore sem;
+    vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &sem);
+    return sem;
 }
 
 void imp::Graphics::CreateInstance()

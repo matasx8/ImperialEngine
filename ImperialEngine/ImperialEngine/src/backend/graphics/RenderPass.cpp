@@ -43,9 +43,12 @@ void imp::RenderPass::Execute(Graphics& gfx, const CameraData& cam)
 
 	EndRenderPass(gfx, cmb);
 	cmb.End();
-	// TODOOO: seems like we have a race condition. We don't wait for upload command buffer for vertices and indices to finish..
-	// that's probbaly why it crashed with big suzanne
-	// possible solution is to have vulkan resources have a semaphore member
+	
+	// since we know vertex and index buffer will have same semaphore it's safe to do this for now
+	// but probably should implement some easier way to round up all unique semaphores.. Or is it not needed? Maybe we can wait of two identical semaphores
+	auto semaphores = GetSemaphoresToWaitOn();
+	if(gfx.m_VertexBuffer.HasSemaphore())
+		semaphores.push_back(gfx.m_VertexBuffer.StealSemaphore());
 
 	gfx.m_CbManager.Submit(gfx.m_GfxQueue, gfx.m_LogicalDevice, cmbs, GetSemaphoresToWaitOn());
 }
