@@ -43,7 +43,7 @@ namespace imp
 		const auto depthStencilState = MakeDepthStencilStateCI();
 
 		VkPushConstantRange pushRange;
-		pushRange.size = sizeof(glm::mat4x4);	// temporary so I can push ViewProjection matrix without having descriptors
+		pushRange.size = sizeof(uint32_t); // index into draw data
 		pushRange.offset = 0;
 		pushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 		const auto pipelineLayoutCI = MakePipelineLayoutCI(pushRange, config);

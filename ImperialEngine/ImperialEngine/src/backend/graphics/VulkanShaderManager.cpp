@@ -1,9 +1,17 @@
 #include "VulkanShaderManager.h"
+#include "backend/graphics/Graphics.h"
 #include <optional>
 
 imp::VulkanShaderManager::VulkanShaderManager()
 	: m_ShaderMap()
 {
+}
+
+void imp::VulkanShaderManager::Initialize(VkDevice device, VulkanMemory& memory, EngineGraphicsSettings& settings)
+{
+	// Here we create the needed buffers, descriptor sets and etc.
+	// also the default material
+
 }
 
 imp::VulkanShader imp::VulkanShaderManager::GetShader(const std::string& shaderName)

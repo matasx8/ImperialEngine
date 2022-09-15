@@ -262,12 +262,29 @@ void imp::Graphics::CreateLogicalDevice()
     deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
     deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(m_Settings.requiredDeviceExtensions.size());
     deviceCreateInfo.ppEnabledExtensionNames = m_Settings.requiredDeviceExtensions.data();
-    deviceCreateInfo.pNext = &dci;
+   // deviceCreateInfo.pNext = &dci;  // not using nsight so far
 
     VkPhysicalDeviceFeatures devicefeatures = {};
     devicefeatures.samplerAnisotropy = VK_TRUE;
+    
 
-    deviceCreateInfo.pEnabledFeatures = &devicefeatures;
+   // deviceCreateInfo.pEnabledFeatures = &devicefeatures;
+    
+    // indexing ---
+    VkPhysicalDeviceDescriptorIndexingFeatures indexing_features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT, nullptr };
+    VkPhysicalDeviceFeatures2 physical_features2 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
+    physical_features2.features.samplerAnisotropy = VK_TRUE;
+    vkGetPhysicalDeviceFeatures2(m_PhysicalDevice, &physical_features2);
+    bool bindless_supported = indexing_features.descriptorBindingPartiallyBound && indexing_features.runtimeDescriptorArray;
+    indexing_features.descriptorBindingPartiallyBound = VK_TRUE;
+    indexing_features.runtimeDescriptorArray = VK_TRUE;
+    indexing_features.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
+    indexing_features.descriptorBindingUniformBufferUpdateAfterBind = VK_TRUE;
+    indexing_features.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
+    indexing_features.descriptorBindingVariableDescriptorCount = VK_TRUE;
+    physical_features2.pNext = &indexing_features;
+    deviceCreateInfo.pNext = &physical_features2;
+
 
     VkResult result = vkCreateDevice(m_PhysicalDevice, &deviceCreateInfo, nullptr, &m_LogicalDevice);
     if (result != VK_SUCCESS)
@@ -421,23 +438,49 @@ void imp::Graphics::InitializeVulkanMemory()
     for (auto i = 0; i < m_Settings.swapchainImageCount; i++)
     {
         m_GlobalBuffers[i] = m_MemoryManager.GetBuffer(m_LogicalDevice, 1024, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_DeviceMemoryProps);
+        m_DrawDataBuffers[i] = m_MemoryManager.GetBuffer(m_LogicalDevice, 1024, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_DeviceMemoryProps);
 
         VkDescriptorSetLayoutBinding globalBufferBinding;
-        globalBufferBinding.binding = 0;
+        globalBufferBinding.binding = 1;
         globalBufferBinding.descriptorCount = 1; // global buffer - so we need 1
         globalBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         globalBufferBinding.stageFlags = VK_SHADER_STAGE_ALL; // is this good? global stuf should probably be accessed evberywhere
         globalBufferBinding.pImmutableSamplers = nullptr;
 
-        std::array< VkDescriptorSetLayoutBinding, 1> bindings = { globalBufferBinding };
+        VkDescriptorSetLayoutBinding drawDataBufferBinding;
+        drawDataBufferBinding.binding = 2;
+        drawDataBufferBinding.descriptorCount = 2; // do we need 1 or more?
+        drawDataBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        drawDataBufferBinding.stageFlags = VK_SHADER_STAGE_ALL; // is this good? global stuf should probably be accessed evberywhere
+        drawDataBufferBinding.pImmutableSamplers = nullptr;
 
+        static constexpr uint32_t bindingCount = 2;
+        std::array< VkDescriptorSetLayoutBinding, bindingCount> bindings = { globalBufferBinding, drawDataBufferBinding };
+
+        const VkDescriptorBindingFlags flags =
+            VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT |
+            VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
+            VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
+            VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT;
+
+        const VkDescriptorBindingFlags flags2 =
+            VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
+            VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
+            VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT;
+
+        std::array< VkDescriptorBindingFlags, bindingCount> multipleFlags = { flags2, flags }; // one for each binding
+
+        VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlags = {};
+        bindingFlags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+        bindingFlags.bindingCount = bindingCount;
+        bindingFlags.pBindingFlags = multipleFlags.data();
 
         m_DescriptorSetLayout = VK_NULL_HANDLE;
         VkDescriptorSetLayoutCreateInfo dci;
         dci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        dci.pNext = nullptr;
+        dci.pNext = &bindingFlags;
         dci.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
-        dci.bindingCount = 1;
+        dci.bindingCount = bindingCount;
         dci.pBindings = bindings.data();
         vkCreateDescriptorSetLayout(m_LogicalDevice, &dci, nullptr, &m_DescriptorSetLayout);
 
@@ -446,13 +489,22 @@ void imp::Graphics::InitializeVulkanMemory()
         allocateInfo.descriptorPool = descriptorPool;
         allocateInfo.descriptorSetCount = 1;
         allocateInfo.pSetLayouts = &m_DescriptorSetLayout;
-        allocateInfo.pNext = nullptr;
+
+        VkDescriptorSetVariableDescriptorCountAllocateInfo variable_info = {};
+        variable_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT;
+        variable_info.descriptorSetCount = 1;
+        std::array<uint32_t, 2> descriptorCounts = { 2, 100 }; // seems like the descriptors must match the binding numbers
+        // for example the global buffer is binding #1 so it needs two descriptors
+        // so only the last binding can have the truly variable count
+        variable_info.pDescriptorCounts = descriptorCounts.data(); // one for each dset
+        allocateInfo.pNext = &variable_info;
 
         auto res = vkAllocateDescriptorSets(m_LogicalDevice, &allocateInfo, &m_DescriptorSets[i]);
         assert(res == VK_SUCCESS);
 
         // ah we actually write a descriptor to the descriptor set..
         // here we inform what part of the data we'll be using
+        
         VkDescriptorBufferInfo buffinfo;
         buffinfo.buffer = m_GlobalBuffers[i].GetBuffer();
         buffinfo.offset = 0; // so far no offset
@@ -461,13 +513,36 @@ void imp::Graphics::InitializeVulkanMemory()
         VkWriteDescriptorSet write = {};
         write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         write.dstSet = m_DescriptorSets[i];
-        write.dstBinding = 0;
+        write.dstBinding = 1;
         write.dstArrayElement = 0;
         write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         write.descriptorCount = 1;
         write.pBufferInfo = &buffinfo;
 
-        vkUpdateDescriptorSets(m_LogicalDevice, 1, &write, 0, nullptr);
+
+        VkDescriptorBufferInfo drawBuffInfo;
+        drawBuffInfo.buffer = m_DrawDataBuffers[i].GetBuffer();
+        drawBuffInfo.offset = 0; // so far no offset
+        drawBuffInfo.range = sizeof(ShaderDrawData);
+
+        VkDescriptorBufferInfo drawBuffInfo2;   // maybe try 3, to see if can have one that's not been written to or something like that to test partially bound or whatever
+        drawBuffInfo2.buffer = m_DrawDataBuffers[i].GetBuffer();
+        drawBuffInfo2.offset = sizeof(ShaderDrawData);
+        drawBuffInfo2.range = sizeof(ShaderDrawData);
+
+        std::array< VkDescriptorBufferInfo, 2> drawBufferInfos = { drawBuffInfo, drawBuffInfo2 };
+
+        VkWriteDescriptorSet drawWrite = {};
+        drawWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        drawWrite.dstSet = m_DescriptorSets[i];
+        drawWrite.dstBinding = 2;
+        drawWrite.dstArrayElement = 0;
+        drawWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        drawWrite.descriptorCount = 2;
+        drawWrite.pBufferInfo = drawBufferInfos.data();
+
+        std::array< VkWriteDescriptorSet, 2> writes = { write, drawWrite };
+        vkUpdateDescriptorSets(m_LogicalDevice, 2, writes.data(), 0, nullptr);
     }
 
     static constexpr VkDeviceSize allocSize = 128 * 1024 * 1024;

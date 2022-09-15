@@ -16,15 +16,16 @@ void imp::RenderPass::Execute(Graphics& gfx, const CameraData& cam)
 	cmb.Begin();
 	BeginRenderPass(gfx, cmb);
 
-	std::array<glm::mat4x4, 1> pushData;
+	std::array<uint32_t, 1> pushData;
+	pushData[0] = 0;
 	auto viewProj = cam.Projection * cam.View;
 	void* pptr = &viewProj;
 
 	// ----------
 	void* dataMap = nullptr;
 	auto bufferMem = gfx.m_GlobalBuffers[gfx.m_Swapchain.GetFrameClock()].GetMemory();
-	const auto dset = gfx.m_DescriptorSets[gfx.m_Swapchain.GetFrameClock()];
-	const auto size = gfx.m_GlobalBuffers[gfx.m_Swapchain.GetFrameClock()].GetSize();
+	auto dset = gfx.m_DescriptorSets[gfx.m_Swapchain.GetFrameClock()];
+	auto size = gfx.m_GlobalBuffers[gfx.m_Swapchain.GetFrameClock()].GetSize();
 	auto res = vkMapMemory(gfx.m_LogicalDevice, bufferMem, 0, size, 0, &dataMap);
 	memcpy(dataMap, &viewProj, sizeof(viewProj));
 	vkUnmapMemory(gfx.m_LogicalDevice, bufferMem);
@@ -41,6 +42,16 @@ void imp::RenderPass::Execute(Graphics& gfx, const CameraData& cam)
 
 	for (const auto& drawData : gfx.m_DrawData) // seems like we might something useful for draw indirect?
 	{
+		// ---- this is here because we should update the buffers someplace else
+		bufferMem = gfx.m_DrawDataBuffers[gfx.m_Swapchain.GetFrameClock()].GetMemory();
+		dset = gfx.m_DescriptorSets[gfx.m_Swapchain.GetFrameClock()];
+		size = gfx.m_GlobalBuffers[gfx.m_Swapchain.GetFrameClock()].GetSize(); // this doesn't work anymore, need size of data block we're updating
+		res = vkMapMemory(gfx.m_LogicalDevice, bufferMem, 0, size, 0, &dataMap);
+		memcpy(dataMap, &drawData.Transform, sizeof(drawData.Transform));
+		vkUnmapMemory(gfx.m_LogicalDevice, bufferMem);
+		assert(res == VK_SUCCESS);
+		// -------
+
 		// if material of old drawData is not same
 		// then get pipeline of new material + renderpass
 		const auto pipe = gfx.EnsurePipeline(cb, *this);	// since we have to get pipeline, bind here and not in that func
@@ -48,7 +59,6 @@ void imp::RenderPass::Execute(Graphics& gfx, const CameraData& cam)
 		// since all pipelines will have same layout this is should be way above
 		vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe.GetPipelineLayout(), 0, 1, &dset, 0, nullptr);
 
-		pushData[0] = drawData.Transform;
 		gfx.PushConstants(cb, pushData.data(), sizeof(pushData), pipe.GetPipelineLayout());
 
 		//const auto indexCount = gfx.BindMesh(cb, drawData.VertexBufferId);

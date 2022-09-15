@@ -34,6 +34,11 @@ namespace imp
 		bool hasUI;
 	};
 
+	struct ShaderDrawData
+	{
+		glm::mat4x4 Transform;
+	};
+
 	class Graphics : NonCopyable
 	{
 	public:
@@ -113,7 +118,9 @@ namespace imp
 		VulkanBuffer m_IndexBuffer;
 		VulkanBuffer m_MeshBuffer;
 		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_GlobalBuffers;
+		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_DrawDataBuffers;
 		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_DescriptorSets;
+
 		VkDescriptorSetLayout m_DescriptorSetLayout;
 
 		std::unordered_map<uint32_t, Comp::IndexedVertexBuffers> m_VertexBuffers;
