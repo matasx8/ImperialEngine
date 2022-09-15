@@ -108,9 +108,13 @@ namespace imp
 		VulkanMemory m_MemoryManager;
 		MemoryProps m_DeviceMemoryProps;
 
+		// can i use any of the entt data structures?
 		VulkanBuffer m_VertexBuffer;
 		VulkanBuffer m_IndexBuffer;
 		VulkanBuffer m_MeshBuffer;
+		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_GlobalBuffers;
+		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_DescriptorSets;
+		VkDescriptorSetLayout m_DescriptorSetLayout;
 
 		std::unordered_map<uint32_t, Comp::IndexedVertexBuffers> m_VertexBuffers;
 

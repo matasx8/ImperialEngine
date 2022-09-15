@@ -43,10 +43,10 @@ namespace imp
 		const auto depthStencilState = MakeDepthStencilStateCI();
 
 		VkPushConstantRange pushRange;
-		pushRange.size = sizeof(glm::mat4x4) * 2;	// temporary so I can push ViewProjection matrix without having descriptors
+		pushRange.size = sizeof(glm::mat4x4);	// temporary so I can push ViewProjection matrix without having descriptors
 		pushRange.offset = 0;
 		pushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-		const auto pipelineLayoutCI = MakePipelineLayoutCI(pushRange);
+		const auto pipelineLayoutCI = MakePipelineLayoutCI(pushRange, config);
 		const auto pipelineLayout = MakePipelineLayout(device, pipelineLayoutCI);
 
 		const auto pipelineCI = MakePipelineCI(shaderStages, &vertInputState, &inputAssembly, &viewportState, nullptr, &rasterizationState, &msaaState, &colorBlendState, &depthStencilState, pipelineLayout, rp.GetVkRenderPass(), 0);
@@ -186,13 +186,13 @@ namespace imp
 		return ci;
 	}
 
-	VkPipelineLayoutCreateInfo PipelineManager::MakePipelineLayoutCI(const auto& pushRange) const
+	VkPipelineLayoutCreateInfo PipelineManager::MakePipelineLayoutCI(const auto& pushRange, const PipelineConfig& config) const
 	{
 		assert(pushRange.size);
 		VkPipelineLayoutCreateInfo ci;
 		ci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		ci.setLayoutCount = 0;
-		ci.pSetLayouts = nullptr;
+		ci.setLayoutCount = 1;
+		ci.pSetLayouts = &config.descriptorSetLayout;
 		ci.pushConstantRangeCount = 1;
 		ci.pPushConstantRanges = &pushRange;
 		ci.pNext = nullptr;

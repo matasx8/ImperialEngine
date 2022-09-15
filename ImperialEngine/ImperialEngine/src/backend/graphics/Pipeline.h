@@ -7,7 +7,7 @@ namespace imp
 	{
 		VkShaderModule vertModule;
 		VkShaderModule fragModule;
-
+		VkDescriptorSetLayout descriptorSetLayout;
 	};
 	class Pipeline : VulkanResource
 	{

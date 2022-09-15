@@ -380,7 +380,7 @@ void imp::Graphics::CreateImGUI()
 
 void imp::Graphics::CreateVulkanMemoryManager()
 {
-    m_MemoryManager.Initialize();
+   // m_MemoryManager.Initialize();
 }
 
 void imp::Graphics::CreateRenderPassGenerator()
@@ -390,6 +390,86 @@ void imp::Graphics::CreateRenderPassGenerator()
 
 void imp::Graphics::InitializeVulkanMemory()
 {
+    static constexpr uint32_t kDescriptorCount = 128;
+
+    // don't forget to give layout to pipelines
+    VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+    VkDescriptorPoolSize poolSizes[] =
+    {
+        { VK_DESCRIPTOR_TYPE_SAMPLER, kDescriptorCount },
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, kDescriptorCount },
+        { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, kDescriptorCount },
+        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, kDescriptorCount },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, kDescriptorCount },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, kDescriptorCount },
+    };
+    VkDescriptorPoolCreateInfo ci;
+    ci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    ci.pNext = nullptr;
+    ci.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT | VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+    ci.maxSets = kDescriptorCount;
+    ci.poolSizeCount = 6; // it's the number of elements in poolSizes
+    ci.pPoolSizes = poolSizes;
+
+    vkCreateDescriptorPool(m_LogicalDevice, &ci, nullptr, &descriptorPool);
+    // ---------- pool creation end
+    // ----------
+
+    // global buffer is probably going to be small so uniform is enough
+    // we need to update descriptor set whenever we add or remove any data
+    // we need to map memory to the buffer whenever we change any data
+    for (auto i = 0; i < m_Settings.swapchainImageCount; i++)
+    {
+        m_GlobalBuffers[i] = m_MemoryManager.GetBuffer(m_LogicalDevice, 1024, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_DeviceMemoryProps);
+
+        VkDescriptorSetLayoutBinding globalBufferBinding;
+        globalBufferBinding.binding = 0;
+        globalBufferBinding.descriptorCount = 1; // global buffer - so we need 1
+        globalBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        globalBufferBinding.stageFlags = VK_SHADER_STAGE_ALL; // is this good? global stuf should probably be accessed evberywhere
+        globalBufferBinding.pImmutableSamplers = nullptr;
+
+        std::array< VkDescriptorSetLayoutBinding, 1> bindings = { globalBufferBinding };
+
+
+        m_DescriptorSetLayout = VK_NULL_HANDLE;
+        VkDescriptorSetLayoutCreateInfo dci;
+        dci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        dci.pNext = nullptr;
+        dci.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+        dci.bindingCount = 1;
+        dci.pBindings = bindings.data();
+        vkCreateDescriptorSetLayout(m_LogicalDevice, &dci, nullptr, &m_DescriptorSetLayout);
+
+        VkDescriptorSetAllocateInfo allocateInfo;
+        allocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocateInfo.descriptorPool = descriptorPool;
+        allocateInfo.descriptorSetCount = 1;
+        allocateInfo.pSetLayouts = &m_DescriptorSetLayout;
+        allocateInfo.pNext = nullptr;
+
+        auto res = vkAllocateDescriptorSets(m_LogicalDevice, &allocateInfo, &m_DescriptorSets[i]);
+        assert(res == VK_SUCCESS);
+
+        // ah we actually write a descriptor to the descriptor set..
+        // here we inform what part of the data we'll be using
+        VkDescriptorBufferInfo buffinfo;
+        buffinfo.buffer = m_GlobalBuffers[i].GetBuffer();
+        buffinfo.offset = 0; // so far no offset
+        buffinfo.range = sizeof(glm::mat4x4);
+
+        VkWriteDescriptorSet write = {};
+        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write.dstSet = m_DescriptorSets[i];
+        write.dstBinding = 0;
+        write.dstArrayElement = 0;
+        write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        write.descriptorCount = 1;
+        write.pBufferInfo = &buffinfo;
+
+        vkUpdateDescriptorSets(m_LogicalDevice, 1, &write, 0, nullptr);
+    }
+
     static constexpr VkDeviceSize allocSize = 128 * 1024 * 1024;
     m_VertexBuffer  = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
     m_IndexBuffer   = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
@@ -467,6 +547,7 @@ const imp::Pipeline& imp::Graphics::EnsurePipeline(VkCommandBuffer cb, const Ren
     PipelineConfig tempConfig;
     tempConfig.vertModule = m_ShaderManager.GetShader("basic.vert").GetShaderModule();
     tempConfig.fragModule = m_ShaderManager.GetShader("basic.frag").GetShaderModule();
+    tempConfig.descriptorSetLayout = m_DescriptorSetLayout;
 
     const auto& pipeline = m_PipelineManager.GetOrCreatePipeline(m_LogicalDevice, rp, tempConfig);
     vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.GetPipeline());

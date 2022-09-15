@@ -8,8 +8,9 @@ namespace imp
 	{
 	}
 
-	void VulkanMemory::Initialize()
+	void VulkanMemory::Initialize(VkDevice device)
 	{
+
 	}
 
 	VulkanBuffer VulkanMemory::GetBuffer(VkDevice device, VkDeviceSize bufferSize, VkBufferUsageFlags bufferUsageFlags, VkMemoryPropertyFlags buffMemPropFlags, const MemoryProps& memoryProps)

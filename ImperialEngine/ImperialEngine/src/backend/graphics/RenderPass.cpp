@@ -16,8 +16,21 @@ void imp::RenderPass::Execute(Graphics& gfx, const CameraData& cam)
 	cmb.Begin();
 	BeginRenderPass(gfx, cmb);
 
-	std::array<glm::mat4x4, 2> pushData;
-	pushData[1] = cam.Projection * cam.View;
+	std::array<glm::mat4x4, 1> pushData;
+	auto viewProj = cam.Projection * cam.View;
+	void* pptr = &viewProj;
+
+	// ----------
+	void* dataMap = nullptr;
+	auto bufferMem = gfx.m_GlobalBuffers[gfx.m_Swapchain.GetFrameClock()].GetMemory();
+	const auto dset = gfx.m_DescriptorSets[gfx.m_Swapchain.GetFrameClock()];
+	const auto size = gfx.m_GlobalBuffers[gfx.m_Swapchain.GetFrameClock()].GetSize();
+	auto res = vkMapMemory(gfx.m_LogicalDevice, bufferMem, 0, size, 0, &dataMap);
+	memcpy(dataMap, &viewProj, sizeof(viewProj));
+	vkUnmapMemory(gfx.m_LogicalDevice, bufferMem);
+	assert(res == VK_SUCCESS);
+
+	// ----------
 
 	const auto bigVtxBuffer = gfx.m_VertexBuffer.GetBuffer();
 	VkDeviceSize offsets[] = { 0 };
@@ -32,13 +45,15 @@ void imp::RenderPass::Execute(Graphics& gfx, const CameraData& cam)
 		// then get pipeline of new material + renderpass
 		const auto pipe = gfx.EnsurePipeline(cb, *this);	// since we have to get pipeline, bind here and not in that func
 
+		// since all pipelines will have same layout this is should be way above
+		vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe.GetPipelineLayout(), 0, 1, &dset, 0, nullptr);
+
 		pushData[0] = drawData.Transform;
 		gfx.PushConstants(cb, pushData.data(), sizeof(pushData), pipe.GetPipelineLayout());
 
 		//const auto indexCount = gfx.BindMesh(cb, drawData.VertexBufferId);
 		const auto mesh = gfx.m_VertexBuffers.find(drawData.VertexBufferId)->second;
 		vkCmdDrawIndexed(cb, mesh.indices.GetCount(), 1, mesh.indices.GetOffset(), mesh.vertices.GetOffset(), 0);
-		//gfx.DrawIndexed(cb, indexCount);
 	}
 
 	EndRenderPass(gfx, cmb);

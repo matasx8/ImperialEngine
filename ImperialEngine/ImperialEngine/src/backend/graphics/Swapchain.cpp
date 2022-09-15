@@ -123,6 +123,11 @@ uint32_t imp::Swapchain::GetSwapchainImageCount() const
     return m_ImageCount;
 }
 
+uint32_t imp::Swapchain::GetFrameClock() const
+{
+    return m_FrameClock;
+}
+
 void imp::Swapchain::Destroy(VkDevice device)
 {
     for (auto& image : m_SwapchainImages)

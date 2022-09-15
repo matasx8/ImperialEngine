@@ -21,6 +21,7 @@ namespace imp
 		SurfaceDesc GetSwapchainImageSurfaceDesc() const;
 		Surface GetSwapchainImageSurface(VkDevice device);
 		uint32_t GetSwapchainImageCount() const;
+		uint32_t GetFrameClock() const;
 
 		void Destroy(VkDevice device);
 	private:

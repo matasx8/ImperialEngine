@@ -8,10 +8,12 @@ layout(location = 0) out float NdotL;
 layout(location = 1) out vec3  ReflectVec;
 layout(location = 2) out vec3  ViewVec;
 
+layout(set = 0, binding = 0) uniform UboViewProjection{
+	mat4 PV;
+} uboViewProjection;
 
 layout(push_constant) uniform PushModel{
 	mat4 model;
-	mat4 PV;
 } pushModel;
 	
 void main()
@@ -23,6 +25,6 @@ void main()
     ViewVec         = normalize(-ecPos);
     NdotL           = (dot(lightVec, tnorm) + 1.0) * 0.5;
    // gl_Position     = ftransform();
-	gl_Position 	= pushModel.PV * pushModel.model * vec4(pos, 1.0);
+	gl_Position 	= uboViewProjection.PV * pushModel.model * vec4(pos, 1.0);
 	gl_Position.y 	= -gl_Position.y;
 }

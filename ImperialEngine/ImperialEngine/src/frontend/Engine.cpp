@@ -201,7 +201,6 @@ namespace imp
 
 	void Engine::UpdateCameras()
 	{
-		static constexpr glm::vec3 worldUp(0.0f, 1.0f, 0.0f);
 		const auto cameras = m_Entities.view<Comp::Transform, Comp::Camera>();
 		for (auto ent : cameras)
 		{
@@ -211,15 +210,11 @@ namespace imp
 			// update front, right up
 			// !HERE rotate this using transform..
 			static constexpr glm::vec3 front(1.0f, 0.0f, 0.0f);
-			static constexpr glm::vec3 right(0.0f, 0.0f, 1.0f);
 			static constexpr glm::vec3 up(0.0f, 1.0f, 0.0f);
 
 			const auto quat = glm::toQuat(transform.transform);
 			const auto newFront = glm::rotate(quat, front);
-			const auto newWorldUp = glm::rotate(quat, worldUp);
-
-			const auto newRight = glm::normalize(glm::cross(newFront, newWorldUp));
-			const auto newUp = glm::normalize(glm::cross(newRight, newFront));
+			const auto newUp = glm::rotate(quat, up);
 
 			// update view matrix
 			const auto pos = transform.GetPosition();

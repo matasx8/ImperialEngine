@@ -31,7 +31,7 @@ namespace imp
 		VkPipelineMultisampleStateCreateInfo MakeMSAAStateCI(const RenderPassBase& rp) const;
 		VkPipelineColorBlendStateCreateInfo MakeColorBlendStateCI(const auto& blendAttState) const;
 		VkPipelineDepthStencilStateCreateInfo MakeDepthStencilStateCI() const;
-		VkPipelineLayoutCreateInfo MakePipelineLayoutCI(const auto& pushRange) const;
+		VkPipelineLayoutCreateInfo MakePipelineLayoutCI(const auto& pushRange, const PipelineConfig& config) const;
 		VkPipelineLayout MakePipelineLayout(VkDevice device, const VkPipelineLayoutCreateInfo& ci) const;
 		VkGraphicsPipelineCreateInfo MakePipelineCI(const VkPipelineShaderStageCreateInfo* shaderStages, const VkPipelineVertexInputStateCreateInfo* vertexInputCreateInfo, const
 			VkPipelineInputAssemblyStateCreateInfo* inputAssembly, const VkPipelineViewportStateCreateInfo* viewportStateCreateInfo, const
