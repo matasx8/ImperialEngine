@@ -43,12 +43,17 @@ void imp::Graphics::Initialize(const EngineGraphicsSettings& settings, Window* w
 
 void imp::Graphics::RenderCameras()
 {
+
     // generate container of renderpasses
     // first can be a simple vector of renderpasses but in the future can be a render graph
     // iterate and execute
 
     for (const auto& camera : m_CameraData)
     {
+        GlobalData data;
+        data.ViewProjection = camera.Projection * camera.View;
+        m_ShaderManager.UpdateGlobalData(m_LogicalDevice, m_Swapchain.GetFrameClock(), data);
+
         // GenerateRenderPasses must ensure that sequentially executed render passes will have correct sequence and inputs
         auto rps = m_RenderPassManager->GenerateRenderPasses(m_LogicalDevice, camera, m_Swapchain);
         for (auto& rp : rps)
@@ -407,144 +412,6 @@ void imp::Graphics::CreateRenderPassGenerator()
 
 void imp::Graphics::InitializeVulkanMemory()
 {
-    static constexpr uint32_t kDescriptorCount = 128;
-
-    // don't forget to give layout to pipelines
-    VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-    VkDescriptorPoolSize poolSizes[] =
-    {
-        { VK_DESCRIPTOR_TYPE_SAMPLER, kDescriptorCount },
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, kDescriptorCount },
-        { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, kDescriptorCount },
-        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, kDescriptorCount },
-        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, kDescriptorCount },
-        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, kDescriptorCount },
-    };
-    VkDescriptorPoolCreateInfo ci;
-    ci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    ci.pNext = nullptr;
-    ci.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT | VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
-    ci.maxSets = kDescriptorCount;
-    ci.poolSizeCount = 6; // it's the number of elements in poolSizes
-    ci.pPoolSizes = poolSizes;
-
-    vkCreateDescriptorPool(m_LogicalDevice, &ci, nullptr, &descriptorPool);
-    // ---------- pool creation end
-    // ----------
-
-    // global buffer is probably going to be small so uniform is enough
-    // we need to update descriptor set whenever we add or remove any data
-    // we need to map memory to the buffer whenever we change any data
-    for (auto i = 0; i < m_Settings.swapchainImageCount; i++)
-    {
-        m_GlobalBuffers[i] = m_MemoryManager.GetBuffer(m_LogicalDevice, 1024, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_DeviceMemoryProps);
-        m_DrawDataBuffers[i] = m_MemoryManager.GetBuffer(m_LogicalDevice, 1024, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_DeviceMemoryProps);
-
-        VkDescriptorSetLayoutBinding globalBufferBinding;
-        globalBufferBinding.binding = 1;
-        globalBufferBinding.descriptorCount = 1; // global buffer - so we need 1
-        globalBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        globalBufferBinding.stageFlags = VK_SHADER_STAGE_ALL; // is this good? global stuf should probably be accessed evberywhere
-        globalBufferBinding.pImmutableSamplers = nullptr;
-
-        VkDescriptorSetLayoutBinding drawDataBufferBinding;
-        drawDataBufferBinding.binding = 2;
-        drawDataBufferBinding.descriptorCount = 2; // do we need 1 or more?
-        drawDataBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        drawDataBufferBinding.stageFlags = VK_SHADER_STAGE_ALL; // is this good? global stuf should probably be accessed evberywhere
-        drawDataBufferBinding.pImmutableSamplers = nullptr;
-
-        static constexpr uint32_t bindingCount = 2;
-        std::array< VkDescriptorSetLayoutBinding, bindingCount> bindings = { globalBufferBinding, drawDataBufferBinding };
-
-        const VkDescriptorBindingFlags flags =
-            VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT |
-            VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
-            VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
-            VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT;
-
-        const VkDescriptorBindingFlags flags2 =
-            VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
-            VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
-            VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT;
-
-        std::array< VkDescriptorBindingFlags, bindingCount> multipleFlags = { flags2, flags }; // one for each binding
-
-        VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlags = {};
-        bindingFlags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
-        bindingFlags.bindingCount = bindingCount;
-        bindingFlags.pBindingFlags = multipleFlags.data();
-
-        m_DescriptorSetLayout = VK_NULL_HANDLE;
-        VkDescriptorSetLayoutCreateInfo dci;
-        dci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        dci.pNext = &bindingFlags;
-        dci.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
-        dci.bindingCount = bindingCount;
-        dci.pBindings = bindings.data();
-        vkCreateDescriptorSetLayout(m_LogicalDevice, &dci, nullptr, &m_DescriptorSetLayout);
-
-        VkDescriptorSetAllocateInfo allocateInfo;
-        allocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocateInfo.descriptorPool = descriptorPool;
-        allocateInfo.descriptorSetCount = 1;
-        allocateInfo.pSetLayouts = &m_DescriptorSetLayout;
-
-        VkDescriptorSetVariableDescriptorCountAllocateInfo variable_info = {};
-        variable_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT;
-        variable_info.descriptorSetCount = 1;
-        std::array<uint32_t, 2> descriptorCounts = { 2, 100 }; // seems like the descriptors must match the binding numbers
-        // for example the global buffer is binding #1 so it needs two descriptors
-        // so only the last binding can have the truly variable count
-        variable_info.pDescriptorCounts = descriptorCounts.data(); // one for each dset
-        allocateInfo.pNext = &variable_info;
-
-        auto res = vkAllocateDescriptorSets(m_LogicalDevice, &allocateInfo, &m_DescriptorSets[i]);
-        assert(res == VK_SUCCESS);
-
-        // ah we actually write a descriptor to the descriptor set..
-        // here we inform what part of the data we'll be using
-        
-        VkDescriptorBufferInfo buffinfo;
-        buffinfo.buffer = m_GlobalBuffers[i].GetBuffer();
-        buffinfo.offset = 0; // so far no offset
-        buffinfo.range = sizeof(glm::mat4x4);
-
-        VkWriteDescriptorSet write = {};
-        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write.dstSet = m_DescriptorSets[i];
-        write.dstBinding = 1;
-        write.dstArrayElement = 0;
-        write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        write.descriptorCount = 1;
-        write.pBufferInfo = &buffinfo;
-
-
-        VkDescriptorBufferInfo drawBuffInfo;
-        drawBuffInfo.buffer = m_DrawDataBuffers[i].GetBuffer();
-        drawBuffInfo.offset = 0; // so far no offset
-        drawBuffInfo.range = sizeof(ShaderDrawData);
-
-        VkDescriptorBufferInfo drawBuffInfo2;   // maybe try 3, to see if can have one that's not been written to or something like that to test partially bound or whatever
-        drawBuffInfo2.buffer = m_DrawDataBuffers[i].GetBuffer();
-        drawBuffInfo2.offset = sizeof(ShaderDrawData);
-        drawBuffInfo2.range = sizeof(ShaderDrawData);
-
-        std::array< VkDescriptorBufferInfo, 2> drawBufferInfos = { drawBuffInfo, drawBuffInfo2 };
-
-        VkWriteDescriptorSet drawWrite = {};
-        drawWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        drawWrite.dstSet = m_DescriptorSets[i];
-        drawWrite.dstBinding = 2;
-        drawWrite.dstArrayElement = 0;
-        drawWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        drawWrite.descriptorCount = 2;
-        drawWrite.pBufferInfo = drawBufferInfos.data();
-
-        std::array< VkWriteDescriptorSet, 2> writes = { write, drawWrite };
-        vkUpdateDescriptorSets(m_LogicalDevice, 2, writes.data(), 0, nullptr);
-    }
-
     static constexpr VkDeviceSize allocSize = 128 * 1024 * 1024;
     m_VertexBuffer  = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
     m_IndexBuffer   = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);

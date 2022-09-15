@@ -1,13 +1,14 @@
 #include "VulkanBuffer.h"
 #include <stdio.h>
+#include <cassert>
 
 imp::VulkanBuffer::VulkanBuffer()
-	: m_Buffer(VK_NULL_HANDLE), m_Memory(VK_NULL_HANDLE), m_Size(0)
+	: m_Buffer(VK_NULL_HANDLE), m_Memory(VK_NULL_HANDLE), m_Size(0), m_TempOffset(0)
 {
 }
 
 imp::VulkanBuffer::VulkanBuffer(uint32_t size, VkBuffer buffer, VkDeviceMemory mem)
-	: m_Buffer(buffer), m_Memory(mem), m_Size(size)
+	: m_Buffer(buffer), m_Memory(mem), m_Size(size), m_TempOffset(0)
 {
 }
 
@@ -24,6 +25,25 @@ VkBuffer imp::VulkanBuffer::GetBuffer() const
 VkDeviceMemory imp::VulkanBuffer::GetMemory() const
 {
 	return m_Memory;
+}
+
+VkDescriptorBufferInfo imp::VulkanBuffer::RegisterSubBuffer(size_t size)
+{
+	// currently no misalignment protection - be safe
+	VkDescriptorBufferInfo bi;
+	bi.buffer = m_Buffer;
+	bi.range = size;
+	bi.offset = m_TempOffset;
+
+	m_TempOffset += size;
+	return bi;
+}
+
+uint32_t imp::VulkanBuffer::FindNewSubBufferIndex(size_t size)
+{
+	assert(size);
+	assert(m_TempOffset % size == 0);
+	return m_TempOffset / size;
 }
 
 void imp::VulkanBuffer::Destroy(VkDevice device)

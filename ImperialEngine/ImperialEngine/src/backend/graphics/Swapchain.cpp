@@ -80,6 +80,7 @@ void imp::Swapchain::Present(VkQueue presentQ, const std::vector<VkSemaphore>& s
         throw std::runtime_error("Failed to present image");
 
     // I wonder should I use m_SwapchainIndex or m_FrameClock for stuff that relates to the number of swapchain images
+    // YES use swapchain index
     m_FrameClock++;
     m_FrameClock %= m_ImageCount;
     m_NeedsAcquiring = true;

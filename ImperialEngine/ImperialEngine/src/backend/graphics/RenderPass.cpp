@@ -16,10 +16,14 @@ void imp::RenderPass::Execute(Graphics& gfx, const CameraData& cam)
 	cmb.Begin();
 	BeginRenderPass(gfx, cmb);
 
+	const auto dset = gfx.m_ShaderManager.GetDescriptorSet(gfx.m_Swapchain.GetFrameClock());
+	const auto pipe = gfx.EnsurePipeline(cb, *this);	// since we have to get pipeline, bind here and not in that func
+	vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe.GetPipelineLayout(), 0, 1, &dset, 0, nullptr);
+
+
+	// !HERE: global is done. Now need to create draw data!
 	std::array<uint32_t, 1> pushData;
-	pushData[0] = 0;
-	auto viewProj = cam.Projection * cam.View;
-	void* pptr = &viewProj;
+	pushData[0] = kDefaultMaterialIndex;
 
 	// ----------
 	void* dataMap = nullptr;
@@ -54,10 +58,8 @@ void imp::RenderPass::Execute(Graphics& gfx, const CameraData& cam)
 
 		// if material of old drawData is not same
 		// then get pipeline of new material + renderpass
-		const auto pipe = gfx.EnsurePipeline(cb, *this);	// since we have to get pipeline, bind here and not in that func
 
 		// since all pipelines will have same layout this is should be way above
-		vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe.GetPipelineLayout(), 0, 1, &dset, 0, nullptr);
 
 		gfx.PushConstants(cb, pushData.data(), sizeof(pushData), pipe.GetPipelineLayout());
 

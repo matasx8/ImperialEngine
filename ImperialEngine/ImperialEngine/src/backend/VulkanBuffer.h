@@ -13,6 +13,9 @@ namespace imp
 		VkBuffer GetBuffer() const;
 		VkDeviceMemory GetMemory() const;
 
+		VkDescriptorBufferInfo RegisterSubBuffer(size_t size);
+		uint32_t FindNewSubBufferIndex(size_t size);
+
 		void Destroy(VkDevice device) override;
 
 	private:
@@ -20,6 +23,9 @@ namespace imp
 		VkBuffer m_Buffer;
 		VkDeviceMemory m_Memory;
 		uint32_t m_Size; // in bytes
+
+		// temp controls for sub buffer managment
+		uint32_t m_TempOffset;
 	};
 
 	class VulkanSubBuffer : public VulkanResource
