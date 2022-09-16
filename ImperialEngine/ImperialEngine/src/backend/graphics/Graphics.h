@@ -34,10 +34,6 @@ namespace imp
 		bool hasUI;
 	};
 
-	struct ShaderDrawData
-	{
-		glm::mat4x4 Transform;
-	};
 
 	class Graphics : NonCopyable
 	{
@@ -72,6 +68,7 @@ namespace imp
 		void CreateRenderPassGenerator();
 		
 		void InitializeVulkanMemory();
+
 
 		// transfer commands
 		VulkanBuffer UploadVulkanBuffer(VkBufferUsageFlags usageFlags, VkBufferUsageFlags dstUsageFlags, VkMemoryPropertyFlags memoryFlags, VkMemoryPropertyFlags dstMemoryFlags, const CommandBuffer& cb, uint32_t allocSize, const void* dataToUpload);

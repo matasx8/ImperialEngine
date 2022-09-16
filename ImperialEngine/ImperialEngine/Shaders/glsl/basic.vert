@@ -9,12 +9,22 @@ layout(location = 0) out float NdotL;
 layout(location = 1) out vec3  ReflectVec;
 layout(location = 2) out vec3  ViewVec;
 
-layout(set = 0, binding = 1) uniform UboViewProjection{
+layout(set = 0, binding = 0) uniform UboViewProjection{
 	mat4 PV;
 } uboViewProjection;
 
-layout (set = 0, binding = 2) buffer DrawData{
-	mat4 Transform; } drawData[];
+layout(set=0, binding = 1) buffer MaterialData
+{
+	vec4 color;
+} materialData[128];
+
+layout (set = 0, binding = 129) buffer DrawData{
+	mat4 Transform;
+	uint materialIdx;
+	uint isEnabled;
+	uint pad;
+	uint pad2;
+	} drawData[];
 
 layout(push_constant) uniform PushModel{
 	uint idx;

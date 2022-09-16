@@ -31,6 +31,7 @@ void imp::Graphics::Initialize(const EngineGraphicsSettings& settings, Window* w
     CreateRenderPassGenerator();
 
     InitializeVulkanMemory();
+    m_ShaderManager.Initialize(m_LogicalDevice, m_MemoryManager, m_Settings, m_DeviceMemoryProps);
 
     // Until we haven't made custom vulkan backend for imgui we can't fully have dynamic RenderPassGenerator
     // since CreateImGUI needs a renderpass
@@ -43,10 +44,10 @@ void imp::Graphics::Initialize(const EngineGraphicsSettings& settings, Window* w
 
 void imp::Graphics::RenderCameras()
 {
-
-    // generate container of renderpasses
-    // first can be a simple vector of renderpasses but in the future can be a render graph
-    // iterate and execute
+    // register the descriptors
+    m_ShaderManager.RegisterDraws(m_LogicalDevice, 1);
+    // update actual data
+    m_ShaderManager.UpdateDrawData(m_LogicalDevice, m_Swapchain.GetFrameClock(), m_DrawData);
 
     for (const auto& camera : m_CameraData)
     {

@@ -4,6 +4,8 @@
 #include "backend/graphics/VulkanShader.h"
 #include "backend/VulkanBuffer.h"
 #include "frontend/EngineSettings.h"
+#include <extern/GLM/mat4x4.hpp>
+#include <extern/GLM/vec4.hpp>
 #include <unordered_map>
 #include <string>
 
@@ -44,6 +46,7 @@ namespace imp
 
 	class VulkanMemory;
 	struct MemoryProps;
+	class DrawDataSingle;
 
 	class VulkanShaderManager : NonCopyable
 	{
@@ -57,6 +60,9 @@ namespace imp
 
 		void CreateVulkanShaderSet(VkDevice device, const CmdRsc::MaterialCreationRequest& req);
 		void UpdateGlobalData(VkDevice device, uint32_t descriptorSetIdx, const GlobalData& data);
+		void UpdateDrawData(VkDevice device, uint32_t descriptorSetIdx, const std::vector<DrawDataSingle> drawData);
+
+		void RegisterDraws(VkDevice device, uint32_t numDraws);
 
 		// new material stuff
 

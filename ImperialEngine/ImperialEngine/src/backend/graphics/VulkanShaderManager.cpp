@@ -55,6 +55,18 @@ void imp::VulkanShaderManager::UpdateGlobalData(VkDevice device, uint32_t descri
 	UpdateDescriptorData(device, m_GlobalBuffers[descriptorSetIdx], sizeof(GlobalData), 0, &data);
 }
 
+void imp::VulkanShaderManager::UpdateDrawData(VkDevice device, uint32_t descriptorSetIdx, const std::vector<DrawDataSingle> drawData)
+{
+	// We're relying that the descriptors are registered
+	UpdateDescriptorData(device, m_DrawDataBuffers[descriptorSetIdx], drawData.size() * sizeof(DrawDataSingle), 0, drawData.data());
+}
+
+void imp::VulkanShaderManager::RegisterDraws(VkDevice device, uint32_t numDraws)
+{
+	// currently no way to add more
+	WriteUpdateDescriptorSets(device, m_DrawDataBuffers, sizeof(ShaderDrawData), kDrawDataBufferBindingSlot);
+}
+
 VkDescriptorPool imp::VulkanShaderManager::CreateDescriptorPool(VkDevice device)
 {
 	// I wonder if this is what's causing high memory usage?
@@ -112,11 +124,12 @@ void imp::VulkanShaderManager::CreateMegaDescriptorSets(VkDevice device)
 	// so only the last binding can have the truly variable count
 	variable_info.pDescriptorCounts = descriptorCounts.data();
 
+	std::array<VkDescriptorSetLayout, kEngineSwapchainExclusiveMax - 1> layouts = { m_DescriptorSetLayout, m_DescriptorSetLayout, m_DescriptorSetLayout };
 	VkDescriptorSetAllocateInfo allocateInfo;
 	allocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	allocateInfo.descriptorPool = m_DescriptorPool;
-	allocateInfo.descriptorSetCount = 1;
-	allocateInfo.pSetLayouts = &m_DescriptorSetLayout;
+	allocateInfo.descriptorSetCount = m_DescriptorSets.size();
+	allocateInfo.pSetLayouts = layouts.data();
 	allocateInfo.pNext = &variable_info;
 
 	auto res = vkAllocateDescriptorSets(device, &allocateInfo, m_DescriptorSets.data());
@@ -166,7 +179,7 @@ VkDescriptorSetLayoutBinding imp::VulkanShaderManager::CreateDescriptorBinding(u
 
 uint32_t imp::VulkanShaderManager::WriteUpdateDescriptorSets(VkDevice device, auto& buffers, size_t size, uint32_t bindSlot)
 {
-	const auto index = buffers.first().FindNewSubBufferIndex(size);
+	const auto index = buffers[0].FindNewSubBufferIndex(size);
 	for (auto i = 0; i < kEngineSwapchainExclusiveMax - 1; i++)
 	{
 		const auto bufferInfo = buffers[i].RegisterSubBuffer(size);
@@ -208,7 +221,7 @@ void imp::VulkanShaderManager::CreateDefaultMaterial(VkDevice device)
 	// -- For now simple enough to add and add more stuff, remove and leave hole?
 
 	// this is probably CretaeMaterial()
-	const auto idx = WriteUpdateDescriptorSets(device, m_MaterialDataBuffers, sizeof(MaterialData), kMaterialBufferBindingSlot);
+	const auto idx = WriteUpdateDescriptorSets(device, m_MaterialDataBuffers, sizeof(MaterialData), kMaterialBufferBindingSlot); // register
 	assert(idx == kDefaultMaterialIndex);	// should get material data index 0
 	for (auto i = 0; i < kEngineSwapchainExclusiveMax - 1; i++)
 	{
