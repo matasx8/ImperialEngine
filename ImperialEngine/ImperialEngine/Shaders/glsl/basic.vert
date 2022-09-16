@@ -32,10 +32,11 @@ layout(push_constant) uniform PushModel{
 	
 void main()
 {
+	vec3 lol = vec3(materialData[drawData[pushModel.idx].materialIdx].color);
 	mat4 model = drawData[pushModel.idx].Transform;
     vec3 ecPos      = vec3(model * vec4(pos, 1.0));
     vec3 tnorm      = norm;
-    vec3 lightVec   = normalize(vec3(0.0, 10.0, 4.0)  - ecPos);
+    vec3 lightVec   = normalize(lol  - ecPos);
     ReflectVec      = normalize(reflect(-lightVec, tnorm));
     ViewVec         = normalize(-ecPos);
     NdotL           = (dot(lightVec, tnorm) + 1.0) * 0.5;

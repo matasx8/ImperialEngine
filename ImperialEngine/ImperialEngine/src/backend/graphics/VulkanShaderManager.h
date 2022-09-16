@@ -55,8 +55,9 @@ namespace imp
 
 		void Initialize(VkDevice device, VulkanMemory& memory, const EngineGraphicsSettings& settings, const MemoryProps& memProps);
 
-		VulkanShader GetShader(const std::string& shaderName);
-		VkDescriptorSet GetDescriptorSet(uint32_t idx);
+		VulkanShader GetShader(const std::string& shaderName) const;
+		VkDescriptorSet GetDescriptorSet(uint32_t idx) const;
+		VkDescriptorSetLayout GetDescriptorSetLayout() const;
 
 		void CreateVulkanShaderSet(VkDevice device, const CmdRsc::MaterialCreationRequest& req);
 		void UpdateGlobalData(VkDevice device, uint32_t descriptorSetIdx, const GlobalData& data);
@@ -75,7 +76,7 @@ namespace imp
 		void CreateMegaDescriptorSetLayout(VkDevice device);
 		VkDescriptorSetLayoutBinding CreateDescriptorBinding(uint32_t binding, uint32_t descriptorCount, VkDescriptorType type, VkShaderStageFlags stageFlags);
 
-		uint32_t WriteUpdateDescriptorSets(VkDevice device, auto& buffers, size_t size, uint32_t bindSlot);
+		uint32_t WriteUpdateDescriptorSets(VkDevice device, VkDescriptorType type, auto& buffers, size_t size, int index, uint32_t bindSlot);
 		void UpdateDescriptorData(VkDevice device, VulkanBuffer& buffer, size_t size, uint32_t offset, const void* data);
 
 		void CreateDefaultMaterial(VkDevice device);

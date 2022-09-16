@@ -23,10 +23,11 @@ void imp::VulkanShaderManager::Initialize(VkDevice device, VulkanMemory& memory,
 	}
 
 	CreateMegaDescriptorSets(device);
+	WriteUpdateDescriptorSets(device, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_GlobalBuffers, sizeof(GlobalData), -1, kGlobalBufferBindingSlot);
 	CreateDefaultMaterial(device);
 }
 
-imp::VulkanShader imp::VulkanShaderManager::GetShader(const std::string& shaderName)
+imp::VulkanShader imp::VulkanShaderManager::GetShader(const std::string& shaderName) const
 {
 	const auto shader = m_ShaderMap.find(shaderName);
 	if (shader != m_ShaderMap.end())
@@ -34,9 +35,14 @@ imp::VulkanShader imp::VulkanShaderManager::GetShader(const std::string& shaderN
 	return VulkanShader();	// TODO: return default/error shader
 }
 
-VkDescriptorSet imp::VulkanShaderManager::GetDescriptorSet(uint32_t idx)
+VkDescriptorSet imp::VulkanShaderManager::GetDescriptorSet(uint32_t idx) const
 {
 	return m_DescriptorSets[idx];
+}
+
+VkDescriptorSetLayout imp::VulkanShaderManager::GetDescriptorSetLayout() const
+{
+	return m_DescriptorSetLayout;
 }
 
 void imp::VulkanShaderManager::CreateVulkanShaderSet(VkDevice device, const CmdRsc::MaterialCreationRequest& req)
@@ -58,13 +64,23 @@ void imp::VulkanShaderManager::UpdateGlobalData(VkDevice device, uint32_t descri
 void imp::VulkanShaderManager::UpdateDrawData(VkDevice device, uint32_t descriptorSetIdx, const std::vector<DrawDataSingle> drawData)
 {
 	// We're relying that the descriptors are registered
-	UpdateDescriptorData(device, m_DrawDataBuffers[descriptorSetIdx], drawData.size() * sizeof(DrawDataSingle), 0, drawData.data());
+	std::vector<ShaderDrawData> shaderData;
+	for (const auto& draw : drawData)
+	{
+		ShaderDrawData dat;
+		dat.transform = draw.Transform;
+		dat.materialIndex = kDefaultMaterialIndex;
+		dat.isEnabled = true;
+
+		shaderData.push_back(dat);
+	}
+	UpdateDescriptorData(device, m_DrawDataBuffers[descriptorSetIdx], drawData.size() * sizeof(ShaderDrawData), 0, shaderData.data());
 }
 
 void imp::VulkanShaderManager::RegisterDraws(VkDevice device, uint32_t numDraws)
 {
 	// currently no way to add more
-	WriteUpdateDescriptorSets(device, m_DrawDataBuffers, sizeof(ShaderDrawData), kDrawDataBufferBindingSlot);
+	WriteUpdateDescriptorSets(device, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawDataBuffers, sizeof(ShaderDrawData), 0, kDrawDataBufferBindingSlot);
 }
 
 VkDescriptorPool imp::VulkanShaderManager::CreateDescriptorPool(VkDevice device)
@@ -119,7 +135,7 @@ void imp::VulkanShaderManager::CreateMegaDescriptorSets(VkDevice device)
 	variable_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT;
 	variable_info.descriptorSetCount = m_DescriptorSets.size();
 	// these descriptor counts must match binding slots
-	std::array<uint32_t, kBindingCount> descriptorCounts = { kGlobalBufferBindCount, kMaterialBufferBindCount, kMaxDrawCount };
+	std::array<uint32_t, kBindingCount> descriptorCounts = { kMaxDrawCount, kMaxDrawCount, kMaxDrawCount };
 	// for example the global buffer is binding #1 so it needs two descriptors
 	// so only the last binding can have the truly variable count
 	variable_info.pDescriptorCounts = descriptorCounts.data();
@@ -177,21 +193,25 @@ VkDescriptorSetLayoutBinding imp::VulkanShaderManager::CreateDescriptorBinding(u
 	return descriptorSetLayoutBinding;
 }
 
-uint32_t imp::VulkanShaderManager::WriteUpdateDescriptorSets(VkDevice device, auto& buffers, size_t size, uint32_t bindSlot)
+uint32_t imp::VulkanShaderManager::WriteUpdateDescriptorSets(VkDevice device, VkDescriptorType type, auto& buffers, size_t size, int idx, uint32_t bindSlot)
 {
-	const auto index = buffers[0].FindNewSubBufferIndex(size);
+	const auto index = idx >= 0 ? idx : buffers[0].FindNewSubBufferIndex(size);
 	for (auto i = 0; i < kEngineSwapchainExclusiveMax - 1; i++)
 	{
-		const auto bufferInfo = buffers[i].RegisterSubBuffer(size);
+		VkDescriptorBufferInfo bi;// = VK_NULL_HANDLE;
+		if (idx > 0)
+			bi = buffers[i].RegisterSubBuffer(size);
+		else
+			bi = { buffers[i].GetBuffer(), 0, size };
 
 		VkWriteDescriptorSet drawWrite = {};
 		drawWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		drawWrite.dstSet = m_DescriptorSets[i];
 		drawWrite.dstBinding = bindSlot; // should this be slot or the new slot?
 		drawWrite.dstArrayElement = 0;
-		drawWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		drawWrite.descriptorType = type;
 		drawWrite.descriptorCount = 1;
-		drawWrite.pBufferInfo = &bufferInfo;
+		drawWrite.pBufferInfo = &bi;
 
 		vkUpdateDescriptorSets(device, 1, &drawWrite, 0, nullptr);
 	}
@@ -221,7 +241,7 @@ void imp::VulkanShaderManager::CreateDefaultMaterial(VkDevice device)
 	// -- For now simple enough to add and add more stuff, remove and leave hole?
 
 	// this is probably CretaeMaterial()
-	const auto idx = WriteUpdateDescriptorSets(device, m_MaterialDataBuffers, sizeof(MaterialData), kMaterialBufferBindingSlot); // register
+	const auto idx = WriteUpdateDescriptorSets(device, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MaterialDataBuffers, sizeof(MaterialData), -1, kMaterialBufferBindingSlot); // register
 	assert(idx == kDefaultMaterialIndex);	// should get material data index 0
 	for (auto i = 0; i < kEngineSwapchainExclusiveMax - 1; i++)
 	{

@@ -490,7 +490,7 @@ const imp::Pipeline& imp::Graphics::EnsurePipeline(VkCommandBuffer cb, const Ren
     PipelineConfig tempConfig;
     tempConfig.vertModule = m_ShaderManager.GetShader("basic.vert").GetShaderModule();
     tempConfig.fragModule = m_ShaderManager.GetShader("basic.frag").GetShaderModule();
-    tempConfig.descriptorSetLayout = m_DescriptorSetLayout;
+    tempConfig.descriptorSetLayout = m_ShaderManager.GetDescriptorSetLayout();
 
     const auto& pipeline = m_PipelineManager.GetOrCreatePipeline(m_LogicalDevice, rp, tempConfig);
     vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.GetPipeline());

@@ -118,8 +118,6 @@ namespace imp
 		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_DrawDataBuffers;
 		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_DescriptorSets;
 
-		VkDescriptorSetLayout m_DescriptorSetLayout;
-
 		std::unordered_map<uint32_t, Comp::IndexedVertexBuffers> m_VertexBuffers;
 
 	public:
