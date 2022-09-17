@@ -1,5 +1,5 @@
 #include "UI.h"
-
+#include "frontend/Engine.h"
 #include <GLM/trigonometric.hpp>
 #include <GLM/gtx/quaternion.hpp>
 #include "Components/Components.h"
@@ -23,7 +23,7 @@ namespace imp
 		m_ShowDefaultWindow = true;
 	}
 
-	void UI::Update(entt::registry& reg)
+	void UI::Update(Engine& engine, entt::registry& reg)
 	{
 		ImGui::NewFrame();
 //#define demolol
@@ -42,6 +42,16 @@ namespace imp
 			if (ImGui::BeginTabItem("Inspector"))
 			{
 				ImGui::Text("This is going to be the inspector. Will show last selected item");
+				ImGui::EndTabItem();
+			}
+			if (ImGui::BeginTabItem("Utilities"))
+			{
+				ImGui::Text("Various utilities..");
+				static int clicked = 0;
+				if (ImGui::Button("Add Monkey"))
+					engine.AddMonkey(1);
+				if (ImGui::Button("Add A LOT of Monkey"))
+					engine.AddMonkey(1000);
 				ImGui::EndTabItem();
 			}
 			if (ImGui::BeginTabItem("Profiling"))

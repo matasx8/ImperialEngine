@@ -23,12 +23,18 @@ namespace Comp
 
 	struct Material
 	{
-		// !HERE
+		uint32_t materialId;
 	};
 
 	struct Mesh
 	{
-		entt::entity e;	// transform
+		uint32_t meshId;
+	};
+
+	// child component points to main entity - allows to have multiple components
+	struct ChildComponent
+	{
+		entt::entity parent; 
 	};
 
 	struct IndexedVertexBuffers

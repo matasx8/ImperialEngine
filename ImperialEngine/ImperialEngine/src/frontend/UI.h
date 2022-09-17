@@ -4,13 +4,15 @@
 
 namespace imp
 {
+	class Engine;
+
 	class UI : NonCopyable
 	{
 	public:
 		UI();
 		void Initialize();
 
-		void Update(entt::registry& reg);
+		void Update(Engine& engine, entt::registry& reg);
 
 		void Destroy();
 

@@ -69,15 +69,18 @@ namespace imp
 			auto& reg = m_Engine.m_Entities;
 			reg.emplace<Comp::Transform>(mainEntity, glm::mat4x4(1.0f));
 
+			static uint32_t temporaryMeshCounter = 0;
 			std::vector<imp::CmdRsc::MeshCreationRequest> reqs;
 			LoadModel(reqs, imp, path);
 			for (auto& req : reqs)
 			{
-				// renderable entity is basically a mesh and material
-				const auto renderable = reg.create();
-				reg.emplace<Comp::Mesh>(renderable);
+				const auto childEntity = reg.create();
+				reg.emplace<Comp::Mesh>(childEntity, temporaryMeshCounter);
+				reg.emplace<Comp::Material>(childEntity, kDefaultMaterialIndex);
+				reg.emplace<Comp::ChildComponent>(childEntity, mainEntity);
 
-				req.id = static_cast<uint32_t>(renderable);
+				req.id = static_cast<uint32_t>(temporaryMeshCounter);
+				temporaryMeshCounter++;
 			}
 
 			// TODO: this is needed now because on ST mode the UploadMeshes command would get executed instantly

@@ -74,6 +74,39 @@ namespace imp
 			m_SyncPoint->arrive_and_wait();
 	}
 
+	void Engine::AddMonkey(uint32_t monkeyCount)
+	{
+		static int idx = 0;
+		static glm::vec3 offset = glm::vec3(0.2f, 0.0f, 2.0f);
+		for (auto i = 0; i < monkeyCount; i++)
+		{
+			switch (idx)
+			{
+			case 0:
+				offset += glm::vec3(2.0f, 0.0f, 0.0f);
+				break;
+			case 1:
+				offset += glm::vec3(0.0f, 2.0f, 0.0f);
+				break;
+			case 2:
+				offset += glm::vec3(0.0f, 0.0f, 2.0f);
+				break;
+			}
+			idx++;
+			idx %= 3;
+			auto& reg = m_Entities;
+			const auto monkey = reg.create();
+			const auto identityMat = glm::mat4x4(1.0f);
+			const auto newMatrix = glm::translate(identityMat, offset);
+			reg.emplace<Comp::Transform>(monkey, newMatrix);
+			
+			const auto child = reg.create();
+			reg.emplace<Comp::ChildComponent>(child, monkey);
+			reg.emplace<Comp::Mesh>(child, 0u);
+			reg.emplace<Comp::Material>(child, kDefaultMaterialIndex);
+		}
+	}
+
 	bool Engine::ShouldClose() const
 	{
 		return m_Window.ShouldClose();
@@ -190,7 +223,7 @@ namespace imp
 		// Because dear imgui uses static globals I can't copy relevant data
 		// So I need to update imgui right before launching render command
 		// This brings the issue of latency for UI
-		m_UI.Update(m_Entities);
+		m_UI.Update(*this, m_Entities);
 		m_Q->add(std::mem_fn(&Engine::Cmd_RenderImGUI), std::shared_ptr<void>());
 	}
 
@@ -231,14 +264,16 @@ namespace imp
 		m_Gfx.m_DrawData.clear();
 		m_Gfx.m_CameraData.clear();
 
-		const auto meshes = m_Entities.view<Comp::Mesh>();
+		const auto renderableChildren = m_Entities.view<Comp::ChildComponent, Comp::Mesh, Comp::Material>();
 		const auto transforms = m_Entities.view<Comp::Transform>();
-		for (auto ent : meshes)
+		for (auto ent : renderableChildren)
 		{
-			const auto& mesh = meshes.get<Comp::Mesh>(ent);
-			const auto& transform = transforms.get<Comp::Transform>(mesh.e);
+			const auto& mesh = renderableChildren.get<Comp::Mesh>(ent);
+			//const Comp::Material& material = renderableChildren.get<Comp::Material>(ent);
+			const auto& parent = renderableChildren.get<Comp::ChildComponent>(ent).parent;
+			const auto& transform = transforms.get<Comp::Transform>(parent);
 
-			m_Gfx.m_DrawData.emplace_back(transform.transform, static_cast<uint32_t>(ent));
+			m_Gfx.m_DrawData.emplace_back(transform.transform, mesh.meshId);
 		}
 
 		const auto cameras = m_Entities.view<Comp::Transform, Comp::Camera>();

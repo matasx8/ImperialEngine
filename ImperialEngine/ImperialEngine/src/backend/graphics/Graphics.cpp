@@ -44,8 +44,8 @@ void imp::Graphics::Initialize(const EngineGraphicsSettings& settings, Window* w
 
 void imp::Graphics::RenderCameras()
 {
-    // register the descriptors
-    m_ShaderManager.RegisterDraws(m_LogicalDevice, 1);
+    // this could be moved to start of frame
+    m_ShaderManager.RegisterDraws(m_LogicalDevice, m_DrawData.size());
     // update actual data
     m_ShaderManager.UpdateDrawData(m_LogicalDevice, m_Swapchain.GetFrameClock(), m_DrawData);
 

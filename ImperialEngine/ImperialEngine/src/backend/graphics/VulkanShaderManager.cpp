@@ -5,6 +5,7 @@
 imp::VulkanShaderManager::VulkanShaderManager()
 	: m_ShaderMap()
 {
+	m_RegisteredDrawCount = 0;
 }
 
 void imp::VulkanShaderManager::Initialize(VkDevice device, VulkanMemory& memory, const EngineGraphicsSettings& settings, const MemoryProps& memProps)
@@ -23,7 +24,7 @@ void imp::VulkanShaderManager::Initialize(VkDevice device, VulkanMemory& memory,
 	}
 
 	CreateMegaDescriptorSets(device);
-	WriteUpdateDescriptorSets(device, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_GlobalBuffers, sizeof(GlobalData), -1, kGlobalBufferBindingSlot);
+	WriteUpdateDescriptorSets(device, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_GlobalBuffers, sizeof(GlobalData), kGlobalBufferBindingSlot, 1);
 	CreateDefaultMaterial(device);
 }
 
@@ -79,8 +80,12 @@ void imp::VulkanShaderManager::UpdateDrawData(VkDevice device, uint32_t descript
 
 void imp::VulkanShaderManager::RegisterDraws(VkDevice device, uint32_t numDraws)
 {
-	// currently no way to add more
-	WriteUpdateDescriptorSets(device, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawDataBuffers, sizeof(ShaderDrawData), 0, kDrawDataBufferBindingSlot);
+	if (numDraws > m_RegisteredDrawCount)
+	{
+		const auto neededDescriptorCount = numDraws - m_RegisteredDrawCount;
+		WriteUpdateDescriptorSets(device, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawDataBuffers, sizeof(ShaderDrawData), kDrawDataBufferBindingSlot, numDraws);
+		m_RegisteredDrawCount = numDraws;
+	}
 }
 
 VkDescriptorPool imp::VulkanShaderManager::CreateDescriptorPool(VkDevice device)
@@ -193,25 +198,31 @@ VkDescriptorSetLayoutBinding imp::VulkanShaderManager::CreateDescriptorBinding(u
 	return descriptorSetLayoutBinding;
 }
 
-uint32_t imp::VulkanShaderManager::WriteUpdateDescriptorSets(VkDevice device, VkDescriptorType type, auto& buffers, size_t size, int idx, uint32_t bindSlot)
+uint32_t imp::VulkanShaderManager::WriteUpdateDescriptorSets(VkDevice device, VkDescriptorType type, auto& buffers, size_t descriptorDataSize, uint32_t bindSlot, uint32_t descriptorCount)
 {
-	const auto index = idx >= 0 ? idx : buffers[0].FindNewSubBufferIndex(size);
+	// WE need to return index of newly updated descriptors
+	uint32_t index = 0;
+
 	for (auto i = 0; i < kEngineSwapchainExclusiveMax - 1; i++)
 	{
-		VkDescriptorBufferInfo bi;// = VK_NULL_HANDLE;
-		if (idx > 0)
-			bi = buffers[i].RegisterSubBuffer(size);
-		else
-			bi = { buffers[i].GetBuffer(), 0, size };
+		std::vector< VkDescriptorBufferInfo> bis;
+		for(auto j = 0; j < descriptorCount; j++)
+			bis.push_back(buffers[i].RegisterSubBuffer(descriptorDataSize));
+
+		index = bis.front().offset / descriptorDataSize;
+
+		// so far we support only same data size
+		assert(bis.front().offset % descriptorDataSize == 0);
+		//const auto newBindingSlot = bindSlot + index;
 
 		VkWriteDescriptorSet drawWrite = {};
 		drawWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		drawWrite.dstSet = m_DescriptorSets[i];
-		drawWrite.dstBinding = bindSlot; // should this be slot or the new slot?
-		drawWrite.dstArrayElement = 0;
+		drawWrite.dstBinding = bindSlot;
+		drawWrite.dstArrayElement = index;
 		drawWrite.descriptorType = type;
-		drawWrite.descriptorCount = 1;
-		drawWrite.pBufferInfo = &bi;
+		drawWrite.descriptorCount = descriptorCount;
+		drawWrite.pBufferInfo = bis.data();
 
 		vkUpdateDescriptorSets(device, 1, &drawWrite, 0, nullptr);
 	}
@@ -241,7 +252,7 @@ void imp::VulkanShaderManager::CreateDefaultMaterial(VkDevice device)
 	// -- For now simple enough to add and add more stuff, remove and leave hole?
 
 	// this is probably CretaeMaterial()
-	const auto idx = WriteUpdateDescriptorSets(device, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MaterialDataBuffers, sizeof(MaterialData), -1, kMaterialBufferBindingSlot); // register
+	const auto idx = WriteUpdateDescriptorSets(device, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MaterialDataBuffers, sizeof(MaterialData), kMaterialBufferBindingSlot, 1); // register
 	assert(idx == kDefaultMaterialIndex);	// should get material data index 0
 	for (auto i = 0; i < kEngineSwapchainExclusiveMax - 1; i++)
 	{

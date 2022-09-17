@@ -32,6 +32,7 @@ void imp::RenderPass::Execute(Graphics& gfx, const CameraData& cam)
 	const auto bigIdxBuffer = gfx.m_IndexBuffer.GetBuffer();
 	vkCmdBindIndexBuffer(cb, bigIdxBuffer, 0, VK_INDEX_TYPE_UINT32);
 
+	uint32_t drawIndex = 0;
 	for (const auto& drawData : gfx.m_DrawData) // seems like we might something useful for draw indirect?
 	{
 		// if material of old drawData is not same
@@ -39,11 +40,12 @@ void imp::RenderPass::Execute(Graphics& gfx, const CameraData& cam)
 
 		// since all pipelines will have same layout this is should be way above
 
-		gfx.PushConstants(cb, pushData.data(), sizeof(pushData), pipe.GetPipelineLayout());
+		gfx.PushConstants(cb, &drawIndex, sizeof(uint32_t), pipe.GetPipelineLayout());
 
 		//const auto indexCount = gfx.BindMesh(cb, drawData.VertexBufferId);
 		const auto mesh = gfx.m_VertexBuffers.find(drawData.VertexBufferId)->second;
 		vkCmdDrawIndexed(cb, mesh.indices.GetCount(), 1, mesh.indices.GetOffset(), mesh.vertices.GetOffset(), 0);
+		drawIndex++;
 	}
 
 	EndRenderPass(gfx, cmb);

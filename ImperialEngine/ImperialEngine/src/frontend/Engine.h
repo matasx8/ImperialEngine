@@ -28,6 +28,9 @@ namespace imp
 		void SyncRenderThread();
 		void SyncGameThread();
 
+		// temporary
+		void AddMonkey(uint32_t monkeyCount);
+
 		bool ShouldClose() const;
 		void ShutDown();
 	private:
