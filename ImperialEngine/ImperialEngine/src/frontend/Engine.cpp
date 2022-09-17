@@ -41,6 +41,7 @@ namespace imp
 
 	void Engine::StartFrame()
 	{
+		m_Q->add(std::mem_fn(&Engine::Cmd_StartFrame), std::shared_ptr<void>());
 	}
 
 	void Engine::Update()
@@ -77,7 +78,7 @@ namespace imp
 	void Engine::AddMonkey(uint32_t monkeyCount)
 	{
 		static int idx = 0;
-		static glm::vec3 offset = glm::vec3(0.2f, 0.0f, 2.0f);
+		static glm::vec3 offset = glm::vec3(0.0f, 0.0f, 2.0f);
 		for (auto i = 0; i < monkeyCount; i++)
 		{
 			switch (idx)
@@ -198,11 +199,6 @@ namespace imp
 
 	void Engine::LoadDefaultStuff()
 	{			
-		// create main entity, that the renderable entities will point to
-		//const entt::entity mainEntity = m_Engine.m_Entities.create();
-		//auto& reg = m_Engine.m_Entities;
-		//reg.emplace<Comp::Transform>(mainEntity, glm::mat4x4(1.0f));
-		// camera
 		const auto camera = m_Entities.create();
 		const auto identity = glm::mat4x4(1.0f);
 		const auto defaultCameraTransform = glm::translate(identity, glm::vec3(-15.0f, 0.0f, 0.0f));
@@ -240,8 +236,6 @@ namespace imp
 			const auto& transform = cameras.get<Comp::Transform>(ent);
 			auto& cam = cameras.get<Comp::Camera>(ent);
 
-			// update front, right up
-			// !HERE rotate this using transform..
 			static constexpr glm::vec3 front(1.0f, 0.0f, 0.0f);
 			static constexpr glm::vec3 up(0.0f, 1.0f, 0.0f);
 

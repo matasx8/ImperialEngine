@@ -10,18 +10,13 @@ namespace imp
 		m_SyncPoint->arrive_and_wait();
 	}
 
+	void Engine::Cmd_StartFrame(std::shared_ptr<void> rsc)
+	{
+		m_Gfx.StartFrame();
+	}
+
 	void Engine::Cmd_RenderCameras(std::shared_ptr<void> rsc)
 	{
-		// for each camera
-		// camera.Render();
-		// -- Render() --
-		// Camera has a list of render passes
-		// render pass has info to start rp and bind framebuffer
-		// get all renderer components and draw them 
-		// --
-		// Surface manager will have to take and give surfaces
-		// camera with its stack of render passes will have to pass on surfaces to next render passes
-		//m_Gfx.PrototypeRenderPass();
 		m_Gfx.RenderCameras();
 	}
 

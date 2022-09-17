@@ -42,12 +42,15 @@ void imp::Graphics::Initialize(const EngineGraphicsSettings& settings, Window* w
     CreateImGUI();
 }
 
-void imp::Graphics::RenderCameras()
+void imp::Graphics::StartFrame()
 {
-    // this could be moved to start of frame
     m_ShaderManager.RegisterDraws(m_LogicalDevice, m_DrawData.size());
     // update actual data
     m_ShaderManager.UpdateDrawData(m_LogicalDevice, m_Swapchain.GetFrameClock(), m_DrawData);
+}
+
+void imp::Graphics::RenderCameras()
+{
 
     for (const auto& camera : m_CameraData)
     {
@@ -425,7 +428,6 @@ imp::VulkanBuffer imp::Graphics::UploadVulkanBuffer(VkBufferUsageFlags usageFlag
     auto stagingBuffer = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, usageFlags, memoryFlags, m_DeviceMemoryProps);
     // then as a vulkan resource we can override the destruction so it doesn't try to deallocate a sub-buffer and just notifies the scratch there's a spot open
     stagingBuffer.UpdateLastUsed(m_CurrentFrame);
-    // continue here.. going off to create storage buffers
     auto uploadedBuffer = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, dstUsageFlags, dstMemoryFlags, m_DeviceMemoryProps);
 
     // copy cpu data to host visible buffer
@@ -502,20 +504,6 @@ void imp::Graphics::PushConstants(VkCommandBuffer cb, const void* data, uint32_t
     assert(data);
     assert(size);
     vkCmdPushConstants(cb, pipeLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, size, data);
-}
-
-uint32_t imp::Graphics::BindMesh(VkCommandBuffer cb, uint32_t vtxBufferId) const
-{
-    //const auto indexedVertexBufferIt = m_VertexBuffers.find(vtxBufferId);
-    //assert(indexedVertexBufferIt != m_VertexBuffers.end());
-    //const auto& vertexBuffer = indexedVertexBufferIt->second.vertices.GetBuffer();
-    //const auto& indexBuffer = indexedVertexBufferIt->second.indices.GetBuffer();
-    //VkDeviceSize offsets[] = { 0 };
-
-    //vkCmdBindVertexBuffers(cb, 0, 1, &vertexBuffer, offsets);
-    //vkCmdBindIndexBuffer(cb, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-    //return indexedVertexBufferIt->second.indices.GetSize() / sizeof(uint32_t);
-    return 0;
 }
 
 void imp::Graphics::DrawIndexed(VkCommandBuffer cb, uint32_t indexCount) const

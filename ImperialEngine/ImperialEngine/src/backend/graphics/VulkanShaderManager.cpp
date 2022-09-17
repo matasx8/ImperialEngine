@@ -15,6 +15,7 @@ void imp::VulkanShaderManager::Initialize(VkDevice device, VulkanMemory& memory,
 	// also the default material
 	m_DescriptorPool = CreateDescriptorPool(device);
 
+	// Here we're preparing for bindless rendering
 	for (auto i = 0; i < settings.swapchainImageCount; i++)
 	{
 		// TODO: change to device local memory and use transfer queue to update data
@@ -93,7 +94,7 @@ VkDescriptorPool imp::VulkanShaderManager::CreateDescriptorPool(VkDevice device)
 	// I wonder if this is what's causing high memory usage?
 	// Can we go over descriptor count even if we have variable descriptor count?
 	// probably no, since the main point of that is we dont have o specify hardcoded number in shader
-	static constexpr uint32_t kDescriptorCount = 128; // so this means we can have max 128 draws..
+	static constexpr uint32_t kDescriptorCount = 128;
 	static constexpr uint32_t kDescriptorPoolSizeCount = 6;
 
 	VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
@@ -136,13 +137,11 @@ void imp::VulkanShaderManager::CreateMegaDescriptorSets(VkDevice device)
 {
 	CreateMegaDescriptorSetLayout(device);
 
+	// variable descriptor counts
 	VkDescriptorSetVariableDescriptorCountAllocateInfo variable_info = {};
 	variable_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT;
 	variable_info.descriptorSetCount = m_DescriptorSets.size();
-	// these descriptor counts must match binding slots
 	std::array<uint32_t, kBindingCount> descriptorCounts = { kMaxDrawCount, kMaxDrawCount, kMaxDrawCount };
-	// for example the global buffer is binding #1 so it needs two descriptors
-	// so only the last binding can have the truly variable count
 	variable_info.pDescriptorCounts = descriptorCounts.data();
 
 	std::array<VkDescriptorSetLayout, kEngineSwapchainExclusiveMax - 1> layouts = { m_DescriptorSetLayout, m_DescriptorSetLayout, m_DescriptorSetLayout };
@@ -213,7 +212,6 @@ uint32_t imp::VulkanShaderManager::WriteUpdateDescriptorSets(VkDevice device, Vk
 
 		// so far we support only same data size
 		assert(bis.front().offset % descriptorDataSize == 0);
-		//const auto newBindingSlot = bindSlot + index;
 
 		VkWriteDescriptorSet drawWrite = {};
 		drawWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -256,6 +254,7 @@ void imp::VulkanShaderManager::CreateDefaultMaterial(VkDevice device)
 	assert(idx == kDefaultMaterialIndex);	// should get material data index 0
 	for (auto i = 0; i < kEngineSwapchainExclusiveMax - 1; i++)
 	{
+		// example data for material
 		const MaterialData data = { glm::vec4(0.75f, 0.99f, 0.99f, 1.0f) };
 		UpdateDescriptorData(device, m_MaterialDataBuffers[i], sizeof(MaterialData), 0, &data);
 	}

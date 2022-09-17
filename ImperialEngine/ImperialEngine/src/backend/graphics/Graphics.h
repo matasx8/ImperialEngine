@@ -41,6 +41,7 @@ namespace imp
 		Graphics();
 		void Initialize(const EngineGraphicsSettings& settings, Window* window);
 
+		void StartFrame();
 		void RenderCameras();
 		void RenderImGUI();
 		void EndFrame();
@@ -77,8 +78,7 @@ namespace imp
 
 		const Pipeline& EnsurePipeline(VkCommandBuffer cb, const RenderPassBase& rp /*, Material material*/);
 		void PushConstants(VkCommandBuffer cb, const void* data, uint32_t size, VkPipelineLayout pipeLayout) const;
-		// returns index count
-		uint32_t BindMesh(VkCommandBuffer cb, uint32_t vtxBufferId) const;
+
 		void DrawIndexed(VkCommandBuffer cb, uint32_t indexCount) const;
 		
 		bool CheckExtensionsSupported(std::vector<const char*> extensions);

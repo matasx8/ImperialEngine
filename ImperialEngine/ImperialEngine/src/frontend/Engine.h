@@ -88,6 +88,7 @@ namespace imp
 
 		// can I put this in a different namespace and drop the prefix?
 		void Cmd_InitGraphics(std::shared_ptr<void> rsc);
+		void Cmd_StartFrame(std::shared_ptr<void> rsc);
 		void Cmd_RenderCameras(std::shared_ptr<void> rsc);
 		void Cmd_EndFrame(std::shared_ptr<void> rsc);
 		void Cmd_SyncRenderThread(std::shared_ptr<void> rsc);
