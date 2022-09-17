@@ -23,13 +23,19 @@ namespace imp
 		void Reset(VkDevice device);
 	};
 
+	struct SubmitSynchPrimitives
+	{
+		VkSemaphore semaphore;
+		VkFence fence;
+	};
+
 	class CommandBufferManager : NonCopyable
 	{
 	public:
 		CommandBufferManager();
 		void Initialize(VkDevice device, QueueFamilyIndices familyIndices, EngineSwapchainImageCount imageCount);
 
-		void Submit(VkQueue submitQueue, VkDevice device, std::vector<CommandBuffer> commandBuffers, std::vector<VkSemaphore> waitSemaphores);
+		SubmitSynchPrimitives Submit(VkQueue submitQueue, VkDevice device, std::vector<CommandBuffer> commandBuffers, std::vector<VkSemaphore> waitSemaphores);
 		void SignalFrameEnded();
 		std::vector<CommandBuffer> AquireCommandBuffers(VkDevice device, uint32_t count);
 		std::vector<VkSemaphore>& GetCommandExecSemaphores();

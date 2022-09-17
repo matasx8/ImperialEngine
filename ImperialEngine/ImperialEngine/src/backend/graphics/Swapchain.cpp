@@ -2,6 +2,7 @@
 #include "backend/graphics/GraphicsCaps.h"
 #include <stdexcept>
 #include <cassert>
+#include <backend/graphics/RenderPassBase.h>
 
 imp::Swapchain::Swapchain()
     : m_Swapchain(), m_Format(), m_Extent(), m_PresentMode(), m_ImageCount(), m_SwapchainIndex(), m_FrameClock(), m_NeedsAcquiring(), m_SwapchainImages(), m_Semaphores()
@@ -79,6 +80,7 @@ void imp::Swapchain::Present(VkQueue presentQ, const std::vector<VkSemaphore>& s
         throw std::runtime_error("Failed to present image");
 
     // I wonder should I use m_SwapchainIndex or m_FrameClock for stuff that relates to the number of swapchain images
+    // YES use swapchain index
     m_FrameClock++;
     m_FrameClock %= m_ImageCount;
     m_NeedsAcquiring = true;
@@ -101,6 +103,8 @@ imp::SurfaceDesc imp::Swapchain::GetSwapchainImageSurfaceDesc() const
     desc.msaaCount = 1;
     desc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     desc.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    desc.loadOp = kLoadOpDontCare;
+    desc.storeOp = kStoreOpStore;
     desc.isColor = true;
     desc.isBackbuffer = true;
     return desc;
@@ -118,6 +122,11 @@ imp::Surface imp::Swapchain::GetSwapchainImageSurface(VkDevice device)
 uint32_t imp::Swapchain::GetSwapchainImageCount() const
 {
     return m_ImageCount;
+}
+
+uint32_t imp::Swapchain::GetFrameClock() const
+{
+    return m_FrameClock;
 }
 
 void imp::Swapchain::Destroy(VkDevice device)

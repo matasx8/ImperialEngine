@@ -13,6 +13,8 @@ namespace imp
 		uint32_t msaaCount;
 		uint32_t initialLayout;
 		uint32_t finalLayout;
+		uint8_t loadOp;
+		uint8_t storeOp;
 		bool isColor;
 		bool isBackbuffer;
 
@@ -54,6 +56,7 @@ namespace imp
 template <>
 struct std::hash<imp::SurfaceDesc>
 {
+	// TODO: update this
 	std::size_t operator()(const imp::SurfaceDesc& k) const
 	{
 		return (std::hash<uint32_t>()(k.width) ^ ((std::hash<uint32_t>()(k.height) << 1)) >> 1) ^

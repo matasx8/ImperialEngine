@@ -1,8 +1,9 @@
 #pragma once
 #include <cstdint>
-#include <vcruntime_string.h>
+#include <string>
 #include <vulkan.h>
 #include <vector>
+#include <array>
 #include <backend/graphics/Surface.h>
 #include "backend/graphics/Framebuffer.h"
 #include "backend/graphics/CommandBuffer.h"
@@ -22,16 +23,14 @@ namespace imp
 		kStoreOpDontCare
 	};
 
+	inline constexpr uint32_t kMaxColorAttachmentCount = 4;
+
 	struct RenderPassDesc
 	{
-		uint8_t msaaCount;
+		std::array<SurfaceDesc, kMaxColorAttachmentCount> colorSurfaces;
+		std::array<SurfaceDesc, kMaxColorAttachmentCount> resolveSurfaces;
+		SurfaceDesc depthSurface;
 		uint8_t colorAttachmentCount;
-		uint8_t colorFormat;
-		uint8_t colorLoadOp;
-		uint8_t colorStoreOp;
-		uint8_t depthFormat;
-		uint8_t depthLoadOp;
-		uint8_t depthStoreOp;
 
 		bool operator==(const RenderPassDesc& other) const noexcept
 		{
@@ -40,21 +39,24 @@ namespace imp
 	};
 
 	class Graphics;
+	struct CameraData;
 
 	class RenderPassBase
 	{
 	public: 
 		RenderPassBase();
 
-		void Create(VkDevice device, RenderPassDesc& desc, std::vector<SurfaceDesc>& surfaceDescs, std::vector<SurfaceDesc>& resolveDescs);
+		void Create(VkDevice device, const RenderPassDesc& desc);
 
-		virtual void Execute(Graphics& gfx) = 0;
+		virtual void Execute(Graphics& gfx, const CameraData& cam) = 0;
 
 		bool HasBackbuffer() const;
-		const std::vector<SurfaceDesc>& GetSurfaceDescriptions() const;
-		const std::vector<SurfaceDesc>& GetResolveSurfaceDescriptions() const;
+		const std::array<SurfaceDesc, kMaxColorAttachmentCount>& GetSurfaceDescriptions() const;
+		const std::array<SurfaceDesc, kMaxColorAttachmentCount>& GetResolveSurfaceDescriptions() const;
 		VkRenderPass GetVkRenderPass() const;
 		RenderPassDesc GetRenderPassDesc() const;
+		VkViewport GetViewport() const;
+		VkRect2D GetScissor() const;
 		std::vector<VkSemaphore> GetSemaphoresToWaitOn();
 		std::vector<Surface> GiveSurfaces();
 
@@ -65,12 +67,10 @@ namespace imp
 		void BeginRenderPass(Graphics& gfx, CommandBuffer cmb);
 		void EndRenderPass(Graphics& gfx, CommandBuffer cmb);
 
-		std::vector<VkAttachmentDescription> CreateAttachmentDescs(const RenderPassDesc& desc, const std::vector<SurfaceDesc>& surfaceDescs) const;
-		std::vector<VkAttachmentDescription> CreateResolveAttachmentDescs(const RenderPassDesc& desc, const std::vector<SurfaceDesc>& surfaceDescs) const;
+		std::vector<VkAttachmentDescription> CreateAttachmentDescs(const SurfaceDesc* descs, const uint32_t descCount) const;
+		std::vector<VkAttachmentDescription> CreateResolveAttachmentDescs(const SurfaceDesc* descs, const uint32_t descCount) const;
 
 		VkRenderPass m_RenderPass;
-		std::vector<SurfaceDesc> m_SurfaceDescriptions;
-		std::vector<SurfaceDesc> m_ResolveDescriptions;
 		RenderPassDesc m_Desc;
 		Framebuffer m_Framebuffer;
 

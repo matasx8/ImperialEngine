@@ -18,7 +18,7 @@
 
 #define ENTT_VERSION_MAJOR 3
 #define ENTT_VERSION_MINOR 10
-#define ENTT_VERSION_PATCH 0
+#define ENTT_VERSION_PATCH 3
 
 #define ENTT_VERSION \
     ENTT_XSTR(ENTT_VERSION_MAJOR) \
@@ -28,17 +28,20 @@
 
 
 #if defined(__cpp_exceptions) && !defined(ENTT_NOEXCEPTION)
-#    define ENTT_NOEXCEPT noexcept
-#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
 #    define ENTT_THROW throw
 #    define ENTT_TRY try
 #    define ENTT_CATCH catch(...)
 #else
-#    define ENTT_NOEXCEPT
-#    define ENTT_NOEXCEPT_IF(...)
 #    define ENTT_THROW
 #    define ENTT_TRY if(true)
 #    define ENTT_CATCH if(false)
+#endif
+
+#ifndef ENTT_NOEXCEPT
+#    define ENTT_NOEXCEPT noexcept
+#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
+# else
+#    define ENTT_NOEXCEPT_IF(...)
 #endif
 
 #ifdef ENTT_USE_ATOMIC
@@ -50,7 +53,7 @@
 
 #ifndef ENTT_ID_TYPE
 #    include <cstdint>
-#    define ENTT_ID_TYPE std::uint32_t
+#    define ENTT_ID_TYPE std::uint64_t
 #endif
 
 #ifndef ENTT_SPARSE_PAGE
@@ -117,7 +120,7 @@
 
 #define ENTT_VERSION_MAJOR 3
 #define ENTT_VERSION_MINOR 10
-#define ENTT_VERSION_PATCH 0
+#define ENTT_VERSION_PATCH 3
 
 #define ENTT_VERSION \
     ENTT_XSTR(ENTT_VERSION_MAJOR) \
@@ -160,7 +163,7 @@
 
 #define ENTT_VERSION_MAJOR 3
 #define ENTT_VERSION_MINOR 10
-#define ENTT_VERSION_PATCH 0
+#define ENTT_VERSION_PATCH 3
 
 #define ENTT_VERSION \
     ENTT_XSTR(ENTT_VERSION_MAJOR) \
@@ -170,17 +173,20 @@
 
 
 #if defined(__cpp_exceptions) && !defined(ENTT_NOEXCEPTION)
-#    define ENTT_NOEXCEPT noexcept
-#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
 #    define ENTT_THROW throw
 #    define ENTT_TRY try
 #    define ENTT_CATCH catch(...)
 #else
-#    define ENTT_NOEXCEPT
-#    define ENTT_NOEXCEPT_IF(...)
 #    define ENTT_THROW
 #    define ENTT_TRY if(true)
 #    define ENTT_CATCH if(false)
+#endif
+
+#ifndef ENTT_NOEXCEPT
+#    define ENTT_NOEXCEPT noexcept
+#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
+# else
+#    define ENTT_NOEXCEPT_IF(...)
 #endif
 
 #ifdef ENTT_USE_ATOMIC
@@ -269,7 +275,7 @@
 
 #define ENTT_VERSION_MAJOR 3
 #define ENTT_VERSION_MINOR 10
-#define ENTT_VERSION_PATCH 0
+#define ENTT_VERSION_PATCH 3
 
 #define ENTT_VERSION \
     ENTT_XSTR(ENTT_VERSION_MAJOR) \
@@ -279,17 +285,20 @@
 
 
 #if defined(__cpp_exceptions) && !defined(ENTT_NOEXCEPTION)
-#    define ENTT_NOEXCEPT noexcept
-#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
 #    define ENTT_THROW throw
 #    define ENTT_TRY try
 #    define ENTT_CATCH catch(...)
 #else
-#    define ENTT_NOEXCEPT
-#    define ENTT_NOEXCEPT_IF(...)
 #    define ENTT_THROW
 #    define ENTT_TRY if(true)
 #    define ENTT_CATCH if(false)
+#endif
+
+#ifndef ENTT_NOEXCEPT
+#    define ENTT_NOEXCEPT noexcept
+#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
+# else
+#    define ENTT_NOEXCEPT_IF(...)
 #endif
 
 #ifdef ENTT_USE_ATOMIC
@@ -4227,7 +4236,7 @@ private:
 
 #define ENTT_VERSION_MAJOR 3
 #define ENTT_VERSION_MINOR 10
-#define ENTT_VERSION_PATCH 0
+#define ENTT_VERSION_PATCH 3
 
 #define ENTT_VERSION \
     ENTT_XSTR(ENTT_VERSION_MAJOR) \
@@ -4237,17 +4246,20 @@ private:
 
 
 #if defined(__cpp_exceptions) && !defined(ENTT_NOEXCEPTION)
-#    define ENTT_NOEXCEPT noexcept
-#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
 #    define ENTT_THROW throw
 #    define ENTT_TRY try
 #    define ENTT_CATCH catch(...)
 #else
-#    define ENTT_NOEXCEPT
-#    define ENTT_NOEXCEPT_IF(...)
 #    define ENTT_THROW
 #    define ENTT_TRY if(true)
 #    define ENTT_CATCH if(false)
+#endif
+
+#ifndef ENTT_NOEXCEPT
+#    define ENTT_NOEXCEPT noexcept
+#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
+# else
+#    define ENTT_NOEXCEPT_IF(...)
 #endif
 
 #ifdef ENTT_USE_ATOMIC
@@ -4569,7 +4581,7 @@ struct radix_sort {
 
 #define ENTT_VERSION_MAJOR 3
 #define ENTT_VERSION_MINOR 10
-#define ENTT_VERSION_PATCH 0
+#define ENTT_VERSION_PATCH 3
 
 #define ENTT_VERSION \
     ENTT_XSTR(ENTT_VERSION_MAJOR) \
@@ -4579,17 +4591,20 @@ struct radix_sort {
 
 
 #if defined(__cpp_exceptions) && !defined(ENTT_NOEXCEPTION)
-#    define ENTT_NOEXCEPT noexcept
-#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
 #    define ENTT_THROW throw
 #    define ENTT_TRY try
 #    define ENTT_CATCH catch(...)
 #else
-#    define ENTT_NOEXCEPT
-#    define ENTT_NOEXCEPT_IF(...)
 #    define ENTT_THROW
 #    define ENTT_TRY if(true)
 #    define ENTT_CATCH if(false)
+#endif
+
+#ifndef ENTT_NOEXCEPT
+#    define ENTT_NOEXCEPT noexcept
+#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
+# else
+#    define ENTT_NOEXCEPT_IF(...)
 #endif
 
 #ifdef ENTT_USE_ATOMIC
@@ -8973,7 +8988,7 @@ private:
 
 #define ENTT_VERSION_MAJOR 3
 #define ENTT_VERSION_MINOR 10
-#define ENTT_VERSION_PATCH 0
+#define ENTT_VERSION_PATCH 3
 
 #define ENTT_VERSION \
     ENTT_XSTR(ENTT_VERSION_MAJOR) \
@@ -8983,17 +8998,20 @@ private:
 
 
 #if defined(__cpp_exceptions) && !defined(ENTT_NOEXCEPTION)
-#    define ENTT_NOEXCEPT noexcept
-#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
 #    define ENTT_THROW throw
 #    define ENTT_TRY try
 #    define ENTT_CATCH catch(...)
 #else
-#    define ENTT_NOEXCEPT
-#    define ENTT_NOEXCEPT_IF(...)
 #    define ENTT_THROW
 #    define ENTT_TRY if(true)
 #    define ENTT_CATCH if(false)
+#endif
+
+#ifndef ENTT_NOEXCEPT
+#    define ENTT_NOEXCEPT noexcept
+#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
+# else
+#    define ENTT_NOEXCEPT_IF(...)
 #endif
 
 #ifdef ENTT_USE_ATOMIC
@@ -9150,7 +9168,7 @@ inline constexpr bool ignore_as_empty_v = (component_traits<Type>::page_size == 
 
 #define ENTT_VERSION_MAJOR 3
 #define ENTT_VERSION_MINOR 10
-#define ENTT_VERSION_PATCH 0
+#define ENTT_VERSION_PATCH 3
 
 #define ENTT_VERSION \
     ENTT_XSTR(ENTT_VERSION_MAJOR) \
@@ -9160,17 +9178,20 @@ inline constexpr bool ignore_as_empty_v = (component_traits<Type>::page_size == 
 
 
 #if defined(__cpp_exceptions) && !defined(ENTT_NOEXCEPTION)
-#    define ENTT_NOEXCEPT noexcept
-#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
 #    define ENTT_THROW throw
 #    define ENTT_TRY try
 #    define ENTT_CATCH catch(...)
 #else
-#    define ENTT_NOEXCEPT
-#    define ENTT_NOEXCEPT_IF(...)
 #    define ENTT_THROW
 #    define ENTT_TRY if(true)
 #    define ENTT_CATCH if(false)
+#endif
+
+#ifndef ENTT_NOEXCEPT
+#    define ENTT_NOEXCEPT noexcept
+#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
+# else
+#    define ENTT_NOEXCEPT_IF(...)
 #endif
 
 #ifdef ENTT_USE_ATOMIC
@@ -11250,7 +11271,7 @@ struct radix_sort {
 
 #define ENTT_VERSION_MAJOR 3
 #define ENTT_VERSION_MINOR 10
-#define ENTT_VERSION_PATCH 0
+#define ENTT_VERSION_PATCH 3
 
 #define ENTT_VERSION \
     ENTT_XSTR(ENTT_VERSION_MAJOR) \
@@ -11260,17 +11281,20 @@ struct radix_sort {
 
 
 #if defined(__cpp_exceptions) && !defined(ENTT_NOEXCEPTION)
-#    define ENTT_NOEXCEPT noexcept
-#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
 #    define ENTT_THROW throw
 #    define ENTT_TRY try
 #    define ENTT_CATCH catch(...)
 #else
-#    define ENTT_NOEXCEPT
-#    define ENTT_NOEXCEPT_IF(...)
 #    define ENTT_THROW
 #    define ENTT_TRY if(true)
 #    define ENTT_CATCH if(false)
+#endif
+
+#ifndef ENTT_NOEXCEPT
+#    define ENTT_NOEXCEPT noexcept
+#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
+# else
+#    define ENTT_NOEXCEPT_IF(...)
 #endif
 
 #ifdef ENTT_USE_ATOMIC
@@ -14011,12 +14035,14 @@ protected:
      */
     virtual void swap_and_pop(basic_iterator first, basic_iterator last) {
         for(; first != last; ++first) {
-            sparse_ref(packed.back()) = entity_traits::combine(static_cast<typename entity_traits::entity_type>(first.index()), entity_traits::to_integral(packed.back()));
-            const auto entt = std::exchange(packed[first.index()], packed.back());
+            auto &self = sparse_ref(*first);
+            const auto entt = entity_traits::to_entity(self);
+            sparse_ref(packed.back()) = entity_traits::combine(entt, entity_traits::to_integral(packed.back()));
+            packed[static_cast<size_type>(entt)] = packed.back();
             // unnecessary but it helps to detect nasty bugs
             ENTT_ASSERT((packed.back() = tombstone, true), "");
             // lazy self-assignment guard
-            sparse_ref(entt) = null;
+            self = null;
             packed.pop_back();
         }
     }
@@ -14028,8 +14054,8 @@ protected:
      */
     virtual void in_place_pop(basic_iterator first, basic_iterator last) {
         for(; first != last; ++first) {
-            sparse_ref(*first) = null;
-            packed[first.index()] = std::exchange(free_list, entity_traits::combine(static_cast<typename entity_traits::entity_type>(first.index()), entity_traits::reserved));
+            const auto entt = entity_traits::to_entity(std::exchange(sparse_ref(*first), null));
+            packed[static_cast<size_type>(entt)] = std::exchange(free_list, entity_traits::combine(entt, entity_traits::reserved));
         }
     }
 
@@ -15076,7 +15102,7 @@ struct tuple_element<Index, entt::compressed_pair<First, Second>>: conditional<I
 
 #define ENTT_VERSION_MAJOR 3
 #define ENTT_VERSION_MINOR 10
-#define ENTT_VERSION_PATCH 0
+#define ENTT_VERSION_PATCH 3
 
 #define ENTT_VERSION \
     ENTT_XSTR(ENTT_VERSION_MAJOR) \
@@ -15086,17 +15112,20 @@ struct tuple_element<Index, entt::compressed_pair<First, Second>>: conditional<I
 
 
 #if defined(__cpp_exceptions) && !defined(ENTT_NOEXCEPTION)
-#    define ENTT_NOEXCEPT noexcept
-#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
 #    define ENTT_THROW throw
 #    define ENTT_TRY try
 #    define ENTT_CATCH catch(...)
 #else
-#    define ENTT_NOEXCEPT
-#    define ENTT_NOEXCEPT_IF(...)
 #    define ENTT_THROW
 #    define ENTT_TRY if(true)
 #    define ENTT_CATCH if(false)
+#endif
+
+#ifndef ENTT_NOEXCEPT
+#    define ENTT_NOEXCEPT noexcept
+#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
+# else
+#    define ENTT_NOEXCEPT_IF(...)
 #endif
 
 #ifdef ENTT_USE_ATOMIC
@@ -15196,7 +15225,7 @@ struct tuple_element<Index, entt::compressed_pair<First, Second>>: conditional<I
 
 #define ENTT_VERSION_MAJOR 3
 #define ENTT_VERSION_MINOR 10
-#define ENTT_VERSION_PATCH 0
+#define ENTT_VERSION_PATCH 3
 
 #define ENTT_VERSION \
     ENTT_XSTR(ENTT_VERSION_MAJOR) \
@@ -15206,17 +15235,20 @@ struct tuple_element<Index, entt::compressed_pair<First, Second>>: conditional<I
 
 
 #if defined(__cpp_exceptions) && !defined(ENTT_NOEXCEPTION)
-#    define ENTT_NOEXCEPT noexcept
-#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
 #    define ENTT_THROW throw
 #    define ENTT_TRY try
 #    define ENTT_CATCH catch(...)
 #else
-#    define ENTT_NOEXCEPT
-#    define ENTT_NOEXCEPT_IF(...)
 #    define ENTT_THROW
 #    define ENTT_TRY if(true)
 #    define ENTT_CATCH if(false)
+#endif
+
+#ifndef ENTT_NOEXCEPT
+#    define ENTT_NOEXCEPT noexcept
+#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
+# else
+#    define ENTT_NOEXCEPT_IF(...)
 #endif
 
 #ifdef ENTT_USE_ATOMIC
@@ -17397,9 +17429,11 @@ protected:
      */
     void swap_and_pop(typename underlying_type::basic_iterator first, typename underlying_type::basic_iterator last) override {
         for(; first != last; ++first) {
+            // cannot use first::index() because it would break with cross iterators
+            const auto pos = base_type::index(*first);
             auto &elem = element_at(base_type::size() - 1u);
             // destroying on exit allows reentrant destructors
-            [[maybe_unused]] auto unused = std::exchange(element_at(static_cast<size_type>(first.index())), std::move(elem));
+            [[maybe_unused]] auto unused = std::exchange(element_at(pos), std::move(elem));
             std::destroy_at(std::addressof(elem));
             base_type::swap_and_pop(first, first + 1u);
         }
@@ -17412,8 +17446,10 @@ protected:
      */
     void in_place_pop(typename underlying_type::basic_iterator first, typename underlying_type::basic_iterator last) override {
         for(; first != last; ++first) {
+            // cannot use first::index() because it would break with cross iterators
+            const auto pos = base_type::index(*first);
             base_type::in_place_pop(first, first + 1u);
-            std::destroy_at(std::addressof(element_at(static_cast<size_type>(first.index()))));
+            std::destroy_at(std::addressof(element_at(pos)));
         }
     }
 
@@ -18928,7 +18964,7 @@ private:
 
 #define ENTT_VERSION_MAJOR 3
 #define ENTT_VERSION_MINOR 10
-#define ENTT_VERSION_PATCH 0
+#define ENTT_VERSION_PATCH 3
 
 #define ENTT_VERSION \
     ENTT_XSTR(ENTT_VERSION_MAJOR) \
@@ -18938,17 +18974,20 @@ private:
 
 
 #if defined(__cpp_exceptions) && !defined(ENTT_NOEXCEPTION)
-#    define ENTT_NOEXCEPT noexcept
-#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
 #    define ENTT_THROW throw
 #    define ENTT_TRY try
 #    define ENTT_CATCH catch(...)
 #else
-#    define ENTT_NOEXCEPT
-#    define ENTT_NOEXCEPT_IF(...)
 #    define ENTT_THROW
 #    define ENTT_TRY if(true)
 #    define ENTT_CATCH if(false)
+#endif
+
+#ifndef ENTT_NOEXCEPT
+#    define ENTT_NOEXCEPT noexcept
+#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
+# else
+#    define ENTT_NOEXCEPT_IF(...)
 #endif
 
 #ifdef ENTT_USE_ATOMIC
@@ -19037,7 +19076,7 @@ private:
 
 #define ENTT_VERSION_MAJOR 3
 #define ENTT_VERSION_MINOR 10
-#define ENTT_VERSION_PATCH 0
+#define ENTT_VERSION_PATCH 3
 
 #define ENTT_VERSION \
     ENTT_XSTR(ENTT_VERSION_MAJOR) \
@@ -19047,17 +19086,20 @@ private:
 
 
 #if defined(__cpp_exceptions) && !defined(ENTT_NOEXCEPTION)
-#    define ENTT_NOEXCEPT noexcept
-#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
 #    define ENTT_THROW throw
 #    define ENTT_TRY try
 #    define ENTT_CATCH catch(...)
 #else
-#    define ENTT_NOEXCEPT
-#    define ENTT_NOEXCEPT_IF(...)
 #    define ENTT_THROW
 #    define ENTT_TRY if(true)
 #    define ENTT_CATCH if(false)
+#endif
+
+#ifndef ENTT_NOEXCEPT
+#    define ENTT_NOEXCEPT noexcept
+#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
+# else
+#    define ENTT_NOEXCEPT_IF(...)
 #endif
 
 #ifdef ENTT_USE_ATOMIC
@@ -24580,7 +24622,7 @@ class basic_registry {
     }
 
     auto generate_identifier(const std::size_t pos) ENTT_NOEXCEPT {
-        ENTT_ASSERT(pos < entity_traits::to_integral(null), "No entities available");
+        ENTT_ASSERT(pos < entity_traits::to_entity(null), "No entities available");
         return entity_traits::combine(static_cast<typename entity_traits::entity_type>(pos), {});
     }
 
@@ -25051,11 +25093,11 @@ public:
      * @param last An iterator past the last element of the range of entities.
      * @param value An instance of the component to assign.
      */
-    template<typename Component, typename It>
+  /*  template<typename Component, typename It>
     void insert(It first, It last, const Component &value = {}) {
         ENTT_ASSERT(std::all_of(first, last, [this](const auto entity) { return valid(entity); }), "Invalid entity");
         assure<Component>().insert(first, last, value);
-    }
+    }*/
 
     /**
      * @brief Assigns each entity in a range the given components.
@@ -28033,7 +28075,7 @@ class basic_registry {
     }
 
     auto generate_identifier(const std::size_t pos) ENTT_NOEXCEPT {
-        ENTT_ASSERT(pos < entity_traits::to_integral(null), "No entities available");
+        ENTT_ASSERT(pos < entity_traits::to_entity(null), "No entities available");
         return entity_traits::combine(static_cast<typename entity_traits::entity_type>(pos), {});
     }
 
@@ -30506,12 +30548,14 @@ protected:
      */
     virtual void swap_and_pop(basic_iterator first, basic_iterator last) {
         for(; first != last; ++first) {
-            sparse_ref(packed.back()) = entity_traits::combine(static_cast<typename entity_traits::entity_type>(first.index()), entity_traits::to_integral(packed.back()));
-            const auto entt = std::exchange(packed[first.index()], packed.back());
+            auto &self = sparse_ref(*first);
+            const auto entt = entity_traits::to_entity(self);
+            sparse_ref(packed.back()) = entity_traits::combine(entt, entity_traits::to_integral(packed.back()));
+            packed[static_cast<size_type>(entt)] = packed.back();
             // unnecessary but it helps to detect nasty bugs
             ENTT_ASSERT((packed.back() = tombstone, true), "");
             // lazy self-assignment guard
-            sparse_ref(entt) = null;
+            self = null;
             packed.pop_back();
         }
     }
@@ -30523,8 +30567,8 @@ protected:
      */
     virtual void in_place_pop(basic_iterator first, basic_iterator last) {
         for(; first != last; ++first) {
-            sparse_ref(*first) = null;
-            packed[first.index()] = std::exchange(free_list, entity_traits::combine(static_cast<typename entity_traits::entity_type>(first.index()), entity_traits::reserved));
+            const auto entt = entity_traits::to_entity(std::exchange(sparse_ref(*first), null));
+            packed[static_cast<size_type>(entt)] = std::exchange(free_list, entity_traits::combine(entt, entity_traits::reserved));
         }
     }
 
@@ -31570,9 +31614,11 @@ protected:
      */
     void swap_and_pop(typename underlying_type::basic_iterator first, typename underlying_type::basic_iterator last) override {
         for(; first != last; ++first) {
+            // cannot use first::index() because it would break with cross iterators
+            const auto pos = base_type::index(*first);
             auto &elem = element_at(base_type::size() - 1u);
             // destroying on exit allows reentrant destructors
-            [[maybe_unused]] auto unused = std::exchange(element_at(static_cast<size_type>(first.index())), std::move(elem));
+            [[maybe_unused]] auto unused = std::exchange(element_at(pos), std::move(elem));
             std::destroy_at(std::addressof(elem));
             base_type::swap_and_pop(first, first + 1u);
         }
@@ -31585,8 +31631,10 @@ protected:
      */
     void in_place_pop(typename underlying_type::basic_iterator first, typename underlying_type::basic_iterator last) override {
         for(; first != last; ++first) {
+            // cannot use first::index() because it would break with cross iterators
+            const auto pos = base_type::index(*first);
             base_type::in_place_pop(first, first + 1u);
-            std::destroy_at(std::addressof(element_at(static_cast<size_type>(first.index()))));
+            std::destroy_at(std::addressof(element_at(pos)));
         }
     }
 
@@ -33079,7 +33127,7 @@ basic_view(Storage &...storage) -> basic_view<std::common_type_t<typename Storag
 
 #define ENTT_VERSION_MAJOR 3
 #define ENTT_VERSION_MINOR 10
-#define ENTT_VERSION_PATCH 0
+#define ENTT_VERSION_PATCH 3
 
 #define ENTT_VERSION \
     ENTT_XSTR(ENTT_VERSION_MAJOR) \
@@ -33089,17 +33137,20 @@ basic_view(Storage &...storage) -> basic_view<std::common_type_t<typename Storag
 
 
 #if defined(__cpp_exceptions) && !defined(ENTT_NOEXCEPTION)
-#    define ENTT_NOEXCEPT noexcept
-#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
 #    define ENTT_THROW throw
 #    define ENTT_TRY try
 #    define ENTT_CATCH catch(...)
 #else
-#    define ENTT_NOEXCEPT
-#    define ENTT_NOEXCEPT_IF(...)
 #    define ENTT_THROW
 #    define ENTT_TRY if(true)
 #    define ENTT_CATCH if(false)
+#endif
+
+#ifndef ENTT_NOEXCEPT
+#    define ENTT_NOEXCEPT noexcept
+#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
+# else
+#    define ENTT_NOEXCEPT_IF(...)
 #endif
 
 #ifdef ENTT_USE_ATOMIC
@@ -33352,7 +33403,7 @@ struct adl_meta_pointer_like {
 
 #define ENTT_VERSION_MAJOR 3
 #define ENTT_VERSION_MINOR 10
-#define ENTT_VERSION_PATCH 0
+#define ENTT_VERSION_PATCH 3
 
 #define ENTT_VERSION \
     ENTT_XSTR(ENTT_VERSION_MAJOR) \
@@ -33362,17 +33413,20 @@ struct adl_meta_pointer_like {
 
 
 #if defined(__cpp_exceptions) && !defined(ENTT_NOEXCEPTION)
-#    define ENTT_NOEXCEPT noexcept
-#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
 #    define ENTT_THROW throw
 #    define ENTT_TRY try
 #    define ENTT_CATCH catch(...)
 #else
-#    define ENTT_NOEXCEPT
-#    define ENTT_NOEXCEPT_IF(...)
 #    define ENTT_THROW
 #    define ENTT_TRY if(true)
 #    define ENTT_CATCH if(false)
+#endif
+
+#ifndef ENTT_NOEXCEPT
+#    define ENTT_NOEXCEPT noexcept
+#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
+# else
+#    define ENTT_NOEXCEPT_IF(...)
 #endif
 
 #ifdef ENTT_USE_ATOMIC
@@ -33461,7 +33515,7 @@ struct adl_meta_pointer_like {
 
 #define ENTT_VERSION_MAJOR 3
 #define ENTT_VERSION_MINOR 10
-#define ENTT_VERSION_PATCH 0
+#define ENTT_VERSION_PATCH 3
 
 #define ENTT_VERSION \
     ENTT_XSTR(ENTT_VERSION_MAJOR) \
@@ -33471,17 +33525,20 @@ struct adl_meta_pointer_like {
 
 
 #if defined(__cpp_exceptions) && !defined(ENTT_NOEXCEPTION)
-#    define ENTT_NOEXCEPT noexcept
-#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
 #    define ENTT_THROW throw
 #    define ENTT_TRY try
 #    define ENTT_CATCH catch(...)
 #else
-#    define ENTT_NOEXCEPT
-#    define ENTT_NOEXCEPT_IF(...)
 #    define ENTT_THROW
 #    define ENTT_TRY if(true)
 #    define ENTT_CATCH if(false)
+#endif
+
+#ifndef ENTT_NOEXCEPT
+#    define ENTT_NOEXCEPT noexcept
+#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
+# else
+#    define ENTT_NOEXCEPT_IF(...)
 #endif
 
 #ifdef ENTT_USE_ATOMIC
@@ -37414,7 +37471,7 @@ private:
 
 #define ENTT_VERSION_MAJOR 3
 #define ENTT_VERSION_MINOR 10
-#define ENTT_VERSION_PATCH 0
+#define ENTT_VERSION_PATCH 3
 
 #define ENTT_VERSION \
     ENTT_XSTR(ENTT_VERSION_MAJOR) \
@@ -37424,17 +37481,20 @@ private:
 
 
 #if defined(__cpp_exceptions) && !defined(ENTT_NOEXCEPTION)
-#    define ENTT_NOEXCEPT noexcept
-#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
 #    define ENTT_THROW throw
 #    define ENTT_TRY try
 #    define ENTT_CATCH catch(...)
 #else
-#    define ENTT_NOEXCEPT
-#    define ENTT_NOEXCEPT_IF(...)
 #    define ENTT_THROW
 #    define ENTT_TRY if(true)
 #    define ENTT_CATCH if(false)
+#endif
+
+#ifndef ENTT_NOEXCEPT
+#    define ENTT_NOEXCEPT noexcept
+#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
+# else
+#    define ENTT_NOEXCEPT_IF(...)
 #endif
 
 #ifdef ENTT_USE_ATOMIC
@@ -37523,7 +37583,7 @@ private:
 
 #define ENTT_VERSION_MAJOR 3
 #define ENTT_VERSION_MINOR 10
-#define ENTT_VERSION_PATCH 0
+#define ENTT_VERSION_PATCH 3
 
 #define ENTT_VERSION \
     ENTT_XSTR(ENTT_VERSION_MAJOR) \
@@ -37533,17 +37593,20 @@ private:
 
 
 #if defined(__cpp_exceptions) && !defined(ENTT_NOEXCEPTION)
-#    define ENTT_NOEXCEPT noexcept
-#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
 #    define ENTT_THROW throw
 #    define ENTT_TRY try
 #    define ENTT_CATCH catch(...)
 #else
-#    define ENTT_NOEXCEPT
-#    define ENTT_NOEXCEPT_IF(...)
 #    define ENTT_THROW
 #    define ENTT_TRY if(true)
 #    define ENTT_CATCH if(false)
+#endif
+
+#ifndef ENTT_NOEXCEPT
+#    define ENTT_NOEXCEPT noexcept
+#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
+# else
+#    define ENTT_NOEXCEPT_IF(...)
 #endif
 
 #ifdef ENTT_USE_ATOMIC
@@ -37629,7 +37692,7 @@ private:
 
 #define ENTT_VERSION_MAJOR 3
 #define ENTT_VERSION_MINOR 10
-#define ENTT_VERSION_PATCH 0
+#define ENTT_VERSION_PATCH 3
 
 #define ENTT_VERSION \
     ENTT_XSTR(ENTT_VERSION_MAJOR) \
@@ -37639,17 +37702,20 @@ private:
 
 
 #if defined(__cpp_exceptions) && !defined(ENTT_NOEXCEPTION)
-#    define ENTT_NOEXCEPT noexcept
-#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
 #    define ENTT_THROW throw
 #    define ENTT_TRY try
 #    define ENTT_CATCH catch(...)
 #else
-#    define ENTT_NOEXCEPT
-#    define ENTT_NOEXCEPT_IF(...)
 #    define ENTT_THROW
 #    define ENTT_TRY if(true)
 #    define ENTT_CATCH if(false)
+#endif
+
+#ifndef ENTT_NOEXCEPT
+#    define ENTT_NOEXCEPT noexcept
+#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
+# else
+#    define ENTT_NOEXCEPT_IF(...)
 #endif
 
 #ifdef ENTT_USE_ATOMIC
@@ -41219,6 +41285,7 @@ struct meta_type_node {
     meta_type_node *next;
     meta_prop_node *prop;
     const size_type size_of;
+    meta_type_node *(*const remove_pointer)() ENTT_NOEXCEPT;
     meta_any (*const default_constructor)();
     double (*const conversion_helper)(void *, const void *);
     const meta_template_node *const templ;
@@ -41291,6 +41358,7 @@ public:
             nullptr,
             nullptr,
             size_of_v<Type>,
+            &meta_node<std::remove_cv_t<std::remove_reference_t<std::remove_pointer_t<Type>>>>::resolve,
             meta_default_constructor(),
             meta_conversion_helper(),
             meta_template_info()
@@ -42527,6 +42595,15 @@ public:
     }
 
     /**
+     * @brief Provides the type for which the pointer is defined.
+     * @return The type for which the pointer is defined or this type if it
+     * doesn't refer to a pointer type.
+     */
+    [[nodiscard]] meta_type remove_pointer() const ENTT_NOEXCEPT {
+        return node->remove_pointer();
+    }
+
+    /**
      * @brief Checks whether a type is a pointer-like type or not.
      * @return True if the underlying type is a pointer-like one, false
      * otherwise.
@@ -42920,11 +42997,11 @@ public:
           offset{},
           handle{} {}
 
-    template<typename It>
-    explicit meta_iterator(It iter, const difference_type init) ENTT_NOEXCEPT
-        : deref{&deref_fn<It>},
+    template<typename Type>
+    explicit meta_iterator(Type &cont, const difference_type init) ENTT_NOEXCEPT
+        : deref{&deref_fn<decltype(cont.begin())>},
           offset{init},
-          handle{std::move(iter)} {}
+          handle{cont.begin()} {}
 
     meta_iterator &operator++() ENTT_NOEXCEPT {
         return ++offset, *this;
@@ -43278,14 +43355,12 @@ struct basic_meta_sequence_container_traits {
     }
 
     [[nodiscard]] static iterator iter(any &container, const bool as_end) {
-        using std::begin;
-
         if(auto *const cont = any_cast<Type>(&container); cont) {
-            return iterator{begin(*cont), static_cast<typename iterator::difference_type>(as_end * cont->size())};
+            return iterator{*cont, static_cast<typename iterator::difference_type>(as_end * cont->size())};
         }
 
         const Type &as_const = any_cast<const Type &>(container);
-        return iterator{begin(as_const), static_cast<typename iterator::difference_type>(as_end * as_const.size())};
+        return iterator{as_const, static_cast<typename iterator::difference_type>(as_end * as_const.size())};
     }
 
     [[nodiscard]] static iterator insert([[maybe_unused]] any &container, [[maybe_unused]] const std::ptrdiff_t offset, [[maybe_unused]] meta_any &value) {
@@ -43293,10 +43368,9 @@ struct basic_meta_sequence_container_traits {
             if(auto *const cont = any_cast<Type>(&container); cont) {
                 // this abomination is necessary because only on macos value_type and const_reference are different types for std::vector<bool>
                 if(value.allow_cast<typename Type::const_reference>() || value.allow_cast<typename Type::value_type>()) {
-                    using std::begin;
                     const auto *element = value.try_cast<std::remove_reference_t<typename Type::const_reference>>();
-                    const auto curr = cont->insert(begin(*cont) + offset, element ? *element : value.cast<typename Type::value_type>());
-                    return iterator{curr, curr - begin(*cont)};
+                    const auto curr = cont->insert(cont->begin() + offset, element ? *element : value.cast<typename Type::value_type>());
+                    return iterator{*cont, curr - cont->begin()};
                 }
             }
         }
@@ -43307,9 +43381,8 @@ struct basic_meta_sequence_container_traits {
     [[nodiscard]] static iterator erase([[maybe_unused]] any &container, [[maybe_unused]] const std::ptrdiff_t offset) {
         if constexpr(is_dynamic_sequence_container<Type>::value) {
             if(auto *const cont = any_cast<Type>(&container); cont) {
-                using std::begin;
-                const auto curr = cont->erase(begin(*cont) + offset);
-                return iterator{curr, curr - begin(*cont)};
+                const auto curr = cont->erase(cont->begin() + offset);
+                return iterator{*cont, curr - cont->begin()};
             }
         }
 
@@ -43338,15 +43411,12 @@ struct basic_meta_associative_container_traits {
     }
 
     [[nodiscard]] static iterator iter(any &container, const bool as_end) {
-        using std::begin;
-        using std::end;
-
         if(auto *const cont = any_cast<Type>(&container); cont) {
-            return iterator{std::integral_constant<bool, key_only>{}, as_end ? end(*cont) : begin(*cont)};
+            return iterator{std::integral_constant<bool, key_only>{}, as_end ? cont->end() : cont->begin()};
         }
 
         const auto &as_const = any_cast<const Type &>(container);
-        return iterator{std::integral_constant<bool, key_only>{}, as_end ? end(as_const) : begin(as_const)};
+        return iterator{std::integral_constant<bool, key_only>{}, as_end ? as_const.end() : as_const.begin()};
     }
 
     [[nodiscard]] static bool insert(any &container, meta_any &key, [[maybe_unused]] meta_any &value) {
@@ -45744,6 +45814,15 @@ public:
     }
 
     /**
+     * @brief Provides the type for which the pointer is defined.
+     * @return The type for which the pointer is defined or this type if it
+     * doesn't refer to a pointer type.
+     */
+    [[nodiscard]] meta_type remove_pointer() const ENTT_NOEXCEPT {
+        return node->remove_pointer();
+    }
+
+    /**
      * @brief Checks whether a type is a pointer-like type or not.
      * @return True if the underlying type is a pointer-like one, false
      * otherwise.
@@ -46137,11 +46216,11 @@ public:
           offset{},
           handle{} {}
 
-    template<typename It>
-    explicit meta_iterator(It iter, const difference_type init) ENTT_NOEXCEPT
-        : deref{&deref_fn<It>},
+    template<typename Type>
+    explicit meta_iterator(Type &cont, const difference_type init) ENTT_NOEXCEPT
+        : deref{&deref_fn<decltype(cont.begin())>},
           offset{init},
-          handle{std::move(iter)} {}
+          handle{cont.begin()} {}
 
     meta_iterator &operator++() ENTT_NOEXCEPT {
         return ++offset, *this;
@@ -46568,6 +46647,7 @@ struct meta_type_node {
     meta_type_node *next;
     meta_prop_node *prop;
     const size_type size_of;
+    meta_type_node *(*const remove_pointer)() ENTT_NOEXCEPT;
     meta_any (*const default_constructor)();
     double (*const conversion_helper)(void *, const void *);
     const meta_template_node *const templ;
@@ -46640,6 +46720,7 @@ public:
             nullptr,
             nullptr,
             size_of_v<Type>,
+            &meta_node<std::remove_cv_t<std::remove_reference_t<std::remove_pointer_t<Type>>>>::resolve,
             meta_default_constructor(),
             meta_conversion_helper(),
             meta_template_info()
@@ -47599,7 +47680,7 @@ using invoke_result_t = typename std::invoke_result<Func, Args...>::type;
 
 #define ENTT_VERSION_MAJOR 3
 #define ENTT_VERSION_MINOR 10
-#define ENTT_VERSION_PATCH 0
+#define ENTT_VERSION_PATCH 3
 
 #define ENTT_VERSION \
     ENTT_XSTR(ENTT_VERSION_MAJOR) \
@@ -47609,17 +47690,20 @@ using invoke_result_t = typename std::invoke_result<Func, Args...>::type;
 
 
 #if defined(__cpp_exceptions) && !defined(ENTT_NOEXCEPTION)
-#    define ENTT_NOEXCEPT noexcept
-#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
 #    define ENTT_THROW throw
 #    define ENTT_TRY try
 #    define ENTT_CATCH catch(...)
 #else
-#    define ENTT_NOEXCEPT
-#    define ENTT_NOEXCEPT_IF(...)
 #    define ENTT_THROW
 #    define ENTT_TRY if(true)
 #    define ENTT_CATCH if(false)
+#endif
+
+#ifndef ENTT_NOEXCEPT
+#    define ENTT_NOEXCEPT noexcept
+#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
+# else
+#    define ENTT_NOEXCEPT_IF(...)
 #endif
 
 #ifdef ENTT_USE_ATOMIC
@@ -47708,7 +47792,7 @@ using invoke_result_t = typename std::invoke_result<Func, Args...>::type;
 
 #define ENTT_VERSION_MAJOR 3
 #define ENTT_VERSION_MINOR 10
-#define ENTT_VERSION_PATCH 0
+#define ENTT_VERSION_PATCH 3
 
 #define ENTT_VERSION \
     ENTT_XSTR(ENTT_VERSION_MAJOR) \
@@ -47718,17 +47802,20 @@ using invoke_result_t = typename std::invoke_result<Func, Args...>::type;
 
 
 #if defined(__cpp_exceptions) && !defined(ENTT_NOEXCEPTION)
-#    define ENTT_NOEXCEPT noexcept
-#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
 #    define ENTT_THROW throw
 #    define ENTT_TRY try
 #    define ENTT_CATCH catch(...)
 #else
-#    define ENTT_NOEXCEPT
-#    define ENTT_NOEXCEPT_IF(...)
 #    define ENTT_THROW
 #    define ENTT_TRY if(true)
 #    define ENTT_CATCH if(false)
+#endif
+
+#ifndef ENTT_NOEXCEPT
+#    define ENTT_NOEXCEPT noexcept
+#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
+# else
+#    define ENTT_NOEXCEPT_IF(...)
 #endif
 
 #ifdef ENTT_USE_ATOMIC
@@ -47814,7 +47901,7 @@ using invoke_result_t = typename std::invoke_result<Func, Args...>::type;
 
 #define ENTT_VERSION_MAJOR 3
 #define ENTT_VERSION_MINOR 10
-#define ENTT_VERSION_PATCH 0
+#define ENTT_VERSION_PATCH 3
 
 #define ENTT_VERSION \
     ENTT_XSTR(ENTT_VERSION_MAJOR) \
@@ -47824,17 +47911,20 @@ using invoke_result_t = typename std::invoke_result<Func, Args...>::type;
 
 
 #if defined(__cpp_exceptions) && !defined(ENTT_NOEXCEPTION)
-#    define ENTT_NOEXCEPT noexcept
-#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
 #    define ENTT_THROW throw
 #    define ENTT_TRY try
 #    define ENTT_CATCH catch(...)
 #else
-#    define ENTT_NOEXCEPT
-#    define ENTT_NOEXCEPT_IF(...)
 #    define ENTT_THROW
 #    define ENTT_TRY if(true)
 #    define ENTT_CATCH if(false)
+#endif
+
+#ifndef ENTT_NOEXCEPT
+#    define ENTT_NOEXCEPT noexcept
+#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
+# else
+#    define ENTT_NOEXCEPT_IF(...)
 #endif
 
 #ifdef ENTT_USE_ATOMIC
@@ -51082,7 +51172,7 @@ private:
 
 #define ENTT_VERSION_MAJOR 3
 #define ENTT_VERSION_MINOR 10
-#define ENTT_VERSION_PATCH 0
+#define ENTT_VERSION_PATCH 3
 
 #define ENTT_VERSION \
     ENTT_XSTR(ENTT_VERSION_MAJOR) \
@@ -51092,17 +51182,20 @@ private:
 
 
 #if defined(__cpp_exceptions) && !defined(ENTT_NOEXCEPTION)
-#    define ENTT_NOEXCEPT noexcept
-#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
 #    define ENTT_THROW throw
 #    define ENTT_TRY try
 #    define ENTT_CATCH catch(...)
 #else
-#    define ENTT_NOEXCEPT
-#    define ENTT_NOEXCEPT_IF(...)
 #    define ENTT_THROW
 #    define ENTT_TRY if(true)
 #    define ENTT_CATCH if(false)
+#endif
+
+#ifndef ENTT_NOEXCEPT
+#    define ENTT_NOEXCEPT noexcept
+#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
+# else
+#    define ENTT_NOEXCEPT_IF(...)
 #endif
 
 #ifdef ENTT_USE_ATOMIC
@@ -52140,7 +52233,7 @@ private:
 
 #define ENTT_VERSION_MAJOR 3
 #define ENTT_VERSION_MINOR 10
-#define ENTT_VERSION_PATCH 0
+#define ENTT_VERSION_PATCH 3
 
 #define ENTT_VERSION \
     ENTT_XSTR(ENTT_VERSION_MAJOR) \
@@ -52150,17 +52243,20 @@ private:
 
 
 #if defined(__cpp_exceptions) && !defined(ENTT_NOEXCEPTION)
-#    define ENTT_NOEXCEPT noexcept
-#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
 #    define ENTT_THROW throw
 #    define ENTT_TRY try
 #    define ENTT_CATCH catch(...)
 #else
-#    define ENTT_NOEXCEPT
-#    define ENTT_NOEXCEPT_IF(...)
 #    define ENTT_THROW
 #    define ENTT_TRY if(true)
 #    define ENTT_CATCH if(false)
+#endif
+
+#ifndef ENTT_NOEXCEPT
+#    define ENTT_NOEXCEPT noexcept
+#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
+# else
+#    define ENTT_NOEXCEPT_IF(...)
 #endif
 
 #ifdef ENTT_USE_ATOMIC
@@ -52256,7 +52352,7 @@ private:
 
 #define ENTT_VERSION_MAJOR 3
 #define ENTT_VERSION_MINOR 10
-#define ENTT_VERSION_PATCH 0
+#define ENTT_VERSION_PATCH 3
 
 #define ENTT_VERSION \
     ENTT_XSTR(ENTT_VERSION_MAJOR) \
@@ -52266,17 +52362,20 @@ private:
 
 
 #if defined(__cpp_exceptions) && !defined(ENTT_NOEXCEPTION)
-#    define ENTT_NOEXCEPT noexcept
-#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
 #    define ENTT_THROW throw
 #    define ENTT_TRY try
 #    define ENTT_CATCH catch(...)
 #else
-#    define ENTT_NOEXCEPT
-#    define ENTT_NOEXCEPT_IF(...)
 #    define ENTT_THROW
 #    define ENTT_TRY if(true)
 #    define ENTT_CATCH if(false)
+#endif
+
+#ifndef ENTT_NOEXCEPT
+#    define ENTT_NOEXCEPT noexcept
+#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
+# else
+#    define ENTT_NOEXCEPT_IF(...)
 #endif
 
 #ifdef ENTT_USE_ATOMIC
@@ -52365,7 +52464,7 @@ private:
 
 #define ENTT_VERSION_MAJOR 3
 #define ENTT_VERSION_MINOR 10
-#define ENTT_VERSION_PATCH 0
+#define ENTT_VERSION_PATCH 3
 
 #define ENTT_VERSION \
     ENTT_XSTR(ENTT_VERSION_MAJOR) \
@@ -52375,17 +52474,20 @@ private:
 
 
 #if defined(__cpp_exceptions) && !defined(ENTT_NOEXCEPTION)
-#    define ENTT_NOEXCEPT noexcept
-#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
 #    define ENTT_THROW throw
 #    define ENTT_TRY try
 #    define ENTT_CATCH catch(...)
 #else
-#    define ENTT_NOEXCEPT
-#    define ENTT_NOEXCEPT_IF(...)
 #    define ENTT_THROW
 #    define ENTT_TRY if(true)
 #    define ENTT_CATCH if(false)
+#endif
+
+#ifndef ENTT_NOEXCEPT
+#    define ENTT_NOEXCEPT noexcept
+#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
+# else
+#    define ENTT_NOEXCEPT_IF(...)
 #endif
 
 #ifdef ENTT_USE_ATOMIC
@@ -55487,7 +55589,7 @@ struct uses_allocator<entt::internal::dense_map_node<Key, Value>, Allocator>
 
 #define ENTT_VERSION_MAJOR 3
 #define ENTT_VERSION_MINOR 10
-#define ENTT_VERSION_PATCH 0
+#define ENTT_VERSION_PATCH 3
 
 #define ENTT_VERSION \
     ENTT_XSTR(ENTT_VERSION_MAJOR) \
@@ -55497,17 +55599,20 @@ struct uses_allocator<entt::internal::dense_map_node<Key, Value>, Allocator>
 
 
 #if defined(__cpp_exceptions) && !defined(ENTT_NOEXCEPTION)
-#    define ENTT_NOEXCEPT noexcept
-#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
 #    define ENTT_THROW throw
 #    define ENTT_TRY try
 #    define ENTT_CATCH catch(...)
 #else
-#    define ENTT_NOEXCEPT
-#    define ENTT_NOEXCEPT_IF(...)
 #    define ENTT_THROW
 #    define ENTT_TRY if(true)
 #    define ENTT_CATCH if(false)
+#endif
+
+#ifndef ENTT_NOEXCEPT
+#    define ENTT_NOEXCEPT noexcept
+#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
+# else
+#    define ENTT_NOEXCEPT_IF(...)
 #endif
 
 #ifdef ENTT_USE_ATOMIC
@@ -57005,9 +57110,63 @@ template<typename Res, typename Other>
  * @param rhs A valid handle.
  * @return False if both handles refer to the same registry, true otherwise.
  */
-template<typename ILhs, typename IRhs>
-[[nodiscard]] bool operator!=(const resource<ILhs> &lhs, const resource<IRhs> &rhs) ENTT_NOEXCEPT {
+template<typename Res, typename Other>
+[[nodiscard]] bool operator!=(const resource<Res> &lhs, const resource<Other> &rhs) ENTT_NOEXCEPT {
     return !(lhs == rhs);
+}
+
+/**
+ * @brief Compares two handles.
+ * @tparam Res Type of resource managed by the first handle.
+ * @tparam Other Type of resource managed by the second handle.
+ * @param lhs A valid handle.
+ * @param rhs A valid handle.
+ * @return True if the first handle is less than the second, false otherwise.
+ */
+template<typename Res, typename Other>
+[[nodiscard]] bool operator<(const resource<Res> &lhs, const resource<Other> &rhs) ENTT_NOEXCEPT {
+    return (std::addressof(*lhs) < std::addressof(*rhs));
+}
+
+/**
+ * @brief Compares two handles.
+ * @tparam Res Type of resource managed by the first handle.
+ * @tparam Other Type of resource managed by the second handle.
+ * @param lhs A valid handle.
+ * @param rhs A valid handle.
+ * @return True if the first handle is greater than the second, false otherwise.
+ */
+template<typename Res, typename Other>
+[[nodiscard]] bool operator>(const resource<Res> &lhs, const resource<Other> &rhs) ENTT_NOEXCEPT {
+    return (std::addressof(*lhs) > std::addressof(*rhs));
+}
+
+/**
+ * @brief Compares two handles.
+ * @tparam Res Type of resource managed by the first handle.
+ * @tparam Other Type of resource managed by the second handle.
+ * @param lhs A valid handle.
+ * @param rhs A valid handle.
+ * @return True if the first handle is less than or equal to the second, false
+ * otherwise.
+ */
+template<typename Res, typename Other>
+[[nodiscard]] bool operator<=(const resource<Res> &lhs, const resource<Other> &rhs) ENTT_NOEXCEPT {
+    return !(lhs > rhs);
+}
+
+/**
+ * @brief Compares two handles.
+ * @tparam Res Type of resource managed by the first handle.
+ * @tparam Other Type of resource managed by the second handle.
+ * @param lhs A valid handle.
+ * @param rhs A valid handle.
+ * @return True if the first handle is greater than or equal to the second,
+ * false otherwise.
+ */
+template<typename Res, typename Other>
+[[nodiscard]] bool operator>=(const resource<Res> &lhs, const resource<Other> &rhs) ENTT_NOEXCEPT {
+    return !(lhs < rhs);
 }
 
 } // namespace entt
@@ -57639,9 +57798,63 @@ template<typename Res, typename Other>
  * @param rhs A valid handle.
  * @return False if both handles refer to the same registry, true otherwise.
  */
-template<typename ILhs, typename IRhs>
-[[nodiscard]] bool operator!=(const resource<ILhs> &lhs, const resource<IRhs> &rhs) ENTT_NOEXCEPT {
+template<typename Res, typename Other>
+[[nodiscard]] bool operator!=(const resource<Res> &lhs, const resource<Other> &rhs) ENTT_NOEXCEPT {
     return !(lhs == rhs);
+}
+
+/**
+ * @brief Compares two handles.
+ * @tparam Res Type of resource managed by the first handle.
+ * @tparam Other Type of resource managed by the second handle.
+ * @param lhs A valid handle.
+ * @param rhs A valid handle.
+ * @return True if the first handle is less than the second, false otherwise.
+ */
+template<typename Res, typename Other>
+[[nodiscard]] bool operator<(const resource<Res> &lhs, const resource<Other> &rhs) ENTT_NOEXCEPT {
+    return (std::addressof(*lhs) < std::addressof(*rhs));
+}
+
+/**
+ * @brief Compares two handles.
+ * @tparam Res Type of resource managed by the first handle.
+ * @tparam Other Type of resource managed by the second handle.
+ * @param lhs A valid handle.
+ * @param rhs A valid handle.
+ * @return True if the first handle is greater than the second, false otherwise.
+ */
+template<typename Res, typename Other>
+[[nodiscard]] bool operator>(const resource<Res> &lhs, const resource<Other> &rhs) ENTT_NOEXCEPT {
+    return (std::addressof(*lhs) > std::addressof(*rhs));
+}
+
+/**
+ * @brief Compares two handles.
+ * @tparam Res Type of resource managed by the first handle.
+ * @tparam Other Type of resource managed by the second handle.
+ * @param lhs A valid handle.
+ * @param rhs A valid handle.
+ * @return True if the first handle is less than or equal to the second, false
+ * otherwise.
+ */
+template<typename Res, typename Other>
+[[nodiscard]] bool operator<=(const resource<Res> &lhs, const resource<Other> &rhs) ENTT_NOEXCEPT {
+    return !(lhs > rhs);
+}
+
+/**
+ * @brief Compares two handles.
+ * @tparam Res Type of resource managed by the first handle.
+ * @tparam Other Type of resource managed by the second handle.
+ * @param lhs A valid handle.
+ * @param rhs A valid handle.
+ * @return True if the first handle is greater than or equal to the second,
+ * false otherwise.
+ */
+template<typename Res, typename Other>
+[[nodiscard]] bool operator>=(const resource<Res> &lhs, const resource<Other> &rhs) ENTT_NOEXCEPT {
+    return !(lhs < rhs);
 }
 
 } // namespace entt
@@ -57677,7 +57890,7 @@ template<typename ILhs, typename IRhs>
 
 #define ENTT_VERSION_MAJOR 3
 #define ENTT_VERSION_MINOR 10
-#define ENTT_VERSION_PATCH 0
+#define ENTT_VERSION_PATCH 3
 
 #define ENTT_VERSION \
     ENTT_XSTR(ENTT_VERSION_MAJOR) \
@@ -57687,17 +57900,20 @@ template<typename ILhs, typename IRhs>
 
 
 #if defined(__cpp_exceptions) && !defined(ENTT_NOEXCEPTION)
-#    define ENTT_NOEXCEPT noexcept
-#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
 #    define ENTT_THROW throw
 #    define ENTT_TRY try
 #    define ENTT_CATCH catch(...)
 #else
-#    define ENTT_NOEXCEPT
-#    define ENTT_NOEXCEPT_IF(...)
 #    define ENTT_THROW
 #    define ENTT_TRY if(true)
 #    define ENTT_CATCH if(false)
+#endif
+
+#ifndef ENTT_NOEXCEPT
+#    define ENTT_NOEXCEPT noexcept
+#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
+# else
+#    define ENTT_NOEXCEPT_IF(...)
 #endif
 
 #ifdef ENTT_USE_ATOMIC
@@ -57786,7 +58002,7 @@ template<typename ILhs, typename IRhs>
 
 #define ENTT_VERSION_MAJOR 3
 #define ENTT_VERSION_MINOR 10
-#define ENTT_VERSION_PATCH 0
+#define ENTT_VERSION_PATCH 3
 
 #define ENTT_VERSION \
     ENTT_XSTR(ENTT_VERSION_MAJOR) \
@@ -57796,17 +58012,20 @@ template<typename ILhs, typename IRhs>
 
 
 #if defined(__cpp_exceptions) && !defined(ENTT_NOEXCEPTION)
-#    define ENTT_NOEXCEPT noexcept
-#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
 #    define ENTT_THROW throw
 #    define ENTT_TRY try
 #    define ENTT_CATCH catch(...)
 #else
-#    define ENTT_NOEXCEPT
-#    define ENTT_NOEXCEPT_IF(...)
 #    define ENTT_THROW
 #    define ENTT_TRY if(true)
 #    define ENTT_CATCH if(false)
+#endif
+
+#ifndef ENTT_NOEXCEPT
+#    define ENTT_NOEXCEPT noexcept
+#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
+# else
+#    define ENTT_NOEXCEPT_IF(...)
 #endif
 
 #ifdef ENTT_USE_ATOMIC
@@ -58945,7 +59164,7 @@ delegate(Ret (*)(const void *, Args...), const void * = nullptr) -> delegate<Ret
 
 #define ENTT_VERSION_MAJOR 3
 #define ENTT_VERSION_MINOR 10
-#define ENTT_VERSION_PATCH 0
+#define ENTT_VERSION_PATCH 3
 
 #define ENTT_VERSION \
     ENTT_XSTR(ENTT_VERSION_MAJOR) \
@@ -58955,17 +59174,20 @@ delegate(Ret (*)(const void *, Args...), const void * = nullptr) -> delegate<Ret
 
 
 #if defined(__cpp_exceptions) && !defined(ENTT_NOEXCEPTION)
-#    define ENTT_NOEXCEPT noexcept
-#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
 #    define ENTT_THROW throw
 #    define ENTT_TRY try
 #    define ENTT_CATCH catch(...)
 #else
-#    define ENTT_NOEXCEPT
-#    define ENTT_NOEXCEPT_IF(...)
 #    define ENTT_THROW
 #    define ENTT_TRY if(true)
 #    define ENTT_CATCH if(false)
+#endif
+
+#ifndef ENTT_NOEXCEPT
+#    define ENTT_NOEXCEPT noexcept
+#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
+# else
+#    define ENTT_NOEXCEPT_IF(...)
 #endif
 
 #ifdef ENTT_USE_ATOMIC
@@ -59054,7 +59276,7 @@ delegate(Ret (*)(const void *, Args...), const void * = nullptr) -> delegate<Ret
 
 #define ENTT_VERSION_MAJOR 3
 #define ENTT_VERSION_MINOR 10
-#define ENTT_VERSION_PATCH 0
+#define ENTT_VERSION_PATCH 3
 
 #define ENTT_VERSION \
     ENTT_XSTR(ENTT_VERSION_MAJOR) \
@@ -59064,17 +59286,20 @@ delegate(Ret (*)(const void *, Args...), const void * = nullptr) -> delegate<Ret
 
 
 #if defined(__cpp_exceptions) && !defined(ENTT_NOEXCEPTION)
-#    define ENTT_NOEXCEPT noexcept
-#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
 #    define ENTT_THROW throw
 #    define ENTT_TRY try
 #    define ENTT_CATCH catch(...)
 #else
-#    define ENTT_NOEXCEPT
-#    define ENTT_NOEXCEPT_IF(...)
 #    define ENTT_THROW
 #    define ENTT_TRY if(true)
 #    define ENTT_CATCH if(false)
+#endif
+
+#ifndef ENTT_NOEXCEPT
+#    define ENTT_NOEXCEPT noexcept
+#    define ENTT_NOEXCEPT_IF(expr) noexcept(expr)
+# else
+#    define ENTT_NOEXCEPT_IF(...)
 #endif
 
 #ifdef ENTT_USE_ATOMIC

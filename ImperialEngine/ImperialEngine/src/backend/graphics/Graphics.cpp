@@ -1,13 +1,19 @@
+#include "backend/graphics/RenderPassGeneratorSimple.h"
+#include "backend/EngineCommandResources.h"
 #include "backend/graphics/Graphics.h"
+#include "backend/VulkanBuffer.h"
+#include "frontend/Components/Components.h"
 #include "frontend/Window.h"
 #include <vector>
 #include <stdexcept>
 #include <set>
 #include <cassert>
 #include <extern/IMGUI/backends/imgui_impl_vulkan.h>
+#include <numeric>
 
-imp::Graphics::Graphics() : m_Settings(), m_GfxCaps(), m_ValidationLayers(), m_Window()
+imp::Graphics::Graphics() : m_Settings(), m_GfxCaps(), m_ValidationLayers(), m_Window(), m_PipelineManager(), m_MemoryManager()
 {
+    // TODO: init all variables
     m_CurrentFrame = 0;
 }
 
@@ -22,73 +28,51 @@ void imp::Graphics::Initialize(const EngineGraphicsSettings& settings, Window* w
     CreateCommandBufferManager();
     CreateSurfaceManager();
     CreateGarbageCollector();
+    CreateRenderPassGenerator();
 
+    InitializeVulkanMemory();
+    m_ShaderManager.Initialize(m_LogicalDevice, m_MemoryManager, m_Settings, m_DeviceMemoryProps);
 
-    // create renderpass..
-    renderpass = new RenderPass();
-    RenderPassDesc defaultpass =
-    {
-        1,	// msaaCount
-        1, // collor att count
-        VK_FORMAT_R8G8B8A8_UNORM,
-        kLoadOpClear,
-        kStoreOpStore,
-        VK_FORMAT_D32_SFLOAT,
-        kLoadOpClear,
-        kStoreOpDontCare
-    };
-    SurfaceDesc colorDesc =  m_Swapchain.GetSwapchainImageSurfaceDesc();
-    colorDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    const SurfaceDesc depthDesc = {
-        colorDesc.width,
-        colorDesc.height,
-        VK_FORMAT_D32_SFLOAT,
-        1,
-        0, // udnefined
-        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-        false,
-        false
-    };
-
-    std::vector<SurfaceDesc> surfaceDescriptions;
-    std::vector<SurfaceDesc> resolveDescs;
-    surfaceDescriptions.push_back(colorDesc);
-    surfaceDescriptions.push_back(depthDesc);
-    renderpass->Create(m_LogicalDevice, defaultpass, surfaceDescriptions, resolveDescs);
-
-    // create renderpass..
-    renderpassgui = new RenderPassImGUI();
-    RenderPassDesc defaultpass2 =
-    {
-        1,	// msaaCount
-        1, // collor att count
-        VK_FORMAT_R8G8B8A8_UNORM,
-        kLoadOpLoad,
-        kStoreOpStore,
-        VK_FORMAT_UNDEFINED,
-        kStoreOpDontCare,
-        kStoreOpDontCare
-    };
-    SurfaceDesc colorDesc2 = m_Swapchain.GetSwapchainImageSurfaceDesc();
-    colorDesc2.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    std::vector<SurfaceDesc> surfaceDescriptions2;
-    std::vector<SurfaceDesc> resolveDescs2;
-    surfaceDescriptions2.push_back(colorDesc2);
-    renderpassgui->Create(m_LogicalDevice, defaultpass2, surfaceDescriptions2, resolveDescs2);
+    // Until we haven't made custom vulkan backend for imgui we can't fully have dynamic RenderPassGenerator
+    // since CreateImGUI needs a renderpass
+    // so as a temporary workaround we must create the imguiPass upfront and save it
+    // this will work while the imgui pass remains completely static
+    auto temp = CameraData();
+    renderpassgui = static_cast<RenderPassGeneratorSimple*>(m_RenderPassManager)->GenerateForImGUIPass(m_LogicalDevice, temp, m_Swapchain);
     CreateImGUI();
 }
 
-void imp::Graphics::PrototypeRenderPass()
+void imp::Graphics::StartFrame()
 {
-    renderpass->Execute(*this);
-    // should always return owned surfaces
-    auto surfaces = renderpass->GiveSurfaces();
-    m_SurfaceManager.ReturnSurfaces(surfaces);
+    m_ShaderManager.RegisterDraws(m_LogicalDevice, m_DrawData.size());
+    // update actual data
+    m_ShaderManager.UpdateDrawData(m_LogicalDevice, m_Swapchain.GetFrameClock(), m_DrawData);
+}
+
+void imp::Graphics::RenderCameras()
+{
+
+    for (const auto& camera : m_CameraData)
+    {
+        GlobalData data;
+        data.ViewProjection = camera.Projection * camera.View;
+        m_ShaderManager.UpdateGlobalData(m_LogicalDevice, m_Swapchain.GetFrameClock(), data);
+
+        // GenerateRenderPasses must ensure that sequentially executed render passes will have correct sequence and inputs
+        auto rps = m_RenderPassManager->GenerateRenderPasses(m_LogicalDevice, camera, m_Swapchain);
+        for (auto& rp : rps)
+        {
+            rp->Execute(*this, camera);
+            auto surfaces = rp->GiveSurfaces();
+            m_SurfaceManager.ReturnSurfaces(surfaces);
+        }
+    }
+    //RenderImGUI();
 }
 
 void imp::Graphics::RenderImGUI()
 {
-    renderpassgui->Execute(*this);
+    renderpassgui->Execute(*this, m_CameraData[0]);
     auto surfaces = renderpassgui->GiveSurfaces();
     m_SurfaceManager.ReturnSurfaces(surfaces);
 }
@@ -101,15 +85,68 @@ void imp::Graphics::EndFrame()
     m_CurrentFrame++;
 }
 
+void imp::Graphics::CreateAndUploadMeshes(const std::vector<CmdRsc::MeshCreationRequest>& meshCreationData)
+{
+    const uint32_t numCbs = 1;
+    auto cbs = m_CbManager.AquireCommandBuffers(m_LogicalDevice, numCbs);
+    auto& cb = cbs[0];
+
+    cb.Begin();
+
+
+    //auto allocSize = std::accumulate(meshCreationData.begin(), meshCreationData.end(), 0u, [](const auto& a, const auto& b) { return a + b.vertices.size(); });//.vertices.size() * sizeof(Vertex);
+    //UploadVulkanBuffer(usageFlags, dstUsageFlags, memoryFlags, dstMemoryFlags, cb, allocSize, req.vertices.data());
+
+    // TODO: this can be abstracted to not differentiate between indices and vertices
+    uint32_t vtxAllocSize = 0;
+    uint32_t idxAllocSize = 0;
+    std::vector<Vertex> verts;
+    std::vector<uint32_t> idxs;
+    for (const auto& req : meshCreationData)
+    {
+        VulkanSubBuffer vtxSub = VulkanSubBuffer(verts.size(), req.vertices.size());
+        VulkanSubBuffer idxSub = VulkanSubBuffer(idxs.size(), req.indices.size());
+        verts.insert(verts.end(), req.vertices.begin(), req.vertices.end());
+        idxs.insert(idxs.end(), req.indices.begin(), req.indices.end());
+        vtxAllocSize += req.vertices.size() * sizeof(Vertex);
+        idxAllocSize += req.indices.size() * sizeof(uint32_t);
+
+        m_VertexBuffers[req.id] = { vtxSub, idxSub };
+    }
+
+    const auto usageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    const auto memoryFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
+    // upload vertices
+    UploadVulkanBuffer(usageFlags, memoryFlags, m_VertexBuffer, cb, vtxAllocSize, verts.data());
+
+    // upload indices
+    UploadVulkanBuffer(usageFlags, memoryFlags, m_IndexBuffer, cb, idxAllocSize, idxs.data());
+
+    cb.End();
+    
+    auto synchs = m_CbManager.Submit(m_GfxQueue, m_LogicalDevice, cbs, {});
+    m_VertexBuffer.GiveSemaphore(synchs.semaphore);
+    m_IndexBuffer.GiveSemaphore(synchs.semaphore);
+}
+
+void imp::Graphics::CreateAndUploadMaterials(const std::vector<CmdRsc::MaterialCreationRequest>& materialCreationData)
+{
+    for (const auto& req : materialCreationData)
+    {
+        m_ShaderManager.CreateVulkanShaderSet(m_LogicalDevice, req);
+    }
+}
+
 void imp::Graphics::Destroy()
 {
     vkDeviceWaitIdle(m_LogicalDevice);
 
     // prototyping stuff ---
-    renderpass->Destroy(m_LogicalDevice);
     renderpassgui->Destroy(m_LogicalDevice);
     // prototyping stuff ---
 
+    delete m_RenderPassManager;
     m_SurfaceManager.Destroy(m_LogicalDevice);
     m_VulkanGarbageCollector.DestroyAllImmediate(m_LogicalDevice);
     m_CbManager.Destroy(m_LogicalDevice);
@@ -118,6 +155,16 @@ void imp::Graphics::Destroy()
     m_Window.Destroy(m_VkInstance);
     m_ValidationLayers.Destroy(m_VkInstance);
     vkDestroyInstance(m_VkInstance, nullptr);
+}
+
+VkSemaphore imp::Graphics::GetSemaphore(VkDevice device)
+{
+    VkSemaphoreCreateInfo semaphoreCreateInfo = {};
+    semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    VkSemaphore sem;
+    vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &sem);
+    return sem;
 }
 
 void imp::Graphics::CreateInstance()
@@ -224,12 +271,29 @@ void imp::Graphics::CreateLogicalDevice()
     deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
     deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(m_Settings.requiredDeviceExtensions.size());
     deviceCreateInfo.ppEnabledExtensionNames = m_Settings.requiredDeviceExtensions.data();
-    deviceCreateInfo.pNext = &dci;
+   // deviceCreateInfo.pNext = &dci;  // not using nsight so far
 
     VkPhysicalDeviceFeatures devicefeatures = {};
     devicefeatures.samplerAnisotropy = VK_TRUE;
+    
 
-    deviceCreateInfo.pEnabledFeatures = &devicefeatures;
+   // deviceCreateInfo.pEnabledFeatures = &devicefeatures;
+    
+    // indexing ---
+    VkPhysicalDeviceDescriptorIndexingFeatures indexing_features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT, nullptr };
+    VkPhysicalDeviceFeatures2 physical_features2 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
+    physical_features2.features.samplerAnisotropy = VK_TRUE;
+    vkGetPhysicalDeviceFeatures2(m_PhysicalDevice, &physical_features2);
+    bool bindless_supported = indexing_features.descriptorBindingPartiallyBound && indexing_features.runtimeDescriptorArray;
+    indexing_features.descriptorBindingPartiallyBound = VK_TRUE;
+    indexing_features.runtimeDescriptorArray = VK_TRUE;
+    indexing_features.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
+    indexing_features.descriptorBindingUniformBufferUpdateAfterBind = VK_TRUE;
+    indexing_features.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
+    indexing_features.descriptorBindingVariableDescriptorCount = VK_TRUE;
+    physical_features2.pNext = &indexing_features;
+    deviceCreateInfo.pNext = &physical_features2;
+
 
     VkResult result = vkCreateDevice(m_PhysicalDevice, &deviceCreateInfo, nullptr, &m_LogicalDevice);
     if (result != VK_SUCCESS)
@@ -260,12 +324,13 @@ void imp::Graphics::CreateCommandBufferManager()
 
 void imp::Graphics::CreateSurfaceManager()
 {
-    MemoryProps props;
     VkPhysicalDeviceMemoryProperties memoryProperties;
     vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &memoryProperties);
-    props.memoryProperties = memoryProperties;
+    m_DeviceMemoryProps.memoryProperties = memoryProperties;
 
-    m_SurfaceManager.Initialize(m_LogicalDevice, props);
+    // TODO: in vulkan memory manager I approached this by giving m_DeviceMemoryProps to where it's needed. Maybe that's better
+    // and probably it is. This is needed here because we allocate an image but without our memory manager. So would be good to use it later for all allocations
+    m_SurfaceManager.Initialize(m_LogicalDevice, m_DeviceMemoryProps);
 }
 
 void imp::Graphics::CreateGarbageCollector()
@@ -337,6 +402,113 @@ void imp::Graphics::CreateImGUI()
     auto err = vkDeviceWaitIdle(m_LogicalDevice);
     check_vk_result(err);
     ImGui_ImplVulkan_DestroyFontUploadObjects();
+}
+
+void imp::Graphics::CreateVulkanMemoryManager()
+{
+   // m_MemoryManager.Initialize();
+}
+
+void imp::Graphics::CreateRenderPassGenerator()
+{
+    m_RenderPassManager = new RenderPassGeneratorSimple();
+}
+
+void imp::Graphics::InitializeVulkanMemory()
+{
+    static constexpr VkDeviceSize allocSize = 128 * 1024 * 1024;
+    m_VertexBuffer  = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
+    m_IndexBuffer   = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
+    m_MeshBuffer    = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
+}
+
+imp::VulkanBuffer imp::Graphics::UploadVulkanBuffer(VkBufferUsageFlags usageFlags, VkBufferUsageFlags dstUsageFlags, VkMemoryPropertyFlags memoryFlags, VkMemoryPropertyFlags dstMemoryFlags, const CommandBuffer& cb, uint32_t allocSize, const void* dataToUpload)
+{
+    // TODO: later change this so it returns buffer that's on scratch memory
+    auto stagingBuffer = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, usageFlags, memoryFlags, m_DeviceMemoryProps);
+    // then as a vulkan resource we can override the destruction so it doesn't try to deallocate a sub-buffer and just notifies the scratch there's a spot open
+    stagingBuffer.UpdateLastUsed(m_CurrentFrame);
+    auto uploadedBuffer = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, dstUsageFlags, dstMemoryFlags, m_DeviceMemoryProps);
+
+    // copy cpu data to host visible buffer
+    void* data;
+    const VkMemoryMapFlags flags = 0;   // don't exist yet
+    const VkDeviceSize offset = 0;      // so far we have whole buffers
+    const auto res = vkMapMemory(m_LogicalDevice, stagingBuffer.GetMemory(), offset, stagingBuffer.GetSize(), flags, &data);
+    assert(res == VK_SUCCESS);
+    memcpy(data, dataToUpload, stagingBuffer.GetSize());
+    vkUnmapMemory(m_LogicalDevice, stagingBuffer.GetMemory());
+
+    // do host visible buffer to device local buffer
+    CopyVulkanBuffer(stagingBuffer, uploadedBuffer, cb);
+
+    m_VulkanGarbageCollector.AddGarbageResource(std::make_shared<VulkanBuffer>(stagingBuffer));
+
+    return uploadedBuffer;
+}
+
+void imp::Graphics::UploadVulkanBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags, VulkanBuffer& dst, const CommandBuffer& cb, uint32_t allocSize, const void* dataToUpload)
+{
+    // TODO: "Calling a second time won't work since it will overwrite the dst buffer"
+    // 
+    // TODO: later change this so it returns buffer that's on scratch memory
+    auto stagingBuffer = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, usageFlags, memoryFlags, m_DeviceMemoryProps);
+    // then as a vulkan resource we can override the destruction so it doesn't try to deallocate a sub-buffer and just notifies the scratch there's a spot open
+    stagingBuffer.UpdateLastUsed(m_CurrentFrame);
+
+    // copy cpu data to host visible buffer
+    void* data;
+    const VkMemoryMapFlags flags = 0;   // don't exist yet
+    const VkDeviceSize offset = 0;      // so far we have whole buffers
+    const auto res = vkMapMemory(m_LogicalDevice, stagingBuffer.GetMemory(), offset, stagingBuffer.GetSize(), flags, &data);
+    assert(res == VK_SUCCESS);
+    memcpy(data, dataToUpload, stagingBuffer.GetSize());
+    vkUnmapMemory(m_LogicalDevice, stagingBuffer.GetMemory());
+
+    // do host visible buffer to device local buffer
+    CopyVulkanBuffer(stagingBuffer, dst, cb);
+
+    m_VulkanGarbageCollector.AddGarbageResource(std::make_shared<VulkanBuffer>(stagingBuffer));
+}
+
+void imp::Graphics::CopyVulkanBuffer(const VulkanBuffer& src, VulkanBuffer& dst, const CommandBuffer& cb)
+{
+    assert(src.GetSize());
+    assert(dst.GetSize() >= src.GetSize());
+    VkBufferCopy bufferCopyRegion;
+    bufferCopyRegion.srcOffset = 0;
+    bufferCopyRegion.dstOffset = 0;
+    bufferCopyRegion.size = src.GetSize();
+
+    vkCmdCopyBuffer(cb.cmb, src.GetBuffer(), dst.GetBuffer(), 1, &bufferCopyRegion);
+}
+
+const imp::Pipeline& imp::Graphics::EnsurePipeline(VkCommandBuffer cb, const RenderPassBase& rp)
+{
+    // Compare old material and new one
+    // if true: return
+    // else: get pipeline from pipeline manager
+    // Material should store precalculates hash of shader name
+    PipelineConfig tempConfig;
+    tempConfig.vertModule = m_ShaderManager.GetShader("basic.vert").GetShaderModule();
+    tempConfig.fragModule = m_ShaderManager.GetShader("basic.frag").GetShaderModule();
+    tempConfig.descriptorSetLayout = m_ShaderManager.GetDescriptorSetLayout();
+
+    const auto& pipeline = m_PipelineManager.GetOrCreatePipeline(m_LogicalDevice, rp, tempConfig);
+    vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.GetPipeline());
+    return pipeline;
+}
+
+void imp::Graphics::PushConstants(VkCommandBuffer cb, const void* data, uint32_t size, VkPipelineLayout pipeLayout) const
+{
+    assert(data);
+    assert(size);
+    vkCmdPushConstants(cb, pipeLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, size, data);
+}
+
+void imp::Graphics::DrawIndexed(VkCommandBuffer cb, uint32_t indexCount) const
+{
+    vkCmdDrawIndexed(cb, indexCount, 1, 0, 0, 0);
 }
 
 bool imp::Graphics::CheckExtensionsSupported(std::vector<const char*> extensions)

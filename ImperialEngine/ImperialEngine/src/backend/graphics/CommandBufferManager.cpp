@@ -35,7 +35,7 @@ static std::vector<VkCommandBuffer> GetCmbs(std::vector<imp::CommandBuffer> comm
     return buffs;
 }
 
-void imp::CommandBufferManager::Submit(VkQueue submitQueue, VkDevice device, std::vector<CommandBuffer> commandBuffers, std::vector<VkSemaphore> waitSemaphores)
+imp::SubmitSynchPrimitives imp::CommandBufferManager::Submit(VkQueue submitQueue, VkDevice device, std::vector<CommandBuffer> commandBuffers, std::vector<VkSemaphore> waitSemaphores)
 {
     // need to add fence for command buffers to know when we can reset them
     // need to add semaphore to know when we can present
@@ -60,6 +60,8 @@ void imp::CommandBufferManager::Submit(VkQueue submitQueue, VkDevice device, std
         throw std::runtime_error("Failed to submit Command Buffer to Queue!");
 
     m_GfxCommandPools[m_FrameClock].ReturnCommandBuffers(commandBuffers, semaphore, fence);
+
+    return { semaphore, fence };
 }
 
 void imp::CommandBufferManager::SignalFrameEnded()

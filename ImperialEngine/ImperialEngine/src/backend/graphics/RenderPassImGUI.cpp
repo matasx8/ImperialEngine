@@ -8,7 +8,7 @@ imp::RenderPassImGUI::RenderPassImGUI()
 
 }
 
-void imp::RenderPassImGUI::Execute(Graphics& gfx)
+void imp::RenderPassImGUI::Execute(Graphics& gfx, const CameraData& cam)
 {
 	constexpr uint32_t numCmbs = 1;
 	auto cmbs = gfx.m_CbManager.AquireCommandBuffers(gfx.m_LogicalDevice, numCmbs);

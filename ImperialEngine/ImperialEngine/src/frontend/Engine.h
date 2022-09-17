@@ -5,13 +5,12 @@
 #include "backend/parallel/WorkQ_ST.h"
 #include "backend/parallel/ConsumerThread.h"
 #include "frontend/EngineSettings.h"
+#include "frontend/AssetImporter.h"
 #include "frontend/Window.h"
 #include "frontend/UI.h"
 #include <barrier>
 
 // No Vulkan stuff here
-// use registry from EnTT for commands and their memory?
-// https://zeux.io/2020/02/27/writing-an-efficient-vulkan-renderer/
 
 namespace imp
 {
@@ -20,6 +19,7 @@ namespace imp
 	public:
 		Engine();
 		bool Initialize(EngineSettings settings);
+		void LoadScene();
 
 		void StartFrame();
 		void Update();
@@ -27,6 +27,9 @@ namespace imp
 		void EndFrame();
 		void SyncRenderThread();
 		void SyncGameThread();
+
+		// temporary
+		void AddMonkey(uint32_t monkeyCount);
 
 		bool ShouldClose() const;
 		void ShutDown();
@@ -36,15 +39,25 @@ namespace imp
 		void InitImgui();
 		void InitWindow();
 		void InitGraphics();
+		void InitAssetImporter();
 		void CleanUpThreading();
 		void CleanUpWindow();
 		void CleanUpGraphics();
 		void CleanUpUI();
+		void CleanUpAssetImporter();
+
+		void LoadDefaultStuff();
 
 		void RenderCameras();
 		void RenderImGUI();
 
+		// update systems
+		void UpdateRegistry();
+		void UpdateCameras();
+
 		void EngineThreadSyncFunc()  noexcept;
+
+
 
 		// entity stuff
 		entt::registry m_Entities;
@@ -67,13 +80,21 @@ namespace imp
 		// graphics stuff
 		Graphics m_Gfx;
 
+		// asset stuff
+		friend class AssetImporter;
+		AssetImporter m_AssetImporter;
+
 		EngineSettings m_EngineSettings;
 
+		// can I put this in a different namespace and drop the prefix?
 		void Cmd_InitGraphics(std::shared_ptr<void> rsc);
+		void Cmd_StartFrame(std::shared_ptr<void> rsc);
 		void Cmd_RenderCameras(std::shared_ptr<void> rsc);
 		void Cmd_EndFrame(std::shared_ptr<void> rsc);
 		void Cmd_SyncRenderThread(std::shared_ptr<void> rsc);
 		void Cmd_RenderImGUI(std::shared_ptr<void> rsc);
+		void Cmd_UploadMeshes(std::shared_ptr<void> rsc);
+		void Cmd_UploadMaterials(std::shared_ptr<void> rsc);
 	};
 }
 

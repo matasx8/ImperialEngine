@@ -13,6 +13,9 @@ int imp::Window::Initialize(const std::string& name, int width, int height)
 {
 	if (glfwInit() == GLFW_FALSE)
 		return -1;
+	
+	m_Width = width;
+	m_Height = height;
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
