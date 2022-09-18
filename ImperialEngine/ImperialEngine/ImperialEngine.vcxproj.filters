@@ -123,6 +123,9 @@
     <ClCompile Include="src\extern\IMGUI\imGuIZMOquat.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\extern\IPROF\iprof.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\frontend\Engine.h">
@@ -261,6 +264,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\extern\IMGUI\imGuIZMOquat.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\extern\IPROF\hitime.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\extern\IPROF\iprof.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

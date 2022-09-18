@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <cassert>
 #include <backend/graphics/RenderPassBase.h>
+#include <IPROF/iprof.hpp>
 
 imp::Swapchain::Swapchain()
     : m_Swapchain(), m_Format(), m_Extent(), m_PresentMode(), m_ImageCount(), m_SwapchainIndex(), m_FrameClock(), m_NeedsAcquiring(), m_SwapchainImages(), m_Semaphores()
@@ -88,7 +89,8 @@ void imp::Swapchain::Present(VkQueue presentQ, const std::vector<VkSemaphore>& s
 
 void imp::Swapchain::AcquireNextImage(VkDevice device)
 {
-    const auto res = vkAcquireNextImageKHR(device, m_Swapchain, std::numeric_limits<uint64_t>::max(), m_Semaphores[m_FrameClock], VK_NULL_HANDLE, &m_SwapchainIndex);
+    IPROF_FUNC;
+    const auto res = vkAcquireNextImageKHR(device, m_Swapchain, ~0ull, m_Semaphores[m_FrameClock], VK_NULL_HANDLE, &m_SwapchainIndex);
     assert(res == VK_SUCCESS);
     m_SwapchainImages[m_SwapchainIndex].AddSemaphore(m_Semaphores[m_FrameClock]);
     m_NeedsAcquiring = false;

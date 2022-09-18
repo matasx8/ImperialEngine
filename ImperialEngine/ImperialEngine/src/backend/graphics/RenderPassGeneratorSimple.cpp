@@ -1,5 +1,6 @@
 #include "RenderPassGeneratorSimple.h"
 #include "backend/graphics/Graphics.h"
+#include <IPROF/iprof.hpp>
 
 namespace imp
 {
@@ -10,6 +11,7 @@ namespace imp
 
 	std::vector<std::shared_ptr<RenderPassBase>> RenderPassGeneratorSimple::GenerateRenderPasses(VkDevice device, const CameraData& data, const Swapchain& swapchain)
 	{
+		IPROF_FUNC;
 		std::vector<std::shared_ptr<RenderPassBase>> renderPasses;
 		// read camera data ant generate pod that can be used to either fetch existing RP or generate new ones
 		renderPasses.emplace_back(GenerateForDefaultPass(device, data, swapchain));

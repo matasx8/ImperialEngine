@@ -1,4 +1,5 @@
 #include "frontend/Engine.h"
+#include <IPROF/iprof.hpp>
 
 namespace imp
 {
@@ -26,6 +27,9 @@ namespace imp
 	}
 	void Engine::Cmd_SyncRenderThread(std::shared_ptr<void> rsc)
 	{
+		InternalProfiler::aggregateEntries();
+		InternalProfiler::addThisThreadEntriesToAllThreadStats();
+		IPROF_FUNC;
 		m_SyncPoint->arrive_and_wait();
 	}
 	void Engine::Cmd_RenderImGUI(std::shared_ptr<void> rsc)
