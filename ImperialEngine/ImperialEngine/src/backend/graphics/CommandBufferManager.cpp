@@ -1,6 +1,7 @@
 #include "CommandBufferManager.h"
 #include <stdexcept>
 #include <cassert>
+#include <IPROF/iprof.hpp>
 
 imp::CommandBufferManager::CommandBufferManager()
     : m_BufferingMode(), m_FrameClock(), m_GfxCommandPools()
@@ -37,6 +38,7 @@ static std::vector<VkCommandBuffer> GetCmbs(std::vector<imp::CommandBuffer> comm
 
 imp::SubmitSynchPrimitives imp::CommandBufferManager::Submit(VkQueue submitQueue, VkDevice device, std::vector<CommandBuffer> commandBuffers, std::vector<VkSemaphore> waitSemaphores)
 {
+    IPROF_FUNC;
     // need to add fence for command buffers to know when we can reset them
     // need to add semaphore to know when we can present
     const auto semaphore = GetSemaphore(device);
@@ -156,7 +158,7 @@ void imp::CommandPool::Reset(VkDevice device)
 {
     if (fences.size())
     {
-        const auto res = vkWaitForFences(device, fences.size(), fences.data(), VK_TRUE, std::numeric_limits<uint64_t>::max());
+        const auto res = vkWaitForFences(device, fences.size(), fences.data(), VK_TRUE, ~0ull);
         assert(res == VK_SUCCESS);
     }
     for (auto& buff : donePool)
