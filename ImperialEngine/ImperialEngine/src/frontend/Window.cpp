@@ -3,10 +3,20 @@
 #include "extern/GLFW/glfw3.h"
 #include "Debug.h"
 #include "extern/IMGUI/backends/imgui_impl_glfw.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "extern/STB/stb_image.h"
 
 imp::Window::Window()
 	: m_Width(0), m_Height(0), m_WindowPtr()
 {
+}
+
+static void LoadLogo(GLFWwindow* window)
+{
+	GLFWimage image;
+	image.pixels = stbi_load("DefaultResources/ImperialEngineLogo.png", &image.width, &image.height, 0, 4);
+	glfwSetWindowIcon(window, 1, &image);
+	stbi_image_free(image.pixels);
 }
 
 int imp::Window::Initialize(const std::string& name, int width, int height)
@@ -22,7 +32,10 @@ int imp::Window::Initialize(const std::string& name, int width, int height)
 
 	m_WindowPtr = glfwCreateWindow(width, height, name.c_str(), nullptr, nullptr);
 
+
 	glfwSetWindowUserPointer(m_WindowPtr, this);
+
+	LoadLogo(m_WindowPtr);
 
 	ImGui_ImplGlfw_InitForVulkan(m_WindowPtr, true);
 	return 1;

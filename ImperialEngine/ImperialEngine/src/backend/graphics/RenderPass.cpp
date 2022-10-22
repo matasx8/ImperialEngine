@@ -37,10 +37,6 @@ void imp::RenderPass::Execute(Graphics& gfx, const CameraData& cam)
 	uint32_t drawIndex = 0;
 	for (const auto& drawData : gfx.m_DrawData) // seems like we might something useful for draw indirect?
 	{
-		// if material of old drawData is not same
-		// then get pipeline of new material + renderpass
-
-		// since all pipelines will have same layout this is should be way above
 
 		gfx.PushConstants(cb, &drawIndex, sizeof(uint32_t), pipe.GetPipelineLayout());
 
