@@ -1,3 +1,5 @@
+#define GLM_FORCE_RIGHT_HANDED
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "Engine.h"
 #include "backend/EngineCommandResources.h"
 #include <barrier>
@@ -205,15 +207,29 @@ namespace imp
 		m_AssetImporter.Destroy();
 	}
 
+	static glm::mat4x4 makeProj(auto aspect)
+	{
+		const auto h = 1.0 / glm::tan((glm::radians(45.0f) * 0.5));
+		const auto w = h / aspect;
+		const auto znear = 0.1f;
+		const auto zfar = 100.0f;
+		const auto a = -znear / (zfar - znear);
+		const auto b = (znear * zfar) / (zfar - znear);
+		return glm::mat4x4(
+			glm::vec4(w, 0.0f, 0.0f, 0.0f),
+			glm::vec4(0.0f, -h, 0.0f, 0.0f),
+			glm::vec4(0.0f, 0.0f, a, 1.0f),
+			glm::vec4(0.0f, 0.0f, b, 0.0f));
+	}
+
 	void Engine::LoadDefaultStuff()
 	{			
 		const auto camera = m_Entities.create();
 		const auto identity = glm::mat4x4(1.0f);
 		const auto defaultCameraTransform = glm::translate(identity, glm::vec3(-15.0f, 0.0f, 0.0f));
 		m_Entities.emplace<Comp::Transform>(camera, defaultCameraTransform);
-		glm::mat4x4 proj = glm::perspective(glm::radians(45.0f), (float)m_Window.GetWidth() / (float)m_Window.GetHeight(), 0.1f, 10000.0f);
-		const auto emptyvec = glm::vec3();
-		m_Entities.emplace<Comp::Camera>(camera, proj);
+		glm::mat4x4 proj = glm::perspective(glm::radians(45.0f), (float)m_Window.GetWidth() / (float)m_Window.GetHeight(), 1.0f, 100.0f);
+		m_Entities.emplace<Comp::Camera>(camera, proj, glm::mat4x4(), kCamOutColor, true);
 	}
 
 	void Engine::RenderCameras()
@@ -227,6 +243,16 @@ namespace imp
 		// Because dear imgui uses static globals I can't copy relevant data
 		// So I need to update imgui right before launching render command
 		// This brings the issue of latency for UI
+
+		// TODO: because of the above problem need to signal this camera isn't dirty anymore
+		// because currently it can only change in the gui
+		const auto cameras = m_Entities.view<Comp::Camera>();
+		for (auto ent : cameras)
+		{
+			auto& cam = cameras.get<Comp::Camera>(ent);
+			cam.dirty = false;
+		}
+
 		m_UI.Update(*this, m_Entities);
 		m_Q->add(std::mem_fn(&Engine::Cmd_RenderImGUI), std::shared_ptr<void>());
 	}
@@ -244,7 +270,7 @@ namespace imp
 			const auto& transform = cameras.get<Comp::Transform>(ent);
 			auto& cam = cameras.get<Comp::Camera>(ent);
 
-			static constexpr glm::vec3 front(1.0f, 0.0f, 0.0f);
+			static constexpr glm::vec3 front(0.0f, 0.0f, -1.0f);// look down -z
 			static constexpr glm::vec3 up(0.0f, 1.0f, 0.0f);
 
 			const auto quat = glm::toQuat(transform.transform);
@@ -253,13 +279,23 @@ namespace imp
 
 			// update view matrix
 			const auto pos = transform.GetPosition();
-			cam.view = glm::lookAt(pos, pos + newFront, newUp);
+			cam.view = glm::lookAtLH(pos, pos + newFront, newUp);
+
+			static constexpr auto intermTransform = glm::mat4x4(
+				glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
+				glm::vec4(0.0f, -1.0f, 0.0f, 0.0f),
+				glm::vec4(0.0f, 0.0f, -1.0f, 0.0f),
+				glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+			cam.view = intermTransform * cam.view;
 		}
 	}
 
 	// This member function gets executed when both main and render thread arrive at the barrier.
 	// Can be used to sync data.
 	// Keep as fast as possible.
+	// TODO: remove barrier to prevent whole engine stall
+	// TODO: figure out why I'm copying this data around? Is there a way to prevent doubling down this data?
+	// at least remove these dumb duplicate types like 'CameraData', just use Camera component
 	void Engine::EngineThreadSyncFunc() noexcept
 	{
 		IPROF("Engine::EngineThreadSync");
@@ -286,7 +322,8 @@ namespace imp
 			const auto& cam = cameras.get<Comp::Camera>(ent);
 
 			// should try to save bandwidth and do most calculation on main thread then send the data to render thread
-			m_Gfx.m_CameraData.emplace_back(cam.projection, cam.view);
+			static constexpr uint32_t cameraID = 0; // TODO: add this to camera comp
+			m_Gfx.m_CameraData.emplace_back(cam.projection, cam.view, cam.camOutputType, cameraID, cam.dirty);
 		}
 	}
 

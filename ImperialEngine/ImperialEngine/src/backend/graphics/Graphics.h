@@ -6,7 +6,7 @@
 #include "backend/graphics/SurfaceManager.h"
 #include "backend/graphics/GraphicsCaps.h"
 #include "backend/graphics/RenderPassImGUI.h"
-#include "backend/graphics/RenderPass.h"
+#include "backend/graphics/RenderPass/RenderPass.h"
 #include "backend/graphics/Swapchain.h"
 #include "backend/graphics/VkDebug.h"
 #include "backend/VulkanGarbageCollector.h"
@@ -31,6 +31,9 @@ namespace imp
 	{
 		glm::mat4x4 Projection;
 		glm::mat4x4 View;
+		uint32_t camOutputType;
+		uint32_t cameraID;
+		bool dirty;
 		bool hasUI;
 	};
 
@@ -76,7 +79,7 @@ namespace imp
 		void UploadVulkanBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags, VulkanBuffer& dst, const CommandBuffer& cb, uint32_t allocSize, const void* dataToUpload);
 		void CopyVulkanBuffer(const VulkanBuffer& src, VulkanBuffer& dst, const CommandBuffer& cb);
 
-		const Pipeline& EnsurePipeline(VkCommandBuffer cb, const RenderPassBase& rp /*, Material material*/);
+		const Pipeline& EnsurePipeline(VkCommandBuffer cb, const RenderPass& rp /*, Material material*/);
 		void PushConstants(VkCommandBuffer cb, const void* data, uint32_t size, VkPipelineLayout pipeLayout) const;
 
 		void DrawIndexed(VkCommandBuffer cb, uint32_t indexCount) const;
@@ -99,14 +102,14 @@ namespace imp
 		Swapchain m_Swapchain;
 		uint64_t m_CurrentFrame;
 
+		VulkanGarbageCollector m_VulkanGarbageCollector;
 		CommandBufferManager m_CbManager;
 		SurfaceManager m_SurfaceManager;
 		VulkanShaderManager m_ShaderManager;
 		PipelineManager m_PipelineManager;
-		RenderPassGeneratorBase* m_RenderPassManager;
+		RenderPassGenerator m_RenderPassManager;
 
 		VkWindow m_Window;
-		VulkanGarbageCollector m_VulkanGarbageCollector;
 		VulkanMemory m_MemoryManager;
 		MemoryProps m_DeviceMemoryProps;
 
@@ -128,11 +131,12 @@ namespace imp
 		//DrawData<DrawDataSingle> m_DrawData;
 	private:
 
-		friend class RenderPassBase;
 		friend class RenderPass;
 		friend class RenderPassImGUI;
+		friend class DefaultColorRP;
+		friend class DefaultDepthRP;
 		// prototyping..
-		//RenderPassBase* renderpass;
-		std::shared_ptr<RenderPassBase> renderpassgui;
+		//RenderPass* renderpass;
+		std::shared_ptr<RenderPass> renderpassgui;
 	};
 }

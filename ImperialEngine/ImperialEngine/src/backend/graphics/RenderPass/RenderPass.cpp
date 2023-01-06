@@ -1,14 +1,14 @@
-#include "RenderPassBase.h"
+#include "RenderPass.h"
 #include "backend/graphics/Graphics.h"
 #include <stdexcept>
 #include <cassert>
 
-imp::RenderPassBase::RenderPassBase()
+imp::RenderPass::RenderPass()
 	: m_RenderPass(), m_Desc(), m_Framebuffer(0)
 {
 }
 
-void imp::RenderPassBase::Create(VkDevice device, const RenderPassDesc& desc)
+void imp::RenderPass::Create(VkDevice device, const RenderPassDesc& desc)
 {
 	m_Desc = desc;
 
@@ -82,33 +82,33 @@ void imp::RenderPassBase::Create(VkDevice device, const RenderPassDesc& desc)
 		throw std::runtime_error("Failed to create a Render Pass");
 }
 
-bool imp::RenderPassBase::HasBackbuffer() const
+bool imp::RenderPass::HasBackbuffer() const
 {
 	throw std::runtime_error("Not implemented");
 	return false;
 }
 
-const std::array<imp::SurfaceDesc, imp::kMaxColorAttachmentCount>& imp::RenderPassBase::GetSurfaceDescriptions() const
+const std::array<imp::SurfaceDesc, imp::kMaxColorAttachmentCount>& imp::RenderPass::GetSurfaceDescriptions() const
 {
 	return m_Desc.colorSurfaces;
 }
 
-const std::array<imp::SurfaceDesc, imp::kMaxColorAttachmentCount>& imp::RenderPassBase::GetResolveSurfaceDescriptions() const
+const std::array<imp::SurfaceDesc, imp::kMaxColorAttachmentCount>& imp::RenderPass::GetResolveSurfaceDescriptions() const
 {
 	return m_Desc.resolveSurfaces;
 }
 
-VkRenderPass imp::RenderPassBase::GetVkRenderPass() const
+VkRenderPass imp::RenderPass::GetVkRenderPass() const
 {
 	return m_RenderPass;
 }
 
-imp::RenderPassDesc imp::RenderPassBase::GetRenderPassDesc() const
+imp::RenderPassDesc imp::RenderPass::GetRenderPassDesc() const
 {
 	return m_Desc;
 }
 
-VkViewport imp::RenderPassBase::GetViewport() const
+VkViewport imp::RenderPass::GetViewport() const
 {
 	VkViewport vp;
 	vp.x = 0.0f;
@@ -121,7 +121,7 @@ VkViewport imp::RenderPassBase::GetViewport() const
 	return vp;
 }
 
-VkRect2D imp::RenderPassBase::GetScissor() const
+VkRect2D imp::RenderPass::GetScissor() const
 {
 	VkRect2D rect;
 	rect.offset = {};
@@ -130,7 +130,7 @@ VkRect2D imp::RenderPassBase::GetScissor() const
 	return rect;
 }
 
-std::vector<VkSemaphore> imp::RenderPassBase::GetSemaphoresToWaitOn()
+std::vector<VkSemaphore> imp::RenderPass::GetSemaphoresToWaitOn()
 {
 	std::vector<VkSemaphore> sems;
 	for (auto& surf : m_Surfaces)
@@ -142,7 +142,7 @@ std::vector<VkSemaphore> imp::RenderPassBase::GetSemaphoresToWaitOn()
 	return sems;
 }
 
-std::vector<imp::Surface> imp::RenderPassBase::GiveSurfaces()
+std::vector<imp::Surface> imp::RenderPass::GiveSurfaces()
 {
 	std::vector<imp::Surface> surfaceCopies;
 	for (auto&& surf : m_Surfaces)
@@ -153,13 +153,13 @@ std::vector<imp::Surface> imp::RenderPassBase::GiveSurfaces()
 	return surfaceCopies;
 }
 
-void imp::RenderPassBase::Destroy(VkDevice device)
+void imp::RenderPass::Destroy(VkDevice device)
 {
 	m_Framebuffer.Destroy(device);
 	vkDestroyRenderPass(device, m_RenderPass, nullptr);
 }
 
-void imp::RenderPassBase::BeginRenderPass(Graphics& gfx, CommandBuffer cmb)
+void imp::RenderPass::BeginRenderPass(Graphics& gfx, CommandBuffer cmb)
 {
 	// TODO: should somehow be able to get input surfaces
 	// and also attachments and map them to the surface descriptions
@@ -210,12 +210,12 @@ void imp::RenderPassBase::BeginRenderPass(Graphics& gfx, CommandBuffer cmb)
 	vkCmdBeginRenderPass(cmb.cmb, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
-void imp::RenderPassBase::EndRenderPass(Graphics& gfx, CommandBuffer cmb)
+void imp::RenderPass::EndRenderPass(Graphics& gfx, CommandBuffer cmb)
 {
 	vkCmdEndRenderPass(cmb.cmb);
 }
 
-std::vector<VkAttachmentDescription> imp::RenderPassBase::CreateAttachmentDescs(const SurfaceDesc* descs, const uint32_t descCount) const
+std::vector<VkAttachmentDescription> imp::RenderPass::CreateAttachmentDescs(const SurfaceDesc* descs, const uint32_t descCount) const
 {
 	auto attDescs = std::vector<VkAttachmentDescription>();
 
@@ -236,7 +236,7 @@ std::vector<VkAttachmentDescription> imp::RenderPassBase::CreateAttachmentDescs(
 	return attDescs;
 }
 
-std::vector<VkAttachmentDescription> imp::RenderPassBase::CreateResolveAttachmentDescs(const SurfaceDesc* descs, const uint32_t descCount) const
+std::vector<VkAttachmentDescription> imp::RenderPass::CreateResolveAttachmentDescs(const SurfaceDesc* descs, const uint32_t descCount) const
 {
 	auto attDescs = std::vector<VkAttachmentDescription>();
 

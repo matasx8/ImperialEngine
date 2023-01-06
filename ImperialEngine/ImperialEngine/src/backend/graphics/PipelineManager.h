@@ -1,7 +1,7 @@
 #pragma once
 #include "Utils/NonCopyable.h"
 #include "backend/graphics/Pipeline.h"
-#include "backend/graphics/RenderPassBase.h"
+#include "backend/graphics/RenderPass/RenderPass.h"
 #include <optional>
 
 namespace imp
@@ -12,8 +12,8 @@ namespace imp
 		PipelineManager();
 		void Initialize();
 
-		void CreatePipeline(VkDevice device, const RenderPassBase& rp, const PipelineConfig& config);
-		const Pipeline& GetOrCreatePipeline(VkDevice device, const RenderPassBase& rp, const PipelineConfig& config);
+		void CreatePipeline(VkDevice device, const RenderPass& rp, const PipelineConfig& config);
+		const Pipeline& GetOrCreatePipeline(VkDevice device, const RenderPass& rp, const PipelineConfig& config);
 		auto GetPipeline() const;
 
 		void Destroy(VkDevice device);
@@ -28,7 +28,7 @@ namespace imp
 		VkPipelineInputAssemblyStateCreateInfo MakeInputAssemblyCI() const;
 		VkPipelineViewportStateCreateInfo MakeViewportStateCI(const auto& viewport, const auto& scissor) const;
 		VkPipelineRasterizationStateCreateInfo MakeRasterizationSateCI() const;
-		VkPipelineMultisampleStateCreateInfo MakeMSAAStateCI(const RenderPassBase& rp) const;
+		VkPipelineMultisampleStateCreateInfo MakeMSAAStateCI(const RenderPass& rp) const;
 		VkPipelineColorBlendStateCreateInfo MakeColorBlendStateCI(const auto& blendAttState) const;
 		VkPipelineDepthStencilStateCreateInfo MakeDepthStencilStateCI() const;
 		VkPipelineLayoutCreateInfo MakePipelineLayoutCI(const auto& pushRange, const PipelineConfig& config) const;

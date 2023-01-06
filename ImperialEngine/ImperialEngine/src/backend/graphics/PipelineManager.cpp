@@ -12,7 +12,7 @@ namespace imp
 	{
 	}
 
-	void PipelineManager::CreatePipeline(VkDevice device, const RenderPassBase& rp, const PipelineConfig& config)
+	void PipelineManager::CreatePipeline(VkDevice device, const RenderPass& rp, const PipelineConfig& config)
 	{
 		// TODO: have a 'base' pipeline that I can use to create pipeline derivatives?
 		VkPipelineShaderStageCreateInfo shaderStages[2];
@@ -55,7 +55,7 @@ namespace imp
 		m_TemporarySinglePipeline = Pipeline(pipeline, pipelineLayout);
 	}
 
-	const Pipeline& PipelineManager::GetOrCreatePipeline(VkDevice device, const RenderPassBase& rp, const PipelineConfig& config)
+	const Pipeline& PipelineManager::GetOrCreatePipeline(VkDevice device, const RenderPass& rp, const PipelineConfig& config)
 	{
 		if (m_TemporarySinglePipeline.GetPipeline() == VK_NULL_HANDLE)
 			CreatePipeline(device, rp, config);
@@ -155,11 +155,11 @@ namespace imp
 		ci.polygonMode = VK_POLYGON_MODE_FILL;
 		ci.lineWidth = 1.0f;
 		ci.cullMode = VK_CULL_MODE_BACK_BIT;
-		ci.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+		ci.frontFace = VK_FRONT_FACE_CLOCKWISE;
 		return ci;
 	}
 
-	VkPipelineMultisampleStateCreateInfo PipelineManager::MakeMSAAStateCI(const RenderPassBase& rp) const
+	VkPipelineMultisampleStateCreateInfo PipelineManager::MakeMSAAStateCI(const RenderPass& rp) const
 	{
 		VkPipelineMultisampleStateCreateInfo ci = {};
 		ci.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
@@ -182,7 +182,7 @@ namespace imp
 		ci.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 		ci.depthTestEnable = VK_TRUE;
 		ci.depthWriteEnable = VK_TRUE;
-		ci.depthCompareOp = VK_COMPARE_OP_LESS;
+		ci.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 		return ci;
 	}
 

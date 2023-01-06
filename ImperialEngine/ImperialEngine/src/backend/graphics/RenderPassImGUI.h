@@ -1,12 +1,12 @@
 #pragma once
 
 #pragma once
-#include "backend/graphics/RenderPassBase.h"
+#include "backend/graphics/RenderPass/RenderPass.h"
 
 namespace imp
 {
 
-	class RenderPassImGUI : public RenderPassBase
+	class RenderPassImGUI : public RenderPass
 	{
 	public:
 		RenderPassImGUI();

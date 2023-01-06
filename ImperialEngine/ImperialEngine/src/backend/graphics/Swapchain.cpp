@@ -2,7 +2,7 @@
 #include "backend/graphics/GraphicsCaps.h"
 #include <stdexcept>
 #include <cassert>
-#include <backend/graphics/RenderPassBase.h>
+#include <backend/graphics/RenderPass/RenderPass.h>
 #include <IPROF/iprof.hpp>
 
 imp::Swapchain::Swapchain()

@@ -8,7 +8,7 @@
 namespace imp
 {
 	class Swapchain;
-	class RenderPassBase;
+	class RenderPass;
 
 	class SurfaceManager
 	{
@@ -16,8 +16,8 @@ namespace imp
 		SurfaceManager();
 		void Initialize(VkDevice device, MemoryProps deviceMemoryProps);
 
-		//Framebuffer GetFramebuffer(const RenderPassBase& rp, VkDevice device, const std::vector<Surface>& surfaces);
-		Framebuffer CreateFramebuffer(const RenderPassBase& rp, const std::vector<Surface>& surfaces, VkDevice device);
+		//Framebuffer GetFramebuffer(const RenderPass& rp, VkDevice device, const std::vector<Surface>& surfaces);
+		Framebuffer CreateFramebuffer(const RenderPass& rp, const std::vector<Surface>& surfaces, VkDevice device);
 		Surface GetSurface(const SurfaceDesc& desc, VkDevice device);
 
 		void ReturnSurfaces(std::vector<Surface>& surfaces);
