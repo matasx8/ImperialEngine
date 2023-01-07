@@ -207,28 +207,14 @@ namespace imp
 		m_AssetImporter.Destroy();
 	}
 
-	static glm::mat4x4 makeProj(auto aspect)
-	{
-		const auto h = 1.0 / glm::tan((glm::radians(45.0f) * 0.5));
-		const auto w = h / aspect;
-		const auto znear = 0.1f;
-		const auto zfar = 100.0f;
-		const auto a = -znear / (zfar - znear);
-		const auto b = (znear * zfar) / (zfar - znear);
-		return glm::mat4x4(
-			glm::vec4(w, 0.0f, 0.0f, 0.0f),
-			glm::vec4(0.0f, -h, 0.0f, 0.0f),
-			glm::vec4(0.0f, 0.0f, a, 1.0f),
-			glm::vec4(0.0f, 0.0f, b, 0.0f));
-	}
-
 	void Engine::LoadDefaultStuff()
 	{			
 		const auto camera = m_Entities.create();
 		const auto identity = glm::mat4x4(1.0f);
-		const auto defaultCameraTransform = glm::translate(identity, glm::vec3(-15.0f, 0.0f, 0.0f));
+		static constexpr float defaultCameraYRotationRad = -glm::pi<float>() / 2;
+		const auto defaultCameraTransform = glm::rotate(glm::translate(identity, glm::vec3(-15.0f, 0.0f, 0.0f)), defaultCameraYRotationRad, glm::vec3(0.0f, 1.0f, 0.0f));
 		m_Entities.emplace<Comp::Transform>(camera, defaultCameraTransform);
-		glm::mat4x4 proj = glm::perspective(glm::radians(45.0f), (float)m_Window.GetWidth() / (float)m_Window.GetHeight(), 1.0f, 100.0f);
+		glm::mat4x4 proj = glm::perspective(glm::radians(45.0f), (float)m_Window.GetWidth() / (float)m_Window.GetHeight(), 5.0f, 100.0f);
 		m_Entities.emplace<Comp::Camera>(camera, proj, glm::mat4x4(), kCamOutColor, true);
 	}
 

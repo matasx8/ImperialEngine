@@ -204,7 +204,7 @@ uint32_t imp::VulkanShaderManager::WriteUpdateDescriptorSets(VkDevice device, Vk
 
 	for (auto i = 0; i < kEngineSwapchainExclusiveMax - 1; i++)
 	{
-		std::vector< VkDescriptorBufferInfo> bis;
+		std::vector<VkDescriptorBufferInfo> bis;
 		for(auto j = 0; j < descriptorCount; j++)
 			bis.push_back(buffers[i].RegisterSubBuffer(descriptorDataSize));
 

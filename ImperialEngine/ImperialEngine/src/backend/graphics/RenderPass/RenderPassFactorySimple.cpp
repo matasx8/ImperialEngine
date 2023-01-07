@@ -13,10 +13,11 @@ namespace imp
 		switch (data.camOutputType)
 		{
 		case kCamOutColor:
-		case kCamOutDepth:
 			RPs.emplace_back(GenerateDefaultColorPass(device, data, swapchain));
 			break;
-			//RPs.emplace_back(GenerateDefaultDepthPass(device, data, swapchain));
+		case kCamOutDepth:
+			RPs.emplace_back(GenerateDefaultDepthPass(device, data, swapchain));
+			break;
 		}
 
 		return RPs;
@@ -50,6 +51,11 @@ namespace imp
 	
 	std::shared_ptr<RenderPass> RenderPassFactorySimple::GenerateDefaultDepthPass(VkDevice device, const CameraData& data, const Swapchain& swapchain)
 	{
+		// Default Depth Pass
+		// 1st SubPass: render to depth attachment
+		// 2nd SubPass: use framebuffer fetch to sample result of 1st subpass
+		//				sample it and render to color buffer
+		// UI Pass: as usual
 		const uint8_t colorAttachmentCount = 1;
 		std::array<SurfaceDesc, kMaxColorAttachmentCount> colorSurfaces = {};
 		colorSurfaces[0] = swapchain.GetSwapchainImageSurfaceDesc();
