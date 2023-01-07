@@ -41,5 +41,5 @@ void main()
     ViewVec         = normalize(-ecPos);
     NdotL           = (dot(lightVec, tnorm) + 1.0) * 0.5;
 	gl_Position 	= uboViewProjection.PV * model * vec4(pos, 1.0);
-	gl_Position.y 	= -gl_Position.y;
+	//gl_Position.y 	= -gl_Position.y;
 }

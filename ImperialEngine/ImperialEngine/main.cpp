@@ -5,17 +5,6 @@
 
 int main()
 {
-	//std::this_thread::sleep_for(std::chrono::milliseconds(15000));
-	// To finish 'cube':
-	// 1. Add camera entity and control it through UI
-	// 2. destroy resources when closing down
-	// 3. make cube spin!
-	// 4. figure out the directory nonsense when launching from VS and from .exe
-	// 5. make pipeline creation func prettier
-	//
-	// ? multiple pipelines
-	// ? fix shader loading nonsense
-
 	EngineSettings settings;
 #if _DEBUG && !_DEV // for some reason _DEBUG is not removed
 	settings = { EngineSettingsTemplate::kEngineSettingsDebug };

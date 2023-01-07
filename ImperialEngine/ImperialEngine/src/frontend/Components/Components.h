@@ -3,6 +3,11 @@
 #include <ENTT/entt.hpp>
 #include "backend/VulkanBuffer.h"
 
+enum CameraOutput : uint32_t
+{
+	kCamOutColor = 1U,
+	kCamOutDepth
+};
 // seperate components and entities
 
 namespace Comp
@@ -15,10 +20,13 @@ namespace Comp
 		glm::vec4& GetPosition();
 	};
 
+
 	struct Camera
 	{
 		glm::mat4x4 projection;
 		glm::mat4x4 view;
+		uint32_t camOutputType;
+		bool dirty;
 	};
 
 	struct Material

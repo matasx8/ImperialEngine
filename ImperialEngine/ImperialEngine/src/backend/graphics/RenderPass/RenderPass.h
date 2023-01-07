@@ -41,10 +41,10 @@ namespace imp
 	class Graphics;
 	struct CameraData;
 
-	class RenderPassBase
+	class RenderPass : public VulkanResource
 	{
 	public: 
-		RenderPassBase();
+		RenderPass();
 
 		void Create(VkDevice device, const RenderPassDesc& desc);
 
@@ -60,7 +60,7 @@ namespace imp
 		std::vector<VkSemaphore> GetSemaphoresToWaitOn();
 		std::vector<Surface> GiveSurfaces();
 
-		void Destroy(VkDevice device);
+		void Destroy(VkDevice device) override;
 
 	protected:
 

@@ -1,4 +1,4 @@
-#include "backend/graphics/RenderPassGeneratorSimple.h"
+#include "backend/graphics/RenderPass/RenderPassFactorySimple.h"
 #include "backend/EngineCommandResources.h"
 #include "backend/graphics/Graphics.h"
 #include "backend/VulkanBuffer.h"
@@ -12,10 +12,37 @@
 #include <numeric>
 #include <extern/IPROF/iprof.hpp>
 
-imp::Graphics::Graphics() : m_Settings(), m_GfxCaps(), m_ValidationLayers(), m_Window(), m_PipelineManager(), m_MemoryManager()
+imp::Graphics::Graphics() : 
+    m_Settings(),
+    m_GfxCaps(),
+    m_ValidationLayers(),
+    m_VkInstance(),
+    m_PhysicalDevice(),
+    m_LogicalDevice(),
+    m_GfxQueue(),
+    m_PresentationQueue(),
+    m_Swapchain(),
+    m_CurrentFrame(0ul),
+    m_VulkanGarbageCollector(),
+    m_CbManager(),
+    m_SurfaceManager(),
+    m_ShaderManager(),
+    m_PipelineManager(),
+    m_RenderPassManager(&m_VulkanGarbageCollector),
+    m_Window(),
+    m_MemoryManager(),
+    m_DeviceMemoryProps(),
+    m_VertexBuffer(),
+    m_IndexBuffer(),
+    m_MeshBuffer(),
+    m_GlobalBuffers(),
+    m_DrawDataBuffers(),
+    m_DescriptorSets(),
+    m_VertexBuffers(),
+    m_DrawData(),
+    m_CameraData(),
+    renderpassgui()
 {
-    // TODO: init all variables
-    m_CurrentFrame = 0;
 }
 
 void imp::Graphics::Initialize(const EngineGraphicsSettings& settings, Window* window)
@@ -39,7 +66,7 @@ void imp::Graphics::Initialize(const EngineGraphicsSettings& settings, Window* w
     // so as a temporary workaround we must create the imguiPass upfront and save it
     // this will work while the imgui pass remains completely static
     auto temp = CameraData();
-    renderpassgui = static_cast<RenderPassGeneratorSimple*>(m_RenderPassManager)->GenerateForImGUIPass(m_LogicalDevice, temp, m_Swapchain);
+    renderpassgui = m_RenderPassManager.GetImGUIPass(m_LogicalDevice, temp, m_Swapchain);
     CreateImGUI();
 }
 
@@ -59,16 +86,14 @@ void imp::Graphics::RenderCameras()
         data.ViewProjection = camera.Projection * camera.View;
         m_ShaderManager.UpdateGlobalData(m_LogicalDevice, m_Swapchain.GetFrameClock(), data);
 
-        // GenerateRenderPasses must ensure that sequentially executed render passes will have correct sequence and inputs
-        auto rps = m_RenderPassManager->GenerateRenderPasses(m_LogicalDevice, camera, m_Swapchain);
-        for (auto& rp : rps)
+        auto& renderPasses = m_RenderPassManager.GetRenderPasses(m_LogicalDevice, camera, m_Swapchain);
+        for (auto& rp : renderPasses)
         {
             rp->Execute(*this, camera);
             auto surfaces = rp->GiveSurfaces();
             m_SurfaceManager.ReturnSurfaces(surfaces);
         }
     }
-    //RenderImGUI();
 }
 
 void imp::Graphics::RenderImGUI()
@@ -100,6 +125,7 @@ void imp::Graphics::CreateAndUploadMeshes(const std::vector<CmdRsc::MeshCreation
     //UploadVulkanBuffer(usageFlags, dstUsageFlags, memoryFlags, dstMemoryFlags, cb, allocSize, req.vertices.data());
 
     // TODO: this can be abstracted to not differentiate between indices and vertices
+
     uint32_t vtxAllocSize = 0;
     uint32_t idxAllocSize = 0;
     std::vector<Vertex> verts;
@@ -148,7 +174,6 @@ void imp::Graphics::Destroy()
     renderpassgui->Destroy(m_LogicalDevice);
     // prototyping stuff ---
 
-    delete m_RenderPassManager;
     m_SurfaceManager.Destroy(m_LogicalDevice);
     m_VulkanGarbageCollector.DestroyAllImmediate(m_LogicalDevice);
     m_CbManager.Destroy(m_LogicalDevice);
@@ -413,7 +438,8 @@ void imp::Graphics::CreateVulkanMemoryManager()
 
 void imp::Graphics::CreateRenderPassGenerator()
 {
-    m_RenderPassManager = new RenderPassGeneratorSimple();
+    std::unique_ptr<RenderPassFactory> RpFactory = std::make_unique<RenderPassFactorySimple>();
+    m_RenderPassManager.SetRenderPassFactory(std::move(RpFactory));
 }
 
 void imp::Graphics::InitializeVulkanMemory()
@@ -485,7 +511,7 @@ void imp::Graphics::CopyVulkanBuffer(const VulkanBuffer& src, VulkanBuffer& dst,
     vkCmdCopyBuffer(cb.cmb, src.GetBuffer(), dst.GetBuffer(), 1, &bufferCopyRegion);
 }
 
-const imp::Pipeline& imp::Graphics::EnsurePipeline(VkCommandBuffer cb, const RenderPassBase& rp)
+const imp::Pipeline& imp::Graphics::EnsurePipeline(VkCommandBuffer cb, const RenderPass& rp)
 {
     // Compare old material and new one
     // if true: return

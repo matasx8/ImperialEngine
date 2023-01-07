@@ -1,5 +1,5 @@
 #include "SurfaceManager.h"
-#include "backend/graphics/RenderPassBase.h"
+#include "backend/graphics/RenderPass/RenderPass.h"
 #include "backend/graphics/Swapchain.h"
 #include <stdexcept>
 
@@ -13,7 +13,7 @@ void imp::SurfaceManager::Initialize(VkDevice device, MemoryProps deviceMemoryPr
     m_MemoryProps = deviceMemoryProps;
 }
 
-//imp::Framebuffer imp::SurfaceManager::GetFramebuffer(const RenderPassBase& rp, VkDevice device, const std::vector<Surface>& surfaces)
+//imp::Framebuffer imp::SurfaceManager::GetFramebuffer(const RenderPass& rp, VkDevice device, const std::vector<Surface>& surfaces)
 //{
 //    auto fb = CreateFramebuffer(rp, surfaces, device);
 //    return fb;
@@ -81,7 +81,7 @@ static std::vector<VkImageView> GetImageViews(const std::vector<imp::Surface>& s
     return views;
 }
 
-imp::Framebuffer imp::SurfaceManager::CreateFramebuffer(const RenderPassBase& rp, const std::vector<Surface>& surfaces, VkDevice device)
+imp::Framebuffer imp::SurfaceManager::CreateFramebuffer(const RenderPass& rp, const std::vector<Surface>& surfaces, VkDevice device)
 {
     assert(surfaces.size());
     const auto desc = rp.GetRenderPassDesc();

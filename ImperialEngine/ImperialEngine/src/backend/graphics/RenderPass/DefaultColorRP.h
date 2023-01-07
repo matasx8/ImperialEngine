@@ -1,13 +1,13 @@
 #pragma once
-#include "backend/graphics/RenderPassBase.h"
+#include "backend/graphics/RenderPass/RenderPass.h"
 
 namespace imp
 {
 
-	class RenderPass : public RenderPassBase
+	class DefaultColorRP : public RenderPass
 	{
 	public:
-		RenderPass();
+		DefaultColorRP();
 
 		void Execute(Graphics& gfx, const CameraData& cam) override;
 	private:
