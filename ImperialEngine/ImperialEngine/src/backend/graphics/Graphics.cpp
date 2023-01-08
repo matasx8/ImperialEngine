@@ -130,16 +130,19 @@ void imp::Graphics::CreateAndUploadMeshes(const std::vector<CmdRsc::MeshCreation
     uint32_t idxAllocSize = 0;
     std::vector<Vertex> verts;
     std::vector<uint32_t> idxs;
+    const uint32_t vertBufferOffset = m_VertexBuffer.GetOffset() / sizeof(Vertex);
+    const uint32_t indBufferOffset = m_IndexBuffer.GetOffset() / sizeof(uint32_t);
     for (const auto& req : meshCreationData)
     {
-        VulkanSubBuffer vtxSub = VulkanSubBuffer(verts.size(), req.vertices.size());
-        VulkanSubBuffer idxSub = VulkanSubBuffer(idxs.size(), req.indices.size());
+        // These subbuffers will be used to index and offset into the one bound Vertex and Index buffer
+        VulkanSubBuffer vtxSub = VulkanSubBuffer(verts.size() + vertBufferOffset, req.vertices.size());
+        VulkanSubBuffer idxSub = VulkanSubBuffer(idxs.size() + indBufferOffset, req.indices.size());
         verts.insert(verts.end(), req.vertices.begin(), req.vertices.end());
         idxs.insert(idxs.end(), req.indices.begin(), req.indices.end());
         vtxAllocSize += req.vertices.size() * sizeof(Vertex);
         idxAllocSize += req.indices.size() * sizeof(uint32_t);
 
-        m_VertexBuffers[req.id] = { vtxSub, idxSub };
+        m_VertexBuffers[req.id] = { idxSub, vtxSub };
     }
 
     const auto usageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
@@ -483,6 +486,7 @@ void imp::Graphics::UploadVulkanBuffer(VkBufferUsageFlags usageFlags, VkMemoryPr
     auto stagingBuffer = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, usageFlags, memoryFlags, m_DeviceMemoryProps);
     // then as a vulkan resource we can override the destruction so it doesn't try to deallocate a sub-buffer and just notifies the scratch there's a spot open
     stagingBuffer.UpdateLastUsed(m_CurrentFrame);
+    dst.UpdateLastUsed(m_CurrentFrame);
 
     // copy cpu data to host visible buffer
     void* data;
@@ -503,12 +507,15 @@ void imp::Graphics::CopyVulkanBuffer(const VulkanBuffer& src, VulkanBuffer& dst,
 {
     assert(src.GetSize());
     assert(dst.GetSize() >= src.GetSize());
+    
     VkBufferCopy bufferCopyRegion;
     bufferCopyRegion.srcOffset = 0;
-    bufferCopyRegion.dstOffset = 0;
+    bufferCopyRegion.dstOffset = dst.GetOffset();;
     bufferCopyRegion.size = src.GetSize();
 
     vkCmdCopyBuffer(cb.cmb, src.GetBuffer(), dst.GetBuffer(), 1, &bufferCopyRegion);
+
+    dst.RegisterNewUpload(src.GetSize());
 }
 
 const imp::Pipeline& imp::Graphics::EnsurePipeline(VkCommandBuffer cb, const RenderPass& rp)

@@ -61,6 +61,11 @@ namespace imp
 
 	void AssetImporter::LoadFile(Assimp::Importer& imp, const std::filesystem::path& path)
 	{
+		// TODO: currently we load every obj file in Scenes folder and also create an entity for it
+		// I want to load the meshes but not create an entity for each one. There's a button
+		// in the UI to do that.
+		static bool tFirstEntityLoaded = false;
+
 		const auto extension = path.extension().string();
 		if (extension == ".obj")
 		{
@@ -72,16 +77,21 @@ namespace imp
 			static uint32_t temporaryMeshCounter = 0;
 			std::vector<imp::CmdRsc::MeshCreationRequest> reqs;
 			LoadModel(reqs, imp, path);
+
 			for (auto& req : reqs)
 			{
-				const auto childEntity = reg.create();
-				reg.emplace<Comp::Mesh>(childEntity, temporaryMeshCounter);
-				reg.emplace<Comp::Material>(childEntity, kDefaultMaterialIndex);
-				reg.emplace<Comp::ChildComponent>(childEntity, mainEntity);
+				if (tFirstEntityLoaded)
+				{
+					const auto childEntity = reg.create();
+					reg.emplace<Comp::Mesh>(childEntity, temporaryMeshCounter);
+					reg.emplace<Comp::Material>(childEntity, kDefaultMaterialIndex);
+					reg.emplace<Comp::ChildComponent>(childEntity, mainEntity);
+				}
 
 				req.id = static_cast<uint32_t>(temporaryMeshCounter);
 				temporaryMeshCounter++;
 			}
+			tFirstEntityLoaded = true;
 
 			// TODO: this is needed now because on ST mode the UploadMeshes command would get executed instantly
 			// that doesn't fit now because we actually should store the creation requests somewhere and then add the command when the game loop starts

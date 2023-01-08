@@ -51,9 +51,13 @@ namespace imp
 				ImGui::Text("Various utilities..");
 				static int clicked = 0;
 				if (ImGui::Button("Add Monkey"))
-					engine.AddMonkey(1);
+					engine.AddDemoEntity(1, 1);
 				if (ImGui::Button("Add A LOT of Monkey"))
-					engine.AddMonkey(1000);
+					engine.AddDemoEntity(1000, 1);
+				if (ImGui::Button("Add Donut"))
+					engine.AddDemoEntity(1, 0);
+				if (ImGui::Button("Add A LOT of Donut"))
+					engine.AddDemoEntity(1000, 0);
 				ImGui::EndTabItem();
 			}
 			if (ImGui::BeginTabItem("Profiling"))
