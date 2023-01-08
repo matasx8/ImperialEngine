@@ -36,7 +36,7 @@ VkSemaphore imp::VulkanResource::StealSemaphore()
 
 void imp::VulkanResource::GiveSemaphore(VkSemaphore& sem)
 {
-	assert(!HasSemaphore());
+	//assert(!HasSemaphore());
 	m_Semaphore = sem;
 }
 

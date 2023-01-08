@@ -12,7 +12,12 @@ namespace imp
 		uint32_t GetSize() const;
 		VkBuffer GetBuffer() const;
 		VkDeviceMemory GetMemory() const;
+		uint32_t GetOffset() const;
 
+		// Updates size and offset
+		void RegisterNewUpload(uint32_t size);
+
+		// These are used for descriptors
 		VkDescriptorBufferInfo RegisterSubBuffer(size_t size);
 		uint32_t FindNewSubBufferIndex(size_t size);
 
@@ -23,6 +28,8 @@ namespace imp
 		VkBuffer m_Buffer;
 		VkDeviceMemory m_Memory;
 		uint32_t m_Size; // in bytes
+		// Since we don't support removing stuff from buffers, we can use this to know what's the used size of the buffer
+		uint32_t m_WriteOffset;
 
 		// temp controls for sub buffer managment
 		uint32_t m_TempOffset;
