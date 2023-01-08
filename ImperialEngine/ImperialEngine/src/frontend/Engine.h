@@ -65,6 +65,7 @@ namespace imp
 		// parallel stuff
 		prl::WorkQ<Engine>* m_Q;
 		prl::ConsumerThread<Engine>* m_Worker;
+	public:
 		struct BarrierFunctionObject
 		{
 			Engine& engine;
@@ -72,7 +73,7 @@ namespace imp
 			void operator()() noexcept { engine.EngineThreadSyncFunc(); }
 		};
 	    std::barrier<BarrierFunctionObject>* m_SyncPoint;	// TODO: use polymorphism for when Single thread mode this wont do anything
-
+	private:
 		// window stuff
 		Window m_Window;
 		UI m_UI;

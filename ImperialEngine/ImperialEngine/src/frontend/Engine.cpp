@@ -81,8 +81,8 @@ namespace imp
 	{
 		InternalProfiler::aggregateEntries();
 		InternalProfiler::addThisThreadEntriesToAllThreadStats();
-		IPROF_FUNC;
-			m_SyncPoint->arrive_and_wait();
+		//IPROF_FUNC;
+		//	m_SyncPoint->arrive_and_wait();
 	}
 
 	void Engine::AddDemoEntity(uint32_t count, uint32_t meshID)

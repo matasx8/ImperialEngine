@@ -52,6 +52,9 @@ namespace imp
 		void CreateAndUploadMeshes(const std::vector<CmdRsc::MeshCreationRequest>& meshCreationData);
 		void CreateAndUploadMaterials(const std::vector<CmdRsc::MaterialCreationRequest>& materialCreationData);
 
+		void Arrive(auto barrier);
+		void Wait(auto barrier);
+
 		void Destroy();
 
 		static VkSemaphore GetSemaphore(VkDevice device);

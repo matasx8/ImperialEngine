@@ -169,6 +169,18 @@ void imp::Graphics::CreateAndUploadMaterials(const std::vector<CmdRsc::MaterialC
     }
 }
 
+// cant figure out how to synch better, cant declare the token.. 
+
+void imp::Graphics::Arrive(auto barrier)
+{
+    token = barrier->arrive;
+}
+
+void imp::Graphics::Wait(auto barrier)
+{
+    barrier->wait(std::move(token));
+}
+
 void imp::Graphics::Destroy()
 {
     vkDeviceWaitIdle(m_LogicalDevice);

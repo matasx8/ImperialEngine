@@ -27,7 +27,9 @@ int main()
 	{
 		engine.StartFrame();
 		engine.Update();
+		auto arrival = engine.m_SyncPoint->arrive();
 		engine.SyncGameThread();	// wait for render thread and copy over render data
+		engine.m_SyncPoint->wait(std::move(arrival));
 		engine.Render();			// now give commands to render
 		engine.EndFrame();
 		engine.SyncRenderThread();	// signal to not expect any more commands and wait at barrier.

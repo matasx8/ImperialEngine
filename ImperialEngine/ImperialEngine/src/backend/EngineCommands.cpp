@@ -23,6 +23,7 @@ namespace imp
 
 	void Engine::Cmd_EndFrame(std::shared_ptr<void> rsc)
 	{
+		m_Gfx.Arrive(m_SyncPoint);
 		m_Gfx.EndFrame();
 	}
 	void Engine::Cmd_SyncRenderThread(std::shared_ptr<void> rsc)
@@ -30,7 +31,8 @@ namespace imp
 		InternalProfiler::aggregateEntries();
 		InternalProfiler::addThisThreadEntriesToAllThreadStats();
 		IPROF_FUNC;
-		m_SyncPoint->arrive_and_wait();
+		m_Gfx.Wait(m_SyncPoint);
+		//m_SyncPoint->arrive_and_wait();
 	}
 	void Engine::Cmd_RenderImGUI(std::shared_ptr<void> rsc)
 	{
