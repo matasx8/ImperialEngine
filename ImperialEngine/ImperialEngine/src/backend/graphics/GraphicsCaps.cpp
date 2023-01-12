@@ -73,12 +73,12 @@ VkSurfaceFormatKHR imp::GraphicsCaps::ChooseBestSurfaceFormat(const std::vector<
 {
     if (formats.size() == 1 && formats[0].format == VK_FORMAT_UNDEFINED)
     {
-        return { VK_FORMAT_R8G8B8A8_UNORM,  VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
+        return { VK_FORMAT_R8G8B8A8_SRGB,  VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
     }
 
     for (const auto& format : formats)
     {
-        if ((format.format == VK_FORMAT_R8G8B8A8_UNORM || format.format == VK_FORMAT_B8G8R8A8_UNORM)
+        if ((format.format == VK_FORMAT_R8G8B8A8_SRGB || format.format == VK_FORMAT_B8G8R8A8_SRGB)
             && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
         {
             return format;

@@ -2,6 +2,16 @@
 #include <cassert>
 #include <stdio.h>
 
+// So far we only have one type of begin info, 
+// so let's not create one each time this function is called
+inline constexpr VkCommandBufferBeginInfo kBeginInfo = 
+{ 
+	VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, 
+	nullptr, 
+	VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, 
+	nullptr 
+};
+
 imp::CommandBuffer::CommandBuffer()
 	: cmb()
 {
@@ -14,10 +24,7 @@ imp::CommandBuffer::CommandBuffer(VkCommandBuffer cb)
 
 void imp::CommandBuffer::Begin()
 {
-	VkCommandBufferBeginInfo beginInfo = {};
-	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-	auto res = vkBeginCommandBuffer(cmb, &beginInfo);
+	auto res = vkBeginCommandBuffer(cmb, &kBeginInfo);
 	assert(res == VK_SUCCESS);
 }
 

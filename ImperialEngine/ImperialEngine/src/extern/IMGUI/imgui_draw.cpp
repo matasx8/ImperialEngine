@@ -186,6 +186,7 @@ using namespace IMGUI_STB_NAMESPACE;
 //-----------------------------------------------------------------------------
 // [SECTION] Style functions
 //-----------------------------------------------------------------------------
+#include <cmath>
 
 void ImGui::StyleColorsDark(ImGuiStyle* dst)
 {
@@ -245,6 +246,11 @@ void ImGui::StyleColorsDark(ImGuiStyle* dst)
     colors[ImGuiCol_NavWindowingHighlight]  = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
     colors[ImGuiCol_NavWindowingDimBg]      = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
     colors[ImGuiCol_ModalWindowDimBg]       = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
+
+    for (auto i = 0; i < ImGuiCol_COUNT; i++)
+    {
+        colors[i] = ImVec4(std::powf(colors[i].x, 2.2f), std::powf(colors[i].y, 2.2f), std::powf(colors[i].z, 2.2f), colors[i].w);
+    }
 }
 
 void ImGui::StyleColorsClassic(ImGuiStyle* dst)

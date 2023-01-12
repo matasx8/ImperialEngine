@@ -36,6 +36,7 @@ VkSemaphore imp::VulkanResource::StealSemaphore()
 
 void imp::VulkanResource::GiveSemaphore(VkSemaphore& sem)
 {
+	// TODO: fix buffer upload so I can uncomment this
 	//assert(!HasSemaphore());
 	m_Semaphore = sem;
 }
