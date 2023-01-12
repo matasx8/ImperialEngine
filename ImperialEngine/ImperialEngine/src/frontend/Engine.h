@@ -29,7 +29,7 @@ namespace imp
 		void SyncGameThread();
 
 		// temporary
-		void AddMonkey(uint32_t monkeyCount);
+		void AddDemoEntity(uint32_t count, uint32_t meshID);
 
 		bool ShouldClose() const;
 		void ShutDown();

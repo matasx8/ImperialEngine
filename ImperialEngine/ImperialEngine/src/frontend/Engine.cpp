@@ -85,35 +85,81 @@ namespace imp
 			m_SyncPoint->arrive_and_wait();
 	}
 
-	void Engine::AddMonkey(uint32_t monkeyCount)
+	void Engine::AddDemoEntity(uint32_t count, uint32_t meshID)
 	{
 		static int idx = 0;
-		static glm::vec3 offset = glm::vec3(0.0f, 0.0f, 2.0f);
-		for (auto i = 0; i < monkeyCount; i++)
+		static int idx1 = 0;
+		static int idx2 = 0;
+		static int idx3 = 0;
+		static int quarter = 0;
+		static glm::vec3 offset = glm::vec3(0.0f, 0.0f, 0.0f);
+		static glm::vec3 offset1 = glm::vec3(0.0f, 0.0f, 0.0f);
+		static glm::vec3 offset2 = glm::vec3(0.0f, 0.0f, 0.0f);
+		static glm::vec3 offset3 = glm::vec3(0.0f, 0.0f, 0.0f);
+		static constexpr glm::vec3 dir = glm::vec3(1.0f, 1.0f, -1.0f);
+		static constexpr glm::vec3 dir1 = glm::vec3(1.0f, 1.0f, 1.0f);
+		static constexpr glm::vec3 dir2 = glm::vec3(1.0f, -1.0f, 1.0f);
+		static constexpr glm::vec3 dir3 = glm::vec3(1.0f, -1.0f, -1.0f);
+
+		int* currIdxPtr = nullptr;
+		glm::vec3* currOffsetPtr = nullptr;
+		const glm::vec3* currDirectionPtr = nullptr;
+
+		auto ApplyNewPosition = [&]()
 		{
-			switch (idx)
+			switch (quarter)
 			{
 			case 0:
-				offset += glm::vec3(2.0f, 0.0f, 0.0f);
+				currIdxPtr = &idx;
+				currOffsetPtr = &offset;
+				currDirectionPtr = &dir;
 				break;
 			case 1:
-				offset += glm::vec3(0.0f, 2.0f, 0.0f);
+				currIdxPtr = &idx1;
+				currOffsetPtr = &offset1;
+				currDirectionPtr = &dir1;
 				break;
 			case 2:
-				offset += glm::vec3(0.0f, 0.0f, 2.0f);
+				currIdxPtr = &idx2;
+				currOffsetPtr = &offset2;
+				currDirectionPtr = &dir2;
+				break;
+			case 3:
+				currIdxPtr = &idx3;
+				currOffsetPtr = &offset3;
+				currDirectionPtr = &dir3;
 				break;
 			}
-			idx++;
-			idx %= 3;
+		};
+
+		for (auto i = 0; i < count; i++)
+		{
+			ApplyNewPosition();
+			switch (*currIdxPtr)
+			{
+			case 0:
+				*currOffsetPtr += glm::vec3(2.0f, 0.0f, 0.0f) * *currDirectionPtr;
+				break;
+			case 1:
+				*currOffsetPtr += glm::vec3(0.0f, 2.0f, 0.0f) * *currDirectionPtr;
+				break;
+			case 2:
+				*currOffsetPtr += glm::vec3(0.0f, 0.0f, 2.0f) * *currDirectionPtr;
+				break;
+			}
+			(*currIdxPtr)++;
+			(*currIdxPtr) %= 3;
+			quarter++;
+			quarter %= 4;
 			auto& reg = m_Entities;
 			const auto monkey = reg.create();
 			const auto identityMat = glm::mat4x4(1.0f);
-			const auto newMatrix = glm::translate(identityMat, offset);
+			const auto newMatrix = glm::translate(identityMat, *currOffsetPtr);
 			reg.emplace<Comp::Transform>(monkey, newMatrix);
 			
 			const auto child = reg.create();
 			reg.emplace<Comp::ChildComponent>(child, monkey);
-			reg.emplace<Comp::Mesh>(child, 0u);
+			reg.emplace<Comp::Mesh>(child, meshID);
 			reg.emplace<Comp::Material>(child, kDefaultMaterialIndex);
 		}
 	}

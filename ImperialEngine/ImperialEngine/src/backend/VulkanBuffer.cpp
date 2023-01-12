@@ -27,6 +27,16 @@ VkDeviceMemory imp::VulkanBuffer::GetMemory() const
 	return m_Memory;
 }
 
+uint32_t imp::VulkanBuffer::GetOffset() const
+{
+	return m_WriteOffset;
+}
+
+void imp::VulkanBuffer::RegisterNewUpload(uint32_t size)
+{
+	m_WriteOffset += size;
+}
+
 VkDescriptorBufferInfo imp::VulkanBuffer::RegisterSubBuffer(size_t size)
 {
 	// currently no misalignment protection - be safe
