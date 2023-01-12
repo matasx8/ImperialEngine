@@ -211,8 +211,9 @@ namespace imp
 	{			
 		const auto camera = m_Entities.create();
 		const auto identity = glm::mat4x4(1.0f);
-		static constexpr float defaultCameraYRotationRad = -glm::pi<float>() / 2;
-		const auto defaultCameraTransform = glm::rotate(glm::translate(identity, glm::vec3(-15.0f, 0.0f, 0.0f)), defaultCameraYRotationRad, glm::vec3(0.0f, 1.0f, 0.0f));
+
+		static constexpr float defaultCameraYRotationRad = 0;// glm::pi<float>() / 2.0f;
+		const auto defaultCameraTransform = glm::rotate(glm::translate(identity, glm::vec3(0.0f, 0.0f, 15.0f)), defaultCameraYRotationRad, glm::vec3(0.0f, 1.0f, 0.0f));
 		m_Entities.emplace<Comp::Transform>(camera, defaultCameraTransform);
 		glm::mat4x4 proj = glm::perspective(glm::radians(45.0f), (float)m_Window.GetWidth() / (float)m_Window.GetHeight(), 5.0f, 100.0f);
 		m_Entities.emplace<Comp::Camera>(camera, proj, glm::mat4x4(), kCamOutColor, true);
@@ -256,8 +257,9 @@ namespace imp
 			const auto& transform = cameras.get<Comp::Transform>(ent);
 			auto& cam = cameras.get<Comp::Camera>(ent);
 
+			// Vulkan's fixed-function steps expect to look down -Z, Y is "down" and RH
 			static constexpr glm::vec3 front(0.0f, 0.0f, -1.0f);// look down -z
-			static constexpr glm::vec3 up(0.0f, 1.0f, 0.0f);
+			static constexpr glm::vec3 up(0.0f, -1.0f, 0.0f);
 
 			const auto quat = glm::toQuat(transform.transform);
 			const auto newFront = glm::rotate(quat, front);
@@ -265,14 +267,7 @@ namespace imp
 
 			// update view matrix
 			const auto pos = transform.GetPosition();
-			cam.view = glm::lookAtLH(pos, pos + newFront, newUp);
-
-			static constexpr auto intermTransform = glm::mat4x4(
-				glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
-				glm::vec4(0.0f, -1.0f, 0.0f, 0.0f),
-				glm::vec4(0.0f, 0.0f, -1.0f, 0.0f),
-				glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-			cam.view = intermTransform * cam.view;
+			cam.view = glm::lookAtRH(pos, pos + newFront, newUp);
 		}
 	}
 

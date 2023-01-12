@@ -8,11 +8,11 @@ layout(location = 2) in vec3  ViewVec;
 
 void main()
 {
-	vec3  SurfaceColor = vec3(0.75, 0.75, 0.75);
-	vec3  WarmColor    = vec3(0.6, 0.6, 0.0);
-	vec3  CoolColor    = vec3(0.0, 0.0, 0.6);
-	float DiffuseWarm =  0.45;
-	float DiffuseCool = 0.45;
+	vec3  SurfaceColor = vec3(0.35, 0.35, 0.35);
+	vec3  WarmColor    = vec3(0.3, 0.3, 0.0);
+	vec3  CoolColor    = vec3(0.0, 0.0, 0.3);
+	float DiffuseWarm =  0.2;
+	float DiffuseCool = 0.2;
 	
     vec3 kcool    = min(CoolColor + DiffuseCool * SurfaceColor, 1.0);
     vec3 kwarm    = min(WarmColor + DiffuseWarm * SurfaceColor, 1.0); 
