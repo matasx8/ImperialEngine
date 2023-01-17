@@ -4,7 +4,7 @@
 #include <IPROF/iprof.hpp>
 
 imp::CommandBufferManager::CommandBufferManager()
-    : m_BufferingMode(), m_FrameClock(), m_GfxCommandPools()
+    : m_BufferingMode(), m_FrameClock(), m_IsNewFrame(), m_GfxCommandPools()
 {
 }
 
@@ -46,13 +46,13 @@ imp::SubmitSynchPrimitives imp::CommandBufferManager::Submit(VkQueue submitQueue
 
     VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.waitSemaphoreCount = waitSemaphores.size();
+    submitInfo.waitSemaphoreCount = static_cast<uint32_t>(waitSemaphores.size());
     submitInfo.pWaitSemaphores = waitSemaphores.data(); // semaphore for swapchain image or other dependency between queue operation
     VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT }; // I've no idea what to put here
     submitInfo.pWaitDstStageMask = waitStages;
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = &semaphore;
-    submitInfo.commandBufferCount = commandBuffers.size();
+    submitInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
     auto ccs = GetCmbs(commandBuffers);
     submitInfo.pCommandBuffers = ccs.data();
 
@@ -128,7 +128,7 @@ std::vector<imp::CommandBuffer> imp::CommandPool::AquireCommandBuffers(VkDevice 
         readyPool.pop();
     }
 
-    uint32_t left = count - buffers.size();
+    uint32_t left = count - static_cast<uint32_t>(buffers.size());
     if (left)
     {
         VkCommandBufferAllocateInfo cbAllocInfo = {};
@@ -158,7 +158,7 @@ void imp::CommandPool::Reset(VkDevice device)
 {
     if (fences.size())
     {
-        const auto res = vkWaitForFences(device, fences.size(), fences.data(), VK_TRUE, ~0ull);
+        const auto res = vkWaitForFences(device, static_cast<uint32_t>(fences.size()), fences.data(), VK_TRUE, ~0ull);
         assert(res == VK_SUCCESS);
     }
     for (auto& buff : donePool)

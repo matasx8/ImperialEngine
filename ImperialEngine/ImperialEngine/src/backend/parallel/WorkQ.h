@@ -8,9 +8,6 @@
 
 namespace prl
 {
-	//struct CmdRsc // Base command resource
-	//{	};
-
 	template <typename T> class WorkQ
 	{
 	public:

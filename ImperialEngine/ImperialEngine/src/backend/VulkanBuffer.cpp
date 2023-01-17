@@ -3,12 +3,12 @@
 #include <cassert>
 
 imp::VulkanBuffer::VulkanBuffer()
-	: m_Buffer(VK_NULL_HANDLE), m_Memory(VK_NULL_HANDLE), m_Size(0), m_TempOffset(0)
+	: m_Buffer(VK_NULL_HANDLE), m_Memory(VK_NULL_HANDLE), m_Size(), m_WriteOffset(), m_TempOffset()
 {
 }
 
 imp::VulkanBuffer::VulkanBuffer(uint32_t size, VkBuffer buffer, VkDeviceMemory mem)
-	: m_Buffer(buffer), m_Memory(mem), m_Size(size), m_TempOffset(0)
+	: m_Buffer(buffer), m_Memory(mem), m_Size(size), m_WriteOffset(), m_TempOffset()
 {
 }
 

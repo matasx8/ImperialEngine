@@ -4,7 +4,6 @@
 #include "backend/graphics/Graphics.h"
 #include "backend/parallel/WorkQ_ST.h"
 #include "backend/parallel/ConsumerThread.h"
-#include "frontend/EngineSettings.h"
 #include "frontend/AssetImporter.h"
 #include "frontend/Window.h"
 #include "frontend/UI.h"

@@ -4,15 +4,12 @@
 #include "backend/graphics/VulkanShaderManager.h"
 #include "backend/graphics/PipelineManager.h"
 #include "backend/graphics/SurfaceManager.h"
-#include "backend/graphics/GraphicsCaps.h"
 #include "backend/graphics/RenderPassImGUI.h"
-#include "backend/graphics/RenderPass/RenderPass.h"
 #include "backend/graphics/Swapchain.h"
 #include "backend/graphics/VkDebug.h"
 #include "backend/VulkanGarbageCollector.h"
 #include "backend/VulkanMemory.h"
 #include "backend/VkWindow.h"
-#include "Utils/NonCopyable.h"
 #include "frontend/Components/Components.h"
 #include <extern/ENTT/entt.hpp>
 #include <barrier>

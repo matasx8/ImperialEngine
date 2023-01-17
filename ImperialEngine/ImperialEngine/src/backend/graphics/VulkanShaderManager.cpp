@@ -3,9 +3,13 @@
 #include <optional>
 
 imp::VulkanShaderManager::VulkanShaderManager()
-	: m_ShaderMap()
+	: m_ShaderMap(),
+	m_DescriptorPool(),
+	m_GlobalBuffers(),
+	m_MaterialDataBuffers(),
+	m_DescriptorSets(),
+	m_DescriptorSetLayout()
 {
-	m_RegisteredDrawCount = 0;
 }
 
 void imp::VulkanShaderManager::Initialize(VkDevice device, VulkanMemory& memory, const EngineGraphicsSettings& settings, const MemoryProps& memProps)

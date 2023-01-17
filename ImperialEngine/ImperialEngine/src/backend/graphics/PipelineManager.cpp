@@ -116,7 +116,7 @@ namespace imp
 		ci.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 		ci.vertexBindingDescriptionCount = 1;
 		ci.pVertexBindingDescriptions = &vertInputBindingDesc;
-		ci.vertexAttributeDescriptionCount = vertInputAttrDesc.size();
+		ci.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertInputAttrDesc.size());
 		ci.pVertexAttributeDescriptions = vertInputAttrDesc.data();
 		ci.pNext = nullptr;
 		ci.flags = 0;

@@ -135,12 +135,12 @@ void imp::Graphics::CreateAndUploadMeshes(const std::vector<CmdRsc::MeshCreation
     for (const auto& req : meshCreationData)
     {
         // These subbuffers will be used to index and offset into the one bound Vertex and Index buffer
-        VulkanSubBuffer vtxSub = VulkanSubBuffer(verts.size() + vertBufferOffset, req.vertices.size());
-        VulkanSubBuffer idxSub = VulkanSubBuffer(idxs.size() + indBufferOffset, req.indices.size());
+        VulkanSubBuffer vtxSub = VulkanSubBuffer(verts.size() + vertBufferOffset, static_cast<uint32_t>(req.vertices.size()));
+        VulkanSubBuffer idxSub = VulkanSubBuffer(idxs.size() + indBufferOffset, static_cast<uint32_t>(req.indices.size()));
         verts.insert(verts.end(), req.vertices.begin(), req.vertices.end());
         idxs.insert(idxs.end(), req.indices.begin(), req.indices.end());
-        vtxAllocSize += req.vertices.size() * sizeof(Vertex);
-        idxAllocSize += req.indices.size() * sizeof(uint32_t);
+        vtxAllocSize += static_cast<uint32_t>(req.vertices.size() * sizeof(Vertex));
+        idxAllocSize += static_cast<uint32_t>(req.indices.size() * sizeof(uint32_t));
 
         m_VertexBuffers[req.id] = { idxSub, vtxSub };
     }

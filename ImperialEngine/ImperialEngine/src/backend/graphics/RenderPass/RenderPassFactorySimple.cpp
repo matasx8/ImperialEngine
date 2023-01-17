@@ -1,5 +1,5 @@
 #pragma once
-#include "RenderPassFactorySimple.h";
+#include "RenderPassFactorySimple.h"
 #include "DefaultColorRP.h"
 #include "DefaultDepthRP.h"
 #include "backend/graphics/Graphics.h"
