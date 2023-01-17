@@ -10,7 +10,9 @@ imp::VulkanShaderManager::VulkanShaderManager()
 
 void imp::VulkanShaderManager::Initialize(VkDevice device, VulkanMemory& memory, const EngineGraphicsSettings& settings, const MemoryProps& memProps)
 {
-	static constexpr uint32_t kBufferSize = 1024 * 1024;
+	static constexpr uint32_t kGlobalBufferSize = sizeof(GlobalData) * kGlobalBufferBindCount;
+	static constexpr uint32_t kMaterialBufferSize = sizeof(ShaderDrawData) * kMaterialBufferBindCount;
+	static constexpr uint32_t kDrawDataBufferSize = sizeof(ShaderDrawData) * kMaxDrawCount;
 	// Here we create the needed buffers, descriptor sets and etc.
 	// also the default material
 	m_DescriptorPool = CreateDescriptorPool(device);
@@ -19,13 +21,16 @@ void imp::VulkanShaderManager::Initialize(VkDevice device, VulkanMemory& memory,
 	for (auto i = 0; i < settings.swapchainImageCount; i++)
 	{
 		// TODO: change to device local memory and use transfer queue to update data
-		m_GlobalBuffers[i]			= memory.GetBuffer(device, kBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, memProps);
-		m_MaterialDataBuffers[i]	= memory.GetBuffer(device, kBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, memProps);
-		m_DrawDataBuffers[i]		= memory.GetBuffer(device, kBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, memProps);
+		m_GlobalBuffers[i]			= memory.GetBuffer(device, kGlobalBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, memProps);
+		m_MaterialDataBuffers[i]	= memory.GetBuffer(device, kMaterialBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, memProps);
+		m_DrawDataBuffers[i]		= memory.GetBuffer(device, kDrawDataBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, memProps);
 	}
 
 	CreateMegaDescriptorSets(device);
-	WriteUpdateDescriptorSets(device, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_GlobalBuffers, sizeof(GlobalData), kGlobalBufferBindingSlot, 1);
+	WriteUpdateDescriptorSets(device, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_GlobalBuffers, sizeof(GlobalData), kGlobalBufferBindingSlot, kGlobalBufferBindCount);
+	WriteUpdateDescriptorSets(device, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MaterialDataBuffers, sizeof(MaterialData), kMaterialBufferBindingSlot, kMaterialBufferBindingSlot);
+	WriteUpdateDescriptorSets(device, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawDataBuffers, sizeof(ShaderDrawData), kDrawDataBufferBindingSlot, kMaxDrawCount);
+	
 	CreateDefaultMaterial(device);
 }
 
@@ -77,16 +82,6 @@ void imp::VulkanShaderManager::UpdateDrawData(VkDevice device, uint32_t descript
 		shaderData.push_back(dat);
 	}
 	UpdateDescriptorData(device, m_DrawDataBuffers[descriptorSetIdx], drawData.size() * sizeof(ShaderDrawData), 0, shaderData.data());
-}
-
-void imp::VulkanShaderManager::RegisterDraws(VkDevice device, uint32_t numDraws)
-{
-	if (numDraws > m_RegisteredDrawCount)
-	{
-		const auto neededDescriptorCount = numDraws - m_RegisteredDrawCount;
-		WriteUpdateDescriptorSets(device, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawDataBuffers, sizeof(ShaderDrawData), kDrawDataBufferBindingSlot, numDraws);
-		m_RegisteredDrawCount = numDraws;
-	}
 }
 
 VkDescriptorPool imp::VulkanShaderManager::CreateDescriptorPool(VkDevice device)
@@ -197,18 +192,16 @@ VkDescriptorSetLayoutBinding imp::VulkanShaderManager::CreateDescriptorBinding(u
 	return descriptorSetLayoutBinding;
 }
 
-uint32_t imp::VulkanShaderManager::WriteUpdateDescriptorSets(VkDevice device, VkDescriptorType type, auto& buffers, size_t descriptorDataSize, uint32_t bindSlot, uint32_t descriptorCount)
+void imp::VulkanShaderManager::WriteUpdateDescriptorSets(VkDevice device, VkDescriptorType type, auto& buffers, size_t descriptorDataSize, uint32_t bindSlot, uint32_t descriptorCount)
 {
-	// WE need to return index of newly updated descriptors
-	uint32_t index = 0;
-
+	// I'm almost certain we should just vkUpdateDescriptorSets upfront for the whole buffer
 	for (auto i = 0; i < kEngineSwapchainExclusiveMax - 1; i++)
 	{
 		std::vector<VkDescriptorBufferInfo> bis;
 		for(auto j = 0; j < descriptorCount; j++)
 			bis.push_back(buffers[i].RegisterSubBuffer(descriptorDataSize));
 
-		index = bis.front().offset / descriptorDataSize;
+		const uint32_t index = bis.front().offset / descriptorDataSize;
 
 		// so far we support only same data size
 		assert(bis.front().offset % descriptorDataSize == 0);
@@ -224,7 +217,6 @@ uint32_t imp::VulkanShaderManager::WriteUpdateDescriptorSets(VkDevice device, Vk
 
 		vkUpdateDescriptorSets(device, 1, &drawWrite, 0, nullptr);
 	}
-	return index;
 }
 
 void imp::VulkanShaderManager::UpdateDescriptorData(VkDevice device, VulkanBuffer& buffer, size_t size, uint32_t offset, const void* data)
@@ -249,9 +241,6 @@ void imp::VulkanShaderManager::CreateDefaultMaterial(VkDevice device)
 	// 2. DescriptorPool can run out of descriptors
 	// -- For now simple enough to add and add more stuff, remove and leave hole?
 
-	// this is probably CretaeMaterial()
-	const auto idx = WriteUpdateDescriptorSets(device, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MaterialDataBuffers, sizeof(MaterialData), kMaterialBufferBindingSlot, 1); // register
-	assert(idx == kDefaultMaterialIndex);	// should get material data index 0
 	for (auto i = 0; i < kEngineSwapchainExclusiveMax - 1; i++)
 	{
 		// example data for material

@@ -28,6 +28,9 @@ namespace imp
 		void SyncRenderThread();
 		void SyncGameThread();
 
+		// Will affect the next frame
+		void SwitchRenderingMode(EngineRenderMode newRenderMode);
+
 		// temporary
 		void AddDemoEntity(uint32_t count, uint32_t meshID);
 
@@ -95,6 +98,7 @@ namespace imp
 		void Cmd_RenderImGUI(std::shared_ptr<void> rsc);
 		void Cmd_UploadMeshes(std::shared_ptr<void> rsc);
 		void Cmd_UploadMaterials(std::shared_ptr<void> rsc);
+		void Cmd_ChangeRenderMode(std::shared_ptr<void> rsc);
 	};
 }
 

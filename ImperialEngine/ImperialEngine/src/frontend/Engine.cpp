@@ -85,6 +85,11 @@ namespace imp
 			m_SyncPoint->arrive_and_wait();
 	}
 
+	void Engine::SwitchRenderingMode(EngineRenderMode newRenderMode)
+	{
+		m_Q->add(std::mem_fn(&Engine::Cmd_ChangeRenderMode), std::make_shared<EngineRenderMode>(newRenderMode));
+	}
+
 	void Engine::AddDemoEntity(uint32_t count, uint32_t meshID)
 	{
 		static int idx = 0;

@@ -52,6 +52,8 @@ namespace imp
 		void CreateAndUploadMeshes(const std::vector<CmdRsc::MeshCreationRequest>& meshCreationData);
 		void CreateAndUploadMaterials(const std::vector<CmdRsc::MaterialCreationRequest>& materialCreationData);
 
+		EngineGraphicsSettings& GetGraphicsSettings();
+
 		void Destroy();
 
 		static VkSemaphore GetSemaphore(VkDevice device);
@@ -117,6 +119,7 @@ namespace imp
 		VulkanBuffer m_VertexBuffer;
 		VulkanBuffer m_IndexBuffer;
 		VulkanBuffer m_MeshBuffer;
+		VulkanBuffer m_DrawBuffer;
 		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_GlobalBuffers;
 		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_DrawDataBuffers;
 		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_DescriptorSets;

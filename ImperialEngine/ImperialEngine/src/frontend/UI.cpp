@@ -109,6 +109,13 @@ namespace imp
 					auto& cam = cameras.get<Comp::Camera>(ent);
 					auto& pos = transform.GetPosition();
 
+					ImGui::Text("Select Rendering Mode:");
+					static int renderItemSelected = static_cast<int>(kDefaultEngineRenderMode);
+					if (ImGui::Combo("Rendering Mode", &renderItemSelected, "Traditional CPU-Driven\0GPU-Driven\0GPU-Driven Mesh Shading"))
+					{
+						engine.SwitchRenderingMode(static_cast<EngineRenderMode>(renderItemSelected));
+					}
+
 					ImGui::Text("Select Camera Output [not implemeted yet]:");
 					static int itemSelected = 0;
 					if (ImGui::Combo("C/O", &itemSelected, "Color Framebuffer\0Depth Framebuffer\0"))

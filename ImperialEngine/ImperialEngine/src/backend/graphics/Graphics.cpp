@@ -35,6 +35,7 @@ imp::Graphics::Graphics() :
     m_VertexBuffer(),
     m_IndexBuffer(),
     m_MeshBuffer(),
+    m_DrawBuffer(),
     m_GlobalBuffers(),
     m_DrawDataBuffers(),
     m_DescriptorSets(),
@@ -72,8 +73,7 @@ void imp::Graphics::Initialize(const EngineGraphicsSettings& settings, Window* w
 
 void imp::Graphics::StartFrame()
 {
-    m_ShaderManager.RegisterDraws(m_LogicalDevice, m_DrawData.size());
-    // update actual data
+    // Here we update the shader data for DrawData
     m_ShaderManager.UpdateDrawData(m_LogicalDevice, m_Swapchain.GetFrameClock(), m_DrawData);
 }
 
@@ -167,6 +167,11 @@ void imp::Graphics::CreateAndUploadMaterials(const std::vector<CmdRsc::MaterialC
     {
         m_ShaderManager.CreateVulkanShaderSet(m_LogicalDevice, req);
     }
+}
+
+EngineGraphicsSettings& imp::Graphics::GetGraphicsSettings()
+{
+    return m_Settings;
 }
 
 void imp::Graphics::Destroy()
@@ -451,6 +456,7 @@ void imp::Graphics::InitializeVulkanMemory()
     m_VertexBuffer  = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
     m_IndexBuffer   = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
     m_MeshBuffer    = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
+    m_DrawBuffer    = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
 }
 
 imp::VulkanBuffer imp::Graphics::UploadVulkanBuffer(VkBufferUsageFlags usageFlags, VkBufferUsageFlags dstUsageFlags, VkMemoryPropertyFlags memoryFlags, VkMemoryPropertyFlags dstMemoryFlags, const CommandBuffer& cb, uint32_t allocSize, const void* dataToUpload)

@@ -5,7 +5,7 @@ namespace imp
 {
 	void Engine::Cmd_InitGraphics(std::shared_ptr<void> rsc)
 	{
-		auto* re = (Window*)rsc.get();
+		auto re = (Window*)rsc.get();
 		m_Gfx.Initialize(m_EngineSettings.gfxSettings, re);
 		// after initing graphics we can now wait for first update
 		m_SyncPoint->arrive_and_wait();
@@ -38,7 +38,7 @@ namespace imp
 	}
 	void Engine::Cmd_UploadMeshes(std::shared_ptr<void> rsc)
 	{
-		auto* re = (std::vector<imp::CmdRsc::MeshCreationRequest>*)rsc.get();
+		auto re = (std::vector<imp::CmdRsc::MeshCreationRequest>*)rsc.get();
 		// we have place where to add index and vertex components
 		// we know vert and idx data
 
@@ -47,7 +47,15 @@ namespace imp
 
 	void Engine::Cmd_UploadMaterials(std::shared_ptr<void> rsc)
 	{
-		auto* re = (std::vector<imp::CmdRsc::MaterialCreationRequest>*)rsc.get();
+		auto re = (std::vector<imp::CmdRsc::MaterialCreationRequest>*)rsc.get();
 		m_Gfx.CreateAndUploadMaterials(*re);
+	}
+
+	void Engine::Cmd_ChangeRenderMode(std::shared_ptr<void> rsc)
+	{
+		// Changing settings should only happen at start of the frame.
+		// Later move this command to someplace else on main thread
+		auto* re = (EngineRenderMode*)rsc.get();
+		m_Gfx.GetGraphicsSettings().renderMode = *re;
 	}
 }

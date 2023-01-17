@@ -63,11 +63,6 @@ namespace imp
 		void UpdateGlobalData(VkDevice device, uint32_t descriptorSetIdx, const GlobalData& data);
 		void UpdateDrawData(VkDevice device, uint32_t descriptorSetIdx, const std::vector<DrawDataSingle> drawData);
 
-		void RegisterDraws(VkDevice device, uint32_t numDraws);
-
-		// new material stuff
-
-
 	private:
 
 		VkDescriptorPool CreateDescriptorPool(VkDevice device);
@@ -76,7 +71,7 @@ namespace imp
 		void CreateMegaDescriptorSetLayout(VkDevice device);
 		VkDescriptorSetLayoutBinding CreateDescriptorBinding(uint32_t binding, uint32_t descriptorCount, VkDescriptorType type, VkShaderStageFlags stageFlags);
 
-		uint32_t WriteUpdateDescriptorSets(VkDevice device, VkDescriptorType type, auto& buffers, size_t descriptorDataSize, uint32_t bindSlot, uint32_t descriptorCount);
+		void WriteUpdateDescriptorSets(VkDevice device, VkDescriptorType type, auto& buffers, size_t descriptorDataSize, uint32_t bindSlot, uint32_t descriptorCount);
 		void UpdateDescriptorData(VkDevice device, VulkanBuffer& buffer, size_t size, uint32_t offset, const void* data);
 
 		void CreateDefaultMaterial(VkDevice device);
