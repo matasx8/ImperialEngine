@@ -72,11 +72,12 @@ void imp::Graphics::Initialize(const EngineGraphicsSettings& settings, Window* w
 }
 
 
-
+static bool FirstFrame = true;
 void imp::Graphics::StartFrame()
 {
-    if (m_Swapchain.GetFrameClock() == 0) // first frame
+    if (FirstFrame) // first frame
     {
+        FirstFrame = false;
         const auto usageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
         const auto memoryFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 

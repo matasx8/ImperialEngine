@@ -31,14 +31,17 @@ namespace imp
 		const auto bigIdxBuffer = gfx.m_IndexBuffer.GetBuffer();
 		vkCmdBindIndexBuffer(cb, bigIdxBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-		//uint32_t drawIndex = 0;
-		//for (const auto& drawData : gfx.m_DrawData) // seems like we might something useful for draw indirect?
+		//if (gfx.GetGraphicsSettings().renderMode == kEngineRenderModeTraditional)
 		//{
-		//	gfx.PushConstants(cb, &drawIndex, sizeof(uint32_t), pipe.GetPipelineLayout());
+		//	uint32_t drawIndex = 0;
+		//	for (const auto& drawData : gfx.m_DrawData) // seems like we might something useful for draw indirect?
+		//	{
+		//		gfx.PushConstants(cb, &drawIndex, sizeof(uint32_t), pipe.GetPipelineLayout());
 
-		//	const auto mesh = gfx.m_VertexBuffers.find(drawData.VertexBufferId)->second;
-		//	vkCmdDrawIndexed(cb, mesh.indices.GetCount(), 1, mesh.indices.GetOffset(), mesh.vertices.GetOffset(), 0);
-		//	drawIndex++;
+		//		const auto mesh = gfx.m_VertexBuffers.find(drawData.VertexBufferId)->second;
+		//		vkCmdDrawIndexed(cb, mesh.indices.GetCount(), 1, mesh.indices.GetOffset(), mesh.vertices.GetOffset(), 0);
+		//		drawIndex++;
+		//	}
 		//}
 		vkCmdDrawIndexedIndirect(cb, gfx.m_DrawBuffer.GetBuffer(), 0, gfx.m_DrawData.size(), sizeof(VkDrawIndexedIndirectCommand));
 

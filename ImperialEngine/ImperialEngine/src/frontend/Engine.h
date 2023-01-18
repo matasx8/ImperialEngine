@@ -59,8 +59,6 @@ namespace imp
 
 		void EngineThreadSyncFunc()  noexcept;
 
-
-
 		// entity stuff
 		entt::registry m_Entities;
 
