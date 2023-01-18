@@ -120,10 +120,6 @@ void imp::Graphics::CreateAndUploadMeshes(const std::vector<CmdRsc::MeshCreation
 
     cb.Begin();
 
-
-    //auto allocSize = std::accumulate(meshCreationData.begin(), meshCreationData.end(), 0u, [](const auto& a, const auto& b) { return a + b.vertices.size(); });//.vertices.size() * sizeof(Vertex);
-    //UploadVulkanBuffer(usageFlags, dstUsageFlags, memoryFlags, dstMemoryFlags, cb, allocSize, req.vertices.data());
-
     // TODO: this can be abstracted to not differentiate between indices and vertices
 
     uint32_t vtxAllocSize = 0;
@@ -453,10 +449,11 @@ void imp::Graphics::CreateRenderPassGenerator()
 void imp::Graphics::InitializeVulkanMemory()
 {
     static constexpr VkDeviceSize allocSize = 4 * 1024 * 1024;
+    static constexpr VkDeviceSize drawAllocSize = kMaxDrawCount * sizeof(VkDrawIndexedIndirectCommand);
     m_VertexBuffer  = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
     m_IndexBuffer   = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
     m_MeshBuffer    = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
-    m_DrawBuffer    = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
+    m_DrawBuffer    = m_MemoryManager.GetBuffer(m_LogicalDevice, drawAllocSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
 }
 
 imp::VulkanBuffer imp::Graphics::UploadVulkanBuffer(VkBufferUsageFlags usageFlags, VkBufferUsageFlags dstUsageFlags, VkMemoryPropertyFlags memoryFlags, VkMemoryPropertyFlags dstMemoryFlags, const CommandBuffer& cb, uint32_t allocSize, const void* dataToUpload)

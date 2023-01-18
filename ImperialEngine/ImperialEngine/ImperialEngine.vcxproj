@@ -208,7 +208,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir)/src;$(VULKAN_SDK)/Include/vulkan;$(VK_SDK_PATH)/Include/vulkan;$(ProjectDir)/src/extern/IMGUI;$(ProjectDir)/src/extern/;$(ProjectDir)/src/extern/ENTT;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <Optimization>MaxSpeed</Optimization>
-      <MultiProcessorCompilation>false</MultiProcessorCompilation>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

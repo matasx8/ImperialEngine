@@ -50,14 +50,10 @@ namespace imp
 			{
 				ImGui::Text("Various utilities..");
 				static int clicked = 0;
-				if (ImGui::Button("Add Monkey"))
-					engine.AddDemoEntity(1, 1);
-				if (ImGui::Button("Add A LOT of Monkey"))
-					engine.AddDemoEntity(1000, 1);
-				if (ImGui::Button("Add Donut"))
-					engine.AddDemoEntity(1, 0);
-				if (ImGui::Button("Add A LOT of Donut"))
-					engine.AddDemoEntity(1000, 0);
+				if (ImGui::Button("Add random meshes"))
+					engine.AddDemoEntity(1);
+				if (ImGui::Button("Add A LOT of random meshes"))
+					engine.AddDemoEntity(1000);
 				ImGui::EndTabItem();
 			}
 			if (ImGui::BeginTabItem("Profiling"))

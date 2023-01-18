@@ -90,81 +90,26 @@ namespace imp
 		m_Q->add(std::mem_fn(&Engine::Cmd_ChangeRenderMode), std::make_shared<EngineRenderMode>(newRenderMode));
 	}
 
-	void Engine::AddDemoEntity(uint32_t count, uint32_t meshID)
+	void Engine::AddDemoEntity(uint32_t count)
 	{
-		static int idx = 0;
-		static int idx1 = 0;
-		static int idx2 = 0;
-		static int idx3 = 0;
-		static int quarter = 0;
-		static glm::vec3 offset = glm::vec3(0.0f, 0.0f, 0.0f);
-		static glm::vec3 offset1 = glm::vec3(0.0f, 0.0f, 0.0f);
-		static glm::vec3 offset2 = glm::vec3(0.0f, 0.0f, 0.0f);
-		static glm::vec3 offset3 = glm::vec3(0.0f, 0.0f, 0.0f);
-		static constexpr glm::vec3 dir = glm::vec3(1.0f, 1.0f, -1.0f);
-		static constexpr glm::vec3 dir1 = glm::vec3(1.0f, 1.0f, 1.0f);
-		static constexpr glm::vec3 dir2 = glm::vec3(1.0f, -1.0f, 1.0f);
-		static constexpr glm::vec3 dir3 = glm::vec3(1.0f, -1.0f, -1.0f);
+		srand(42);
 
-		int* currIdxPtr = nullptr;
-		glm::vec3* currOffsetPtr = nullptr;
-		const glm::vec3* currDirectionPtr = nullptr;
+		static constexpr uint32_t numMeshes = 2u; // lets say we have 2 meshes
 
-		auto ApplyNewPosition = [&]()
-		{
-			switch (quarter)
-			{
-			case 0:
-				currIdxPtr = &idx;
-				currOffsetPtr = &offset;
-				currDirectionPtr = &dir;
-				break;
-			case 1:
-				currIdxPtr = &idx1;
-				currOffsetPtr = &offset1;
-				currDirectionPtr = &dir1;
-				break;
-			case 2:
-				currIdxPtr = &idx2;
-				currOffsetPtr = &offset2;
-				currDirectionPtr = &dir2;
-				break;
-			case 3:
-				currIdxPtr = &idx3;
-				currOffsetPtr = &offset3;
-				currDirectionPtr = &dir3;
-				break;
-			}
-		};
-
+		auto& reg = m_Entities;
 		for (auto i = 0; i < count; i++)
 		{
-			ApplyNewPosition();
-			switch (*currIdxPtr)
-			{
-			case 0:
-				*currOffsetPtr += glm::vec3(2.0f, 0.0f, 0.0f) * *currDirectionPtr;
-				break;
-			case 1:
-				*currOffsetPtr += glm::vec3(0.0f, 2.0f, 0.0f) * *currDirectionPtr;
-				break;
-			case 2:
-				*currOffsetPtr += glm::vec3(0.0f, 0.0f, 2.0f) * *currDirectionPtr;
-				break;
-			}
-			(*currIdxPtr)++;
-			(*currIdxPtr) %= 3;
-			quarter++;
-			quarter %= 4;
-			auto& reg = m_Entities;
 			const auto monkey = reg.create();
 			const auto identityMat = glm::mat4x4(1.0f);
-			const auto newMatrix = glm::translate(identityMat, *currOffsetPtr);
-			reg.emplace<Comp::Transform>(monkey, newMatrix);
+			const auto randomOffset = glm::vec3((float)(rand() % 80 - 40), (float)(rand() % 80 - 40), (float)(rand() % 80 - 40));
+			const auto randomRot = glm::vec3((float)(rand()), (float)(rand()), (float)(rand()));
+			const auto newMatrix = glm::translate(identityMat, randomOffset);
+			const auto nnn = glm::rotate(newMatrix, (float)(rand() % 360), glm::normalize(randomRot));
+			reg.emplace<Comp::Transform>(monkey, nnn);
 			
 			const auto child = reg.create();
 			reg.emplace<Comp::ChildComponent>(child, monkey);
-			reg.emplace<Comp::Mesh>(child, meshID);
+			reg.emplace<Comp::Mesh>(child, (uint32_t)rand() % 2);
 			reg.emplace<Comp::Material>(child, kDefaultMaterialIndex);
 		}
 	}
@@ -263,11 +208,13 @@ namespace imp
 		const auto camera = m_Entities.create();
 		const auto identity = glm::mat4x4(1.0f);
 
-		static constexpr float defaultCameraYRotationRad = 0;// glm::pi<float>() / 2.0f;
+		static constexpr float defaultCameraYRotationRad = 0;
 		const auto defaultCameraTransform = glm::rotate(glm::translate(identity, glm::vec3(0.0f, 0.0f, 15.0f)), defaultCameraYRotationRad, glm::vec3(0.0f, 1.0f, 0.0f));
 		m_Entities.emplace<Comp::Transform>(camera, defaultCameraTransform);
 		glm::mat4x4 proj = glm::perspective(glm::radians(45.0f), (float)m_Window.GetWidth() / (float)m_Window.GetHeight(), 5.0f, 100.0f);
 		m_Entities.emplace<Comp::Camera>(camera, proj, glm::mat4x4(), kCamOutColor, true);
+
+		AddDemoEntity(10000);
 	}
 
 	void Engine::RenderCameras()

@@ -31,7 +31,7 @@ namespace imp
 		void SwitchRenderingMode(EngineRenderMode newRenderMode);
 
 		// temporary
-		void AddDemoEntity(uint32_t count, uint32_t meshID);
+		void AddDemoEntity(uint32_t count);
 
 		bool ShouldClose() const;
 		void ShutDown();
