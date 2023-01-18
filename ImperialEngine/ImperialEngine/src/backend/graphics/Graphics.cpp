@@ -71,8 +71,37 @@ void imp::Graphics::Initialize(const EngineGraphicsSettings& settings, Window* w
     CreateImGUI();
 }
 
+
+
 void imp::Graphics::StartFrame()
 {
+    if (m_Swapchain.GetFrameClock() == 0) // first frame
+    {
+        const auto usageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        const auto memoryFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
+        std::vector<VkDrawIndexedIndirectCommand> draws;
+        draws.resize(m_DrawData.size());
+        for (auto i = 0; i < m_DrawData.size(); i++)
+        {
+            const auto mesh = m_VertexBuffers.find(m_DrawData[i].VertexBufferId)->second;
+            VkDrawIndexedIndirectCommand cmd;
+            cmd.indexCount = mesh.indices.GetCount();
+            cmd.instanceCount = 1;
+            cmd.firstIndex = mesh.indices.GetOffset();
+            cmd.vertexOffset = mesh.vertices.GetOffset();
+            cmd.firstInstance = 0;
+            draws[i] = cmd;
+        }
+
+        // upload draw commands
+        CommandBuffer cb = m_CbManager.AquireCommandBuffer(m_LogicalDevice);
+        cb.Begin();
+        UploadVulkanBuffer(usageFlags, memoryFlags, m_DrawBuffer, cb, draws.size() * sizeof(VkDrawIndexedIndirectCommand), draws.data());
+        cb.End();
+        auto synchs = m_CbManager.Submit(m_GfxQueue, m_LogicalDevice, { cb }, {}, kSubmitDontCare);
+        m_DrawBuffer.GiveSemaphore(synchs.semaphore);
+    }
     // Here we update the shader data for DrawData
     m_ShaderManager.UpdateDrawData(m_LogicalDevice, m_Swapchain.GetFrameClock(), m_DrawData);
 }
@@ -152,7 +181,7 @@ void imp::Graphics::CreateAndUploadMeshes(const std::vector<CmdRsc::MeshCreation
 
     cb.End();
     
-    auto synchs = m_CbManager.Submit(m_GfxQueue, m_LogicalDevice, cbs, {});
+    auto synchs = m_CbManager.Submit(m_GfxQueue, m_LogicalDevice, cbs, {}, kSubmitDontCare);
     m_VertexBuffer.GiveSemaphore(synchs.semaphore);
     m_IndexBuffer.GiveSemaphore(synchs.semaphore);
 }
@@ -311,10 +340,12 @@ void imp::Graphics::CreateLogicalDevice()
    // deviceCreateInfo.pEnabledFeatures = &devicefeatures;
     
     // indexing ---
+    VkPhysicalDeviceShaderDrawParametersFeatures drawParamsFeature{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES, nullptr, VK_TRUE };
     VkPhysicalDeviceDescriptorIndexingFeatures indexing_features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT, nullptr };
     VkPhysicalDeviceFeatures2 physical_features2 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
     physical_features2.features.samplerAnisotropy = VK_TRUE;
     vkGetPhysicalDeviceFeatures2(m_PhysicalDevice, &physical_features2);
+    physical_features2.features.multiDrawIndirect = true;
     bool bindless_supported = indexing_features.descriptorBindingPartiallyBound && indexing_features.runtimeDescriptorArray;
     indexing_features.descriptorBindingPartiallyBound = VK_TRUE;
     indexing_features.runtimeDescriptorArray = VK_TRUE;
@@ -322,6 +353,7 @@ void imp::Graphics::CreateLogicalDevice()
     indexing_features.descriptorBindingUniformBufferUpdateAfterBind = VK_TRUE;
     indexing_features.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
     indexing_features.descriptorBindingVariableDescriptorCount = VK_TRUE;
+    indexing_features.pNext = &drawParamsFeature;
     physical_features2.pNext = &indexing_features;
     deviceCreateInfo.pNext = &physical_features2;
 
@@ -427,7 +459,7 @@ void imp::Graphics::CreateImGUI()
     cbs[0].Begin();
     ImGui_ImplVulkan_CreateFontsTexture(cbs[0].cmb);
     cbs[0].End();
-    m_CbManager.Submit(m_GfxQueue, m_LogicalDevice, cbs, {});
+    m_CbManager.Submit(m_GfxQueue, m_LogicalDevice, cbs, {}, kSubmitDontCare);
 
     // TODO: dont wait
     auto err = vkDeviceWaitIdle(m_LogicalDevice);

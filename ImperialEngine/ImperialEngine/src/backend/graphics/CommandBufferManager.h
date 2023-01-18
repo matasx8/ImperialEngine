@@ -10,6 +10,14 @@
 
 namespace imp 
 {
+
+	enum SubmitType
+	{
+		// After submit will return synch primitives for caller to take care of
+		kSubmitDontCare,
+		// After submit will keep synch primitives and wait on before presenting
+		kSubmitSynchForPresent
+	};
 	struct CommandPool
 	{
 		VkCommandPool pool;
@@ -35,9 +43,10 @@ namespace imp
 		CommandBufferManager();
 		void Initialize(VkDevice device, QueueFamilyIndices familyIndices, EngineSwapchainImageCount imageCount);
 
-		SubmitSynchPrimitives Submit(VkQueue submitQueue, VkDevice device, std::vector<CommandBuffer> commandBuffers, std::vector<VkSemaphore> waitSemaphores);
+		SubmitSynchPrimitives Submit(VkQueue submitQueue, VkDevice device, std::vector<CommandBuffer> commandBuffers, std::vector<VkSemaphore> waitSemaphores, SubmitType submitType);
 		void SignalFrameEnded();
 		std::vector<CommandBuffer> AquireCommandBuffers(VkDevice device, uint32_t count);
+		CommandBuffer AquireCommandBuffer(VkDevice device);
 		std::vector<VkSemaphore>& GetCommandExecSemaphores();
 
 		void Destroy(VkDevice device);

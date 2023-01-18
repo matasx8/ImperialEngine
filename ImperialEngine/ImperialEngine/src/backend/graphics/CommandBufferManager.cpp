@@ -36,7 +36,7 @@ static std::vector<VkCommandBuffer> GetCmbs(std::vector<imp::CommandBuffer> comm
     return buffs;
 }
 
-imp::SubmitSynchPrimitives imp::CommandBufferManager::Submit(VkQueue submitQueue, VkDevice device, std::vector<CommandBuffer> commandBuffers, std::vector<VkSemaphore> waitSemaphores)
+imp::SubmitSynchPrimitives imp::CommandBufferManager::Submit(VkQueue submitQueue, VkDevice device, std::vector<CommandBuffer> commandBuffers, std::vector<VkSemaphore> waitSemaphores, SubmitType submitType)
 {
     IPROF_FUNC;
     // need to add fence for command buffers to know when we can reset them
@@ -44,12 +44,22 @@ imp::SubmitSynchPrimitives imp::CommandBufferManager::Submit(VkQueue submitQueue
     const auto semaphore = GetSemaphore(device);
     const auto fence = GetFence(device);
 
+    // TOOD: along with semaphore we must provide where to wait. For quick hac I'm assuming this because
+    // currently all additional semaphores are from transfer operations
+    std::vector<VkPipelineStageFlags> waitStages;
+    for (int i = 0; i < waitSemaphores.size(); i++)
+    {
+        if (i == 0)
+            waitStages.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+        else
+            waitStages.push_back(VK_PIPELINE_STAGE_TRANSFER_BIT);
+    }
+
     VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.waitSemaphoreCount = static_cast<uint32_t>(waitSemaphores.size());
     submitInfo.pWaitSemaphores = waitSemaphores.data(); // semaphore for swapchain image or other dependency between queue operation
-    VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT }; // I've no idea what to put here
-    submitInfo.pWaitDstStageMask = waitStages;
+    submitInfo.pWaitDstStageMask = waitStages.data();
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = &semaphore;
     submitInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
@@ -61,9 +71,16 @@ imp::SubmitSynchPrimitives imp::CommandBufferManager::Submit(VkQueue submitQueue
     if (result != VK_SUCCESS)
         throw std::runtime_error("Failed to submit Command Buffer to Queue!");
 
-    m_GfxCommandPools[m_FrameClock].ReturnCommandBuffers(commandBuffers, semaphore, fence);
-
-    return { semaphore, fence };
+    if (submitType == kSubmitSynchForPresent)
+    {
+        m_GfxCommandPools[m_FrameClock].ReturnCommandBuffers(commandBuffers, semaphore, fence);
+        return {};
+    }
+    else
+    {
+        m_GfxCommandPools[m_FrameClock].ReturnCommandBuffers(commandBuffers, VK_NULL_HANDLE, fence);
+        return { semaphore, fence };
+    }
 }
 
 void imp::CommandBufferManager::SignalFrameEnded()
@@ -78,6 +95,11 @@ std::vector<imp::CommandBuffer> imp::CommandBufferManager::AquireCommandBuffers(
     if (m_IsNewFrame)
         m_GfxCommandPools[m_FrameClock].Reset(device);
     return m_GfxCommandPools[m_FrameClock].AquireCommandBuffers(device, count);
+}
+
+imp::CommandBuffer imp::CommandBufferManager::AquireCommandBuffer(VkDevice device)
+{
+    return AquireCommandBuffers(device, 1)[0];
 }
 
 std::vector<VkSemaphore>& imp::CommandBufferManager::GetCommandExecSemaphores()
@@ -150,8 +172,10 @@ std::vector<imp::CommandBuffer> imp::CommandPool::AquireCommandBuffers(VkDevice 
 void imp::CommandPool::ReturnCommandBuffers(std::vector<CommandBuffer>& buffers, VkSemaphore semaphore, VkFence fence)
 {
     donePool.insert(donePool.end(), buffers.begin(), buffers.end());
-    semaphores.push_back(semaphore);
-    fences.push_back(fence);
+    if(semaphore != VK_NULL_HANDLE)
+        semaphores.push_back(semaphore);
+    if(fence != VK_NULL_HANDLE)
+        fences.push_back(fence);
 }
 
 void imp::CommandPool::Reset(VkDevice device)
@@ -163,13 +187,16 @@ void imp::CommandPool::Reset(VkDevice device)
     }
     for (auto& buff : donePool)
         readyPool.push(buff);
-    // TODO: not sure if releasing resources is good?
+
     auto res = vkResetCommandPool(device, pool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
     assert(res == VK_SUCCESS);
 
     for (int i = 0; i < fences.size(); i++)
     {
         vkDestroyFence(device, fences[i], nullptr);
+    }
+    for (int i = 0; i < semaphores.size(); i++)
+    {
         vkDestroySemaphore(device, semaphores[i], nullptr);
     }
     // not sure if best and simplest way to clear vector?

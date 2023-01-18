@@ -24,11 +24,6 @@ namespace imp
 		const auto pipe = gfx.EnsurePipeline(cb, *this);	// since we have to get pipeline, bind here and not in that func
 		vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe.GetPipelineLayout(), 0, 1, &dset, 0, nullptr);
 
-
-		// !HERE: global is done. Now need to create draw data!
-		std::array<uint32_t, 1> pushData;
-		pushData[0] = kDefaultMaterialIndex;
-
 		const auto bigVtxBuffer = gfx.m_VertexBuffer.GetBuffer();
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(cb, 0, 1, &bigVtxBuffer, offsets);
@@ -36,15 +31,16 @@ namespace imp
 		const auto bigIdxBuffer = gfx.m_IndexBuffer.GetBuffer();
 		vkCmdBindIndexBuffer(cb, bigIdxBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-		uint32_t drawIndex = 0;
-		for (const auto& drawData : gfx.m_DrawData) // seems like we might something useful for draw indirect?
-		{
-			gfx.PushConstants(cb, &drawIndex, sizeof(uint32_t), pipe.GetPipelineLayout());
+		//uint32_t drawIndex = 0;
+		//for (const auto& drawData : gfx.m_DrawData) // seems like we might something useful for draw indirect?
+		//{
+		//	gfx.PushConstants(cb, &drawIndex, sizeof(uint32_t), pipe.GetPipelineLayout());
 
-			const auto mesh = gfx.m_VertexBuffers.find(drawData.VertexBufferId)->second;
-			vkCmdDrawIndexed(cb, mesh.indices.GetCount(), 1, mesh.indices.GetOffset(), mesh.vertices.GetOffset(), 0);
-			drawIndex++;
-		}
+		//	const auto mesh = gfx.m_VertexBuffers.find(drawData.VertexBufferId)->second;
+		//	vkCmdDrawIndexed(cb, mesh.indices.GetCount(), 1, mesh.indices.GetOffset(), mesh.vertices.GetOffset(), 0);
+		//	drawIndex++;
+		//}
+		vkCmdDrawIndexedIndirect(cb, gfx.m_DrawBuffer.GetBuffer(), 0, gfx.m_DrawData.size(), sizeof(VkDrawIndexedIndirectCommand));
 
 		EndRenderPass(gfx, cmb);
 		cmb.End();
@@ -54,7 +50,10 @@ namespace imp
 		auto semaphores = GetSemaphoresToWaitOn();
 		if (gfx.m_VertexBuffer.HasSemaphore())
 			semaphores.push_back(gfx.m_VertexBuffer.StealSemaphore());
+		if(gfx.m_DrawBuffer.HasSemaphore())
+			semaphores.push_back(gfx.m_DrawBuffer.StealSemaphore());
 
-		gfx.m_CbManager.Submit(gfx.m_GfxQueue, gfx.m_LogicalDevice, cmbs, GetSemaphoresToWaitOn());
+
+		gfx.m_CbManager.Submit(gfx.m_GfxQueue, gfx.m_LogicalDevice, cmbs, semaphores, kSubmitSynchForPresent);
 	}
 }
