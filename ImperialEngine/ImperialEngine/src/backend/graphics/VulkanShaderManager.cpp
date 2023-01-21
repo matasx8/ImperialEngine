@@ -59,11 +59,14 @@ VkDescriptorSetLayout imp::VulkanShaderManager::GetDescriptorSetLayout() const
 void imp::VulkanShaderManager::CreateVulkanShaderSet(VkDevice device, const CmdRsc::MaterialCreationRequest& req)
 {
 	const auto vertexShaderModule = CreateShaderModule(device, *req.vertexSpv.get());
+	const auto vertexIndShaderModule = CreateShaderModule(device, *req.vertexIndSpv.get());
 	const auto fragmentShaderModule = CreateShaderModule(device, *req.fragmentSpv.get());
 
 	const VulkanShader vertexShader(vertexShaderModule);
+	const VulkanShader vertexIndShader(vertexIndShaderModule);
 	const VulkanShader fragmentShader(fragmentShaderModule);
 	m_ShaderMap[req.shaderName + ".vert"] = vertexShader;
+	m_ShaderMap[req.shaderName + ".ind.vert"] = vertexIndShader;
 	m_ShaderMap[req.shaderName + ".frag"] = fragmentShader;
 }
 

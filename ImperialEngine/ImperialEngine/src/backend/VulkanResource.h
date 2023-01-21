@@ -3,23 +3,38 @@
 
 namespace imp
 {
-	class VulkanResource
+	struct CountedResource
+	{
+		CountedResource() : m_FrameLastUsed() {};
+		virtual ~CountedResource() {};
+
+		void UpdateLastUsed(uint64_t currentFrame)
+		{
+			m_FrameLastUsed = currentFrame;
+		}
+
+		uint64_t GetLastUsed() const
+		{
+			return m_FrameLastUsed;
+		};
+
+	protected:
+		uint64_t m_FrameLastUsed;
+	};
+	class VulkanResource : public CountedResource
 	{
 	public:
 		VulkanResource();
 
-		void UpdateLastUsed(uint64_t currentFrame);
-		uint64_t GetLastUsed() const;
 		bool HasSemaphore() const;
 		VkSemaphore GetSemaphore() const;
 		VkSemaphore StealSemaphore();
 		void GiveSemaphore(VkSemaphore& sem);
 
-		virtual void Destroy(VkDevice device); // why didn't I make this pure?
+		virtual void Destroy(VkDevice device);
+		virtual ~VulkanResource() {};
 
 	protected:
-
-		uint64_t m_FrameLastUsed;
 		VkSemaphore m_Semaphore;
 	};
 }

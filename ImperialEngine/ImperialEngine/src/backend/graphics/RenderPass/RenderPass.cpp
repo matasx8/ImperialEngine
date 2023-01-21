@@ -136,8 +136,12 @@ std::vector<VkSemaphore> imp::RenderPass::GetSemaphoresToWaitOn()
 	for (auto& surf : m_Surfaces)
 	{
 		auto sem = surf.GetSemaphore();
-		if(sem)
-			sems.push_back(surf.GetSemaphore());
+		if (sem)
+		{
+			sems.push_back(sem);
+			surf.RemoveSemaphore();
+		}
+
 	}
 	return sems;
 }
@@ -147,7 +151,7 @@ std::vector<imp::Surface> imp::RenderPass::GiveSurfaces()
 	std::vector<imp::Surface> surfaceCopies;
 	for (auto&& surf : m_Surfaces)
 	{
-		if(!surf.GetDesc().isBackbuffer)	// swapchain images are controlled by the swapchain
+		//if(!surf.GetDesc().isBackbuffer)	// swapchain images are controlled by the swapchain
 			surfaceCopies.emplace_back(surf);
 	}
 	return surfaceCopies;
@@ -164,17 +168,14 @@ void imp::RenderPass::BeginRenderPass(Graphics& gfx, CommandBuffer cmb)
 	// TODO: should somehow be able to get input surfaces
 	// and also attachments and map them to the surface descriptions
 	auto& surfaces = m_Surfaces;
-	if (surfaces.size())
-	{
-		gfx.m_SurfaceManager.ReturnSurfaces(surfaces);
-		surfaces = {};
-	}
+	surfaces.resize(0);
+
 	for (const auto& surfDesc : GetSurfaceDescriptions())
 	{
 		if (surfDesc.format)
 		{
 			if (surfDesc.isBackbuffer)
-				surfaces.push_back(gfx.m_Swapchain.GetSwapchainImageSurface(gfx.m_LogicalDevice));
+				surfaces.push_back(gfx.m_Swapchain.GetSwapchainImageSurface(gfx.m_LogicalDevice, gfx.m_CurrentFrame));
 			else
 				surfaces.push_back(gfx.m_SurfaceManager.GetSurface(surfDesc, gfx.m_LogicalDevice)); // TODO: change to emplace?
 		}
@@ -202,7 +203,7 @@ void imp::RenderPass::BeginRenderPass(Graphics& gfx, CommandBuffer cmb)
 	renderPassBeginInfo.renderArea.offset = { 0, 0 };
 	renderPassBeginInfo.renderArea.extent = { GetSurfaceDescriptions()[0].width, GetSurfaceDescriptions()[0].height};
 	// temp way to know if clear
-	bool clear = (m_Desc.colorSurfaces[0].loadOp == kLoadOpClear || m_Desc.depthSurface.loadOp == kLoadOpClear);
+	const bool clear = (m_Desc.colorSurfaces[0].loadOp == kLoadOpClear || m_Desc.depthSurface.loadOp == kLoadOpClear);
 	renderPassBeginInfo.pClearValues = clear ? clearValues.data() : nullptr;
 	renderPassBeginInfo.clearValueCount = clear ? clearValues.size() : 0;
 	renderPassBeginInfo.framebuffer = m_Framebuffer.GetVkFramebuffer();

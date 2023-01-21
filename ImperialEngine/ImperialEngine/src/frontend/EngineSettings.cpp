@@ -35,4 +35,5 @@ EngineSettings::EngineSettings(EngineSettingsTemplate settingsTemplate)
 	};
 	gfxSettings.swapchainImageCount = kEngineSwapchainTripleBuffering;
 	gfxSettings.preferredPresentModes = { kEnginePresentMailbox, kEnginePresentFifo };
+	gfxSettings.renderMode = static_cast<EngineRenderMode>(kDefaultEngineRenderMode);
 }

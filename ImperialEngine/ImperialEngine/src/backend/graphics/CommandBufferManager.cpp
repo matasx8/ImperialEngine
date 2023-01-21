@@ -1,10 +1,11 @@
 #include "CommandBufferManager.h"
+#include "Utils/Pool.h"
 #include <stdexcept>
 #include <cassert>
 #include <IPROF/iprof.hpp>
 
-imp::CommandBufferManager::CommandBufferManager()
-    : m_BufferingMode(), m_FrameClock(), m_IsNewFrame(), m_GfxCommandPools()
+imp::CommandBufferManager::CommandBufferManager(PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool, PrimitivePool<Fence, FenceFactory>& fencePool)
+    : m_BufferingMode(), m_FrameClock(), m_IsNewFrame(true), m_GfxCommandPools(), m_SemaphorePool(semaphorePool), m_FencePool(fencePool)
 {
 }
 
@@ -36,13 +37,15 @@ static std::vector<VkCommandBuffer> GetCmbs(std::vector<imp::CommandBuffer> comm
     return buffs;
 }
 
-imp::SubmitSynchPrimitives imp::CommandBufferManager::Submit(VkQueue submitQueue, VkDevice device, std::vector<CommandBuffer> commandBuffers, std::vector<VkSemaphore> waitSemaphores, SubmitType submitType)
+imp::SubmitSynchPrimitives imp::CommandBufferManager::Submit(VkQueue submitQueue, VkDevice device, std::vector<CommandBuffer> commandBuffers, std::vector<VkSemaphore> waitSemaphores, SubmitType submitType, uint64_t currFrame)
 {
     IPROF_FUNC;
     // need to add fence for command buffers to know when we can reset them
     // need to add semaphore to know when we can present
-    const auto semaphore = GetSemaphore(device);
-    const auto fence = GetFence(device);
+    Semaphore semaphore = m_SemaphorePool.Get(device, currFrame);
+    semaphore.UpdateLastUsed(currFrame);
+    Fence fence = m_FencePool.Get(device, currFrame);
+    fence.UpdateLastUsed(currFrame);
 
     // TOOD: along with semaphore we must provide where to wait. For quick hac I'm assuming this because
     // currently all additional semaphores are from transfer operations
@@ -53,6 +56,9 @@ imp::SubmitSynchPrimitives imp::CommandBufferManager::Submit(VkQueue submitQueue
             waitStages.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
         else
             waitStages.push_back(VK_PIPELINE_STAGE_TRANSFER_BIT);
+
+        // Recycle used semaphores
+        m_SemaphorePool.Return(Semaphore(waitSemaphores[i]));
     }
 
     VkSubmitInfo submitInfo = {};
@@ -61,24 +67,24 @@ imp::SubmitSynchPrimitives imp::CommandBufferManager::Submit(VkQueue submitQueue
     submitInfo.pWaitSemaphores = waitSemaphores.data(); // semaphore for swapchain image or other dependency between queue operation
     submitInfo.pWaitDstStageMask = waitStages.data();
     submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = &semaphore;
+    submitInfo.pSignalSemaphores = &semaphore.semaphore;
     submitInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
     auto ccs = GetCmbs(commandBuffers);
     submitInfo.pCommandBuffers = ccs.data();
 
 
-    VkResult result = vkQueueSubmit(submitQueue, 1, &submitInfo, fence);
+    VkResult result = vkQueueSubmit(submitQueue, 1, &submitInfo, fence.fence);
     if (result != VK_SUCCESS)
         throw std::runtime_error("Failed to submit Command Buffer to Queue!");
 
     if (submitType == kSubmitSynchForPresent)
     {
-        m_GfxCommandPools[m_FrameClock].ReturnCommandBuffers(commandBuffers, semaphore, fence);
-        return {};
+        m_GfxCommandPools[m_FrameClock].ReturnCommandBuffers(commandBuffers, semaphore.semaphore, fence.fence);
+        return { VK_NULL_HANDLE, VK_NULL_HANDLE };
     }
     else
     {
-        m_GfxCommandPools[m_FrameClock].ReturnCommandBuffers(commandBuffers, VK_NULL_HANDLE, fence);
+        m_GfxCommandPools[m_FrameClock].ReturnCommandBuffers(commandBuffers, VK_NULL_HANDLE, fence.fence);
         return { semaphore, fence };
     }
 }
@@ -93,7 +99,10 @@ void imp::CommandBufferManager::SignalFrameEnded()
 std::vector<imp::CommandBuffer> imp::CommandBufferManager::AquireCommandBuffers(VkDevice device, uint32_t count)
 {
     if (m_IsNewFrame)
-        m_GfxCommandPools[m_FrameClock].Reset(device);
+    {
+        m_GfxCommandPools[m_FrameClock].Reset(device, m_SemaphorePool, m_FencePool);
+        m_IsNewFrame = false;
+    }
     return m_GfxCommandPools[m_FrameClock].AquireCommandBuffers(device, count);
 }
 
@@ -117,26 +126,6 @@ void imp::CommandBufferManager::Destroy(VkDevice device)
         for (auto& sem : pool.semaphores)
             vkDestroySemaphore(device, sem, nullptr);
     }
-}
-
-VkSemaphore imp::CommandBufferManager::GetSemaphore(VkDevice device)
-{
-    VkSemaphore sem = 0;
-    VkSemaphoreCreateInfo semaphoreCreateInfo = {};
-    semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-    const auto res = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &sem);
-    assert(res == VK_SUCCESS);
-    return sem;
-}
-
-VkFence imp::CommandBufferManager::GetFence(VkDevice device)
-{
-    VkFence fence = 0;
-    VkFenceCreateInfo fenceCreateInfo = {};
-    fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    const auto res = vkCreateFence(device, &fenceCreateInfo, nullptr, &fence);
-    assert(res == VK_SUCCESS);
-    return fence;
 }
 
 std::vector<imp::CommandBuffer> imp::CommandPool::AquireCommandBuffers(VkDevice device, uint32_t count)
@@ -178,7 +167,7 @@ void imp::CommandPool::ReturnCommandBuffers(std::vector<CommandBuffer>& buffers,
         fences.push_back(fence);
 }
 
-void imp::CommandPool::Reset(VkDevice device)
+void imp::CommandPool::Reset(VkDevice device, PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool, PrimitivePool<Fence, FenceFactory>& fencePool)
 {
     if (fences.size())
     {
@@ -191,16 +180,18 @@ void imp::CommandPool::Reset(VkDevice device)
     auto res = vkResetCommandPool(device, pool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
     assert(res == VK_SUCCESS);
 
+    if(fences.size())
+        vkResetFences(device, fences.size(), fences.data());
+
     for (int i = 0; i < fences.size(); i++)
     {
-        vkDestroyFence(device, fences[i], nullptr);
+        fencePool.Return(fences[i]);
     }
+
     for (int i = 0; i < semaphores.size(); i++)
-    {
-        vkDestroySemaphore(device, semaphores[i], nullptr);
-    }
-    // not sure if best and simplest way to clear vector?
-    donePool = {};
-    fences = {};
-    semaphores = {};
+        semaphorePool.Return(semaphores[i]);
+
+    donePool.resize(0);
+    fences.resize(0);
+    semaphores.resize(0);
 }

@@ -172,7 +172,7 @@ namespace imp
 		// Not likely we will have anything more than a vertex and fragment shader anytime soon.
 		// Easy way to find unique values only using shader file name without extension
 		for (const auto& shader : shaders)
-			shaderSet.insert(shader.parent_path().string() + "/" + shader.stem().stem().string()); //TODO: fix this nonsense
+			shaderSet.insert(shader.parent_path().string() + "/" + shader.stem().stem().stem().string()); //TODO: fix this nonsense
 
 		std::vector<CmdRsc::MaterialCreationRequest> reqs;
 		for (const auto& shader : shaderSet)
@@ -186,6 +186,8 @@ namespace imp
 		// Easy way to get just the shader name
 		std::filesystem::path shaderPath(shader);
 		const auto vertexShaderPath = shader + ".vert.spv";
+		// For now I'll require that each fragment shader has an indirect shader variant
+		const auto vertexIndirectShaderPath = shader + ".ind.vert.spv";
 		const auto fragmentShaderPath = shader + ".frag.spv";
 
 		// TODO: use reflection to compose material creation request
@@ -193,8 +195,11 @@ namespace imp
 		CmdRsc::MaterialCreationRequest req;
 		req.shaderName = shaderPath.stem().string();
 		req.vertexSpv = OS::ReadFileContents(vertexShaderPath);
+		req.vertexIndSpv = OS::ReadFileContents(vertexIndirectShaderPath);
 		req.fragmentSpv = OS::ReadFileContents(fragmentShaderPath);
 		assert(req.vertexSpv.get());
+		assert(req.vertexIndSpv.get());
+		assert(req.fragmentSpv.get());
 		return req;
 	}
 

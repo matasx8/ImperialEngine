@@ -4,7 +4,7 @@
 namespace imp
 {
 	PipelineManager::PipelineManager()
-		: m_TemporarySinglePipeline()
+		: m_PipelineMap()
 	{
 	}
 
@@ -12,7 +12,7 @@ namespace imp
 	{
 	}
 
-	void PipelineManager::CreatePipeline(VkDevice device, const RenderPass& rp, const PipelineConfig& config)
+	Pipeline PipelineManager::CreatePipeline(VkDevice device, const RenderPass& rp, const PipelineConfig& config)
 	{
 		// TODO: have a 'base' pipeline that I can use to create pipeline derivatives?
 		VkPipelineShaderStageCreateInfo shaderStages[2];
@@ -52,20 +52,23 @@ namespace imp
 		const auto pipelineCI = MakePipelineCI(shaderStages, &vertInputState, &inputAssembly, &viewportState, nullptr, &rasterizationState, &msaaState, &colorBlendState, &depthStencilState, pipelineLayout, rp.GetVkRenderPass(), 0);
 		const auto pipeline = MakePipeline(device, pipelineCI);
 
-		m_TemporarySinglePipeline = Pipeline(pipeline, pipelineLayout);
+		return Pipeline(pipeline, pipelineLayout);
 	}
 
 	const Pipeline& PipelineManager::GetOrCreatePipeline(VkDevice device, const RenderPass& rp, const PipelineConfig& config)
 	{
-		if (m_TemporarySinglePipeline.GetPipeline() == VK_NULL_HANDLE)
-			CreatePipeline(device, rp, config);
-		return m_TemporarySinglePipeline;
+		if (!m_PipelineMap.contains(config))
+		{
+			const auto newPipe = CreatePipeline(device, rp, config);
+			m_PipelineMap[config] = newPipe;
+		}
+		return m_PipelineMap.at(config);
 	}
 
-	auto PipelineManager::GetPipeline() const
-	{	// trying out modern c++ magic
-		return m_TemporarySinglePipeline.GetPipeline() == VK_NULL_HANDLE ? std::make_optional<std::reference_wrapper<const Pipeline>>(std::reference_wrapper<const Pipeline>(m_TemporarySinglePipeline)) : std::nullopt;
-	}
+	//auto PipelineManager::GetPipeline() const
+	//{	// trying out modern c++ magic
+	//	return m_TemporarySinglePipeline.GetPipeline() == VK_NULL_HANDLE ? std::make_optional<std::reference_wrapper<const Pipeline>>(std::reference_wrapper<const Pipeline>(m_TemporarySinglePipeline)) : std::nullopt;
+	//}
 
 	void PipelineManager::Destroy(VkDevice device)
 	{

@@ -5,11 +5,13 @@
 #include "backend/graphics/PipelineManager.h"
 #include "backend/graphics/SurfaceManager.h"
 #include "backend/graphics/RenderPassImGUI.h"
+#include "backend/graphics/Semaphore.h"
 #include "backend/graphics/Swapchain.h"
 #include "backend/graphics/VkDebug.h"
 #include "backend/VulkanGarbageCollector.h"
 #include "backend/VulkanMemory.h"
 #include "backend/VkWindow.h"
+#include "Utils/Pool.h"
 #include "frontend/Components/Components.h"
 #include <extern/ENTT/entt.hpp>
 #include <barrier>
@@ -53,10 +55,7 @@ namespace imp
 
 		void Destroy();
 
-		static VkSemaphore GetSemaphore(VkDevice device);
-
 	private:
-
 
 		void CreateInstance();
 		void FindPhysicalDevice();
@@ -108,6 +107,11 @@ namespace imp
 		PipelineManager m_PipelineManager;
 		RenderPassGenerator m_RenderPassManager;
 
+
+		// Pools
+		PrimitivePool<Semaphore, SemaphoreFactory> m_SemaphorePool;
+		PrimitivePool<Fence, FenceFactory> m_FencePool;
+
 		VkWindow m_Window;
 		VulkanMemory m_MemoryManager;
 		MemoryProps m_DeviceMemoryProps;
@@ -128,15 +132,12 @@ namespace imp
 
 		std::vector<DrawDataSingle> m_DrawData;
 		std::vector<CameraData>		m_CameraData;
-		//DrawData<DrawDataSingle> m_DrawData;
 	private:
 
 		friend class RenderPass;
 		friend class RenderPassImGUI;
 		friend class DefaultColorRP;
 		friend class DefaultDepthRP;
-		// prototyping..
-		//RenderPass* renderpass;
 		std::shared_ptr<RenderPass> renderpassgui;
 	};
 }

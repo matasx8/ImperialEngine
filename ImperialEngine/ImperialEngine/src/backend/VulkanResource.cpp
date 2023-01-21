@@ -2,18 +2,8 @@
 #include <cassert>
 
 imp::VulkanResource::VulkanResource()
-	: m_FrameLastUsed(0), m_Semaphore(VK_NULL_HANDLE)
+	: CountedResource(), m_Semaphore(VK_NULL_HANDLE)
 {
-}
-
-void imp::VulkanResource::UpdateLastUsed(uint64_t currentFrame)
-{
-	m_FrameLastUsed = currentFrame;
-}
-
-uint64_t imp::VulkanResource::GetLastUsed() const
-{
-	return m_FrameLastUsed;
 }
 
 bool imp::VulkanResource::HasSemaphore() const
@@ -36,7 +26,9 @@ VkSemaphore imp::VulkanResource::StealSemaphore()
 
 void imp::VulkanResource::GiveSemaphore(VkSemaphore& sem)
 {
-	// TODO: fix buffer upload so I can uncomment this
+	// TODO BUFFER UPLOAD:
+	// Currently this is not very correct. I'm basically appending data to a vulkan buffer and assigning a semaphore for the whole buffer
+	// When I should give the semaphore only for the sub-buffers or something like that. Because other areas won't be affected.
 	//assert(!HasSemaphore());
 	m_Semaphore = sem;
 }

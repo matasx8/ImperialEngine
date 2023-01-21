@@ -21,14 +21,16 @@ imp::Graphics::Graphics() :
     m_LogicalDevice(),
     m_GfxQueue(),
     m_PresentationQueue(),
-    m_Swapchain(),
+    m_Swapchain(m_SemaphorePool),
     m_CurrentFrame(0ul),
     m_VulkanGarbageCollector(),
-    m_CbManager(),
+    m_CbManager(m_SemaphorePool, m_FencePool),
     m_SurfaceManager(),
     m_ShaderManager(),
     m_PipelineManager(),
     m_RenderPassManager(&m_VulkanGarbageCollector),
+    m_SemaphorePool(SemaphoreFactory()),
+    m_FencePool(FenceFactory()),
     m_Window(),
     m_MemoryManager(),
     m_DeviceMemoryProps(),
@@ -100,8 +102,8 @@ void imp::Graphics::StartFrame()
         cb.Begin();
         UploadVulkanBuffer(usageFlags, memoryFlags, m_DrawBuffer, cb, draws.size() * sizeof(VkDrawIndexedIndirectCommand), draws.data());
         cb.End();
-        auto synchs = m_CbManager.Submit(m_GfxQueue, m_LogicalDevice, { cb }, {}, kSubmitDontCare);
-        m_DrawBuffer.GiveSemaphore(synchs.semaphore);
+        auto synchs = m_CbManager.Submit(m_GfxQueue, m_LogicalDevice, { cb }, {}, kSubmitDontCare, m_CurrentFrame);
+        m_DrawBuffer.GiveSemaphore(synchs.semaphore.semaphore);
     }
     // Here we update the shader data for DrawData
     m_ShaderManager.UpdateDrawData(m_LogicalDevice, m_Swapchain.GetFrameClock(), m_DrawData);
@@ -121,7 +123,7 @@ void imp::Graphics::RenderCameras()
         {
             rp->Execute(*this, camera);
             auto surfaces = rp->GiveSurfaces();
-            m_SurfaceManager.ReturnSurfaces(surfaces);
+            m_SurfaceManager.ReturnSurfaces(surfaces, m_Swapchain);
         }
     }
 }
@@ -131,13 +133,14 @@ void imp::Graphics::RenderImGUI()
     IPROF_FUNC;
     renderpassgui->Execute(*this, m_CameraData[0]);
     auto surfaces = renderpassgui->GiveSurfaces();
-    m_SurfaceManager.ReturnSurfaces(surfaces);
+    m_SurfaceManager.ReturnSurfaces(surfaces, m_Swapchain);
 }
 
 void imp::Graphics::EndFrame()
 {
     m_Swapchain.Present(m_PresentationQueue, m_CbManager.GetCommandExecSemaphores());
     m_CbManager.SignalFrameEnded();
+    m_SurfaceManager.SignalFrameEnded();
     m_VulkanGarbageCollector.DestroySafeResources(m_LogicalDevice, m_CurrentFrame);
     m_CurrentFrame++;
 }
@@ -182,9 +185,9 @@ void imp::Graphics::CreateAndUploadMeshes(const std::vector<CmdRsc::MeshCreation
 
     cb.End();
     
-    auto synchs = m_CbManager.Submit(m_GfxQueue, m_LogicalDevice, cbs, {}, kSubmitDontCare);
-    m_VertexBuffer.GiveSemaphore(synchs.semaphore);
-    m_IndexBuffer.GiveSemaphore(synchs.semaphore);
+    auto synchs = m_CbManager.Submit(m_GfxQueue, m_LogicalDevice, cbs, {}, kSubmitDontCare, m_CurrentFrame);
+    m_VertexBuffer.GiveSemaphore(synchs.semaphore.semaphore);
+    m_IndexBuffer.GiveSemaphore(synchs.semaphore.semaphore);
 }
 
 void imp::Graphics::CreateAndUploadMaterials(const std::vector<CmdRsc::MaterialCreationRequest>& materialCreationData)
@@ -216,16 +219,6 @@ void imp::Graphics::Destroy()
     m_Window.Destroy(m_VkInstance);
     m_ValidationLayers.Destroy(m_VkInstance);
     vkDestroyInstance(m_VkInstance, nullptr);
-}
-
-VkSemaphore imp::Graphics::GetSemaphore(VkDevice device)
-{
-    VkSemaphoreCreateInfo semaphoreCreateInfo = {};
-    semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-    VkSemaphore sem;
-    vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &sem);
-    return sem;
 }
 
 void imp::Graphics::CreateInstance()
@@ -460,7 +453,10 @@ void imp::Graphics::CreateImGUI()
     cbs[0].Begin();
     ImGui_ImplVulkan_CreateFontsTexture(cbs[0].cmb);
     cbs[0].End();
-    m_CbManager.Submit(m_GfxQueue, m_LogicalDevice, cbs, {}, kSubmitDontCare);
+    auto synchs = m_CbManager.Submit(m_GfxQueue, m_LogicalDevice, cbs, {}, kSubmitDontCare, m_CurrentFrame);
+
+    // Since we're completely discarding this semaphore nothing will wait for it, can throw out
+    m_VulkanGarbageCollector.AddGarbageResource(std::make_shared<Semaphore>(synchs.semaphore));
 
     // TODO: dont wait
     auto err = vkDeviceWaitIdle(m_LogicalDevice);
@@ -491,33 +487,13 @@ void imp::Graphics::InitializeVulkanMemory()
 
 imp::VulkanBuffer imp::Graphics::UploadVulkanBuffer(VkBufferUsageFlags usageFlags, VkBufferUsageFlags dstUsageFlags, VkMemoryPropertyFlags memoryFlags, VkMemoryPropertyFlags dstMemoryFlags, const CommandBuffer& cb, uint32_t allocSize, const void* dataToUpload)
 {
-    // TODO: later change this so it returns buffer that's on scratch memory
-    auto stagingBuffer = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, usageFlags, memoryFlags, m_DeviceMemoryProps);
-    // then as a vulkan resource we can override the destruction so it doesn't try to deallocate a sub-buffer and just notifies the scratch there's a spot open
-    stagingBuffer.UpdateLastUsed(m_CurrentFrame);
     auto uploadedBuffer = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, dstUsageFlags, dstMemoryFlags, m_DeviceMemoryProps);
-
-    // copy cpu data to host visible buffer
-    void* data;
-    const VkMemoryMapFlags flags = 0;   // don't exist yet
-    const VkDeviceSize offset = 0;      // so far we have whole buffers
-    const auto res = vkMapMemory(m_LogicalDevice, stagingBuffer.GetMemory(), offset, stagingBuffer.GetSize(), flags, &data);
-    assert(res == VK_SUCCESS);
-    memcpy(data, dataToUpload, stagingBuffer.GetSize());
-    vkUnmapMemory(m_LogicalDevice, stagingBuffer.GetMemory());
-
-    // do host visible buffer to device local buffer
-    CopyVulkanBuffer(stagingBuffer, uploadedBuffer, cb);
-
-    m_VulkanGarbageCollector.AddGarbageResource(std::make_shared<VulkanBuffer>(stagingBuffer));
-
+    UploadVulkanBuffer(usageFlags, memoryFlags, uploadedBuffer, cb, allocSize, dataToUpload);
     return uploadedBuffer;
 }
 
 void imp::Graphics::UploadVulkanBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags, VulkanBuffer& dst, const CommandBuffer& cb, uint32_t allocSize, const void* dataToUpload)
 {
-    // TODO: "Calling a second time won't work since it will overwrite the dst buffer"
-    // 
     // TODO: later change this so it returns buffer that's on scratch memory
     auto stagingBuffer = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, usageFlags, memoryFlags, m_DeviceMemoryProps);
     // then as a vulkan resource we can override the destruction so it doesn't try to deallocate a sub-buffer and just notifies the scratch there's a spot open
@@ -561,8 +537,12 @@ const imp::Pipeline& imp::Graphics::EnsurePipeline(VkCommandBuffer cb, const Ren
     // else: get pipeline from pipeline manager
     // Material should store precalculates hash of shader name
     PipelineConfig tempConfig;
-    tempConfig.vertModule = m_ShaderManager.GetShader("basic.vert").GetShaderModule();
+    if (m_Settings.renderMode == kEngineRenderModeTraditional)
+        tempConfig.vertModule = m_ShaderManager.GetShader("basic.vert").GetShaderModule();
+    else
+        tempConfig.vertModule = m_ShaderManager.GetShader("basic.ind.vert").GetShaderModule();
     tempConfig.fragModule = m_ShaderManager.GetShader("basic.frag").GetShaderModule();
+
     tempConfig.descriptorSetLayout = m_ShaderManager.GetDescriptorSetLayout();
 
     const auto& pipeline = m_PipelineManager.GetOrCreatePipeline(m_LogicalDevice, rp, tempConfig);

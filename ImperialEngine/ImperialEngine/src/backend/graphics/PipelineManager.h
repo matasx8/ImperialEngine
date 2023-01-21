@@ -12,9 +12,9 @@ namespace imp
 		PipelineManager();
 		void Initialize();
 
-		void CreatePipeline(VkDevice device, const RenderPass& rp, const PipelineConfig& config);
+		Pipeline CreatePipeline(VkDevice device, const RenderPass& rp, const PipelineConfig& config);
 		const Pipeline& GetOrCreatePipeline(VkDevice device, const RenderPass& rp, const PipelineConfig& config);
-		auto GetPipeline() const;
+		//auto GetPipeline() const;
 
 		void Destroy(VkDevice device);
 
@@ -40,7 +40,7 @@ namespace imp
 			VkPipelineDepthStencilStateCreateInfo* depthStencilCreateInfo, const VkPipelineLayout pipelineLayout, const
 			VkRenderPass renderPass, VkPipelineCreateFlags flags) const;
 		VkPipeline MakePipeline(VkDevice device, const VkGraphicsPipelineCreateInfo& ci) const;
-		// TODO: have an O(1) get container of pipelines
-		Pipeline m_TemporarySinglePipeline;
+
+		std::unordered_map<PipelineConfig, Pipeline, PipelineConfigHash> m_PipelineMap;
 	};
 }

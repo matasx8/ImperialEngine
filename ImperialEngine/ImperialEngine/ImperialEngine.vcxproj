@@ -174,8 +174,8 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)extern/GLFW/;$(VK_SDK_PATH);$(VULKAN_SDK);$(ProjectDir)extern/IMGUI/debug;$(ProjectDir)extern/ASSIMP/</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;Lib/vulkan-1.lib;StaticDearImGUI.lib;assimp-vc143-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)extern/GLFW/;$(VK_SDK_PATH);$(VULKAN_SDK);$(ProjectDir)extern/IMGUI/debug;$(ProjectDir)extern/ASSIMP/;$(ProjectDir)extern/XXHASH/</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;Lib/vulkan-1.lib;StaticDearImGUI.lib;assimp-vc143-mt.lib;xxhash.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Development|x64'">
@@ -192,8 +192,8 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)extern/GLFW/;$(VK_SDK_PATH);$(VULKAN_SDK);$(ProjectDir)extern/IMGUI/debug;$(ProjectDir)extern/ASSIMP/</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;Lib/vulkan-1.lib;StaticDearImGUI.lib;assimp-vc143-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)extern/GLFW/;$(VK_SDK_PATH);$(VULKAN_SDK);$(ProjectDir)extern/IMGUI/debug;$(ProjectDir)extern/ASSIMP/;$(ProjectDir)extern/XXHASH/</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;Lib/vulkan-1.lib;StaticDearImGUI.lib;assimp-vc143-mt.lib;xxhash.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -215,14 +215,15 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)extern/GLFW/;$(VK_SDK_PATH);$(VULKAN_SDK);$(ProjectDir)extern/IMGUI/release;$(ProjectDir)extern/ASSIMP/</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;Lib/vulkan-1.lib;StaticDearImGUI.lib;assimp-vc143-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)extern/GLFW/;$(VK_SDK_PATH);$(VULKAN_SDK);$(ProjectDir)extern/IMGUI/release;$(ProjectDir)extern/ASSIMP/;$(ProjectDir)extern/XXHASH/</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;Lib/vulkan-1.lib;StaticDearImGUI.lib;assimp-vc143-mt.lib;xxhash.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\backend\EngineCommands.cpp" />
     <ClCompile Include="src\backend\graphics\CommandBuffer.cpp" />
     <ClCompile Include="src\backend\graphics\CommandBufferManager.cpp" />
+    <ClCompile Include="src\backend\graphics\Fence.cpp" />
     <ClCompile Include="src\backend\graphics\Framebuffer.cpp" />
     <ClCompile Include="src\backend\graphics\Graphics.cpp" />
     <ClCompile Include="src\backend\graphics\GraphicsCaps.cpp" />
@@ -235,6 +236,7 @@
     <ClCompile Include="src\backend\graphics\RenderPassGeneratorBase.cpp" />
     <ClCompile Include="src\backend\graphics\RenderPassImGUI.cpp" />
     <ClCompile Include="src\backend\graphics\RenderPass\RenderPassFactorySimple.cpp" />
+    <ClCompile Include="src\backend\graphics\Semaphore.cpp" />
     <ClCompile Include="src\backend\graphics\Surface.cpp" />
     <ClCompile Include="src\backend\graphics\SurfaceManager.cpp" />
     <ClCompile Include="src\backend\graphics\Swapchain.cpp" />
@@ -264,6 +266,7 @@
     <ClInclude Include="src\backend\EnumTranslator.h" />
     <ClInclude Include="src\backend\graphics\CommandBuffer.h" />
     <ClInclude Include="src\backend\graphics\CommandBufferManager.h" />
+    <ClInclude Include="src\backend\graphics\Fence.h" />
     <ClInclude Include="src\backend\graphics\Framebuffer.h" />
     <ClInclude Include="src\backend\graphics\Graphics.h" />
     <ClInclude Include="src\backend\graphics\GraphicsCaps.h" />
@@ -277,6 +280,7 @@
     <ClInclude Include="src\backend\graphics\RenderPass\RenderPass.h" />
     <ClInclude Include="src\backend\graphics\RenderPass\RenderPassFactory.h" />
     <ClInclude Include="src\backend\graphics\RenderPass\RenderPassFactorySimple.h" />
+    <ClInclude Include="src\backend\graphics\Semaphore.h" />
     <ClInclude Include="src\backend\graphics\Surface.h" />
     <ClInclude Include="src\backend\graphics\SurfaceManager.h" />
     <ClInclude Include="src\backend\graphics\Swapchain.h" />
@@ -307,6 +311,7 @@
     <ClInclude Include="src\frontend\Components\Components.h" />
     <ClInclude Include="src\frontend\Engine.h" />
     <ClInclude Include="src\frontend\UI.h" />
+    <ClInclude Include="src\Utils\Pool.h" />
     <ClInclude Include="src\Utils\Utilities.h" />
     <ClInclude Include="src\Utils\NonCopyable.h" />
     <ClInclude Include="src\frontend\Window.h" />

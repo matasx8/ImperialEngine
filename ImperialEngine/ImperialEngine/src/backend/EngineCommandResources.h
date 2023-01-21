@@ -18,6 +18,8 @@ namespace imp
 		{
 			std::string shaderName;
 			std::shared_ptr<std::string> vertexSpv;
+			// Indirect variant
+			std::shared_ptr<std::string> vertexIndSpv;
 			std::shared_ptr<std::string> fragmentSpv;
 		};
 	}

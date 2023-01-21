@@ -31,19 +31,23 @@ namespace imp
 		const auto bigIdxBuffer = gfx.m_IndexBuffer.GetBuffer();
 		vkCmdBindIndexBuffer(cb, bigIdxBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-		//if (gfx.GetGraphicsSettings().renderMode == kEngineRenderModeTraditional)
-		//{
-		//	uint32_t drawIndex = 0;
-		//	for (const auto& drawData : gfx.m_DrawData) // seems like we might something useful for draw indirect?
-		//	{
-		//		gfx.PushConstants(cb, &drawIndex, sizeof(uint32_t), pipe.GetPipelineLayout());
+		const auto renderMode = gfx.GetGraphicsSettings().renderMode;
+		if (renderMode == kEngineRenderModeTraditional)
+		{
+			uint32_t drawIndex = 0;
+			for (const auto& drawData : gfx.m_DrawData) // seems like we might something useful for draw indirect?
+			{
+				gfx.PushConstants(cb, &drawIndex, sizeof(uint32_t), pipe.GetPipelineLayout());
 
-		//		const auto mesh = gfx.m_VertexBuffers.find(drawData.VertexBufferId)->second;
-		//		vkCmdDrawIndexed(cb, mesh.indices.GetCount(), 1, mesh.indices.GetOffset(), mesh.vertices.GetOffset(), 0);
-		//		drawIndex++;
-		//	}
-		//}
-		vkCmdDrawIndexedIndirect(cb, gfx.m_DrawBuffer.GetBuffer(), 0, gfx.m_DrawData.size(), sizeof(VkDrawIndexedIndirectCommand));
+				const auto mesh = gfx.m_VertexBuffers.find(drawData.VertexBufferId)->second;
+				vkCmdDrawIndexed(cb, mesh.indices.GetCount(), 1, mesh.indices.GetOffset(), mesh.vertices.GetOffset(), 0);
+				drawIndex++;
+			}
+		}
+		else if (renderMode == kEngineRenderModeGPUDriven)
+		{
+			vkCmdDrawIndexedIndirect(cb, gfx.m_DrawBuffer.GetBuffer(), 0, gfx.m_DrawData.size(), sizeof(VkDrawIndexedIndirectCommand));
+		}
 
 		EndRenderPass(gfx, cmb);
 		cmb.End();
@@ -56,7 +60,8 @@ namespace imp
 		if(gfx.m_DrawBuffer.HasSemaphore())
 			semaphores.push_back(gfx.m_DrawBuffer.StealSemaphore());
 
-
-		gfx.m_CbManager.Submit(gfx.m_GfxQueue, gfx.m_LogicalDevice, cmbs, semaphores, kSubmitSynchForPresent);
+		// put this in EndRenderPass?
+		auto synchs = gfx.m_CbManager.Submit(gfx.m_GfxQueue, gfx.m_LogicalDevice, cmbs, semaphores, kSubmitDontCare, gfx.m_CurrentFrame);
+		std::for_each(m_Surfaces.begin(), m_Surfaces.end(), [&](Surface& surf) {surf.AddSemaphore(synchs.semaphore.semaphore); });
 	}
 }
