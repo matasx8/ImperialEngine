@@ -116,11 +116,14 @@ namespace imp
 		VulkanMemory m_MemoryManager;
 		MemoryProps m_DeviceMemoryProps;
 
-		// can i use any of the entt data structures?
 		VulkanBuffer m_VertexBuffer;
 		VulkanBuffer m_IndexBuffer;
 		VulkanBuffer m_MeshBuffer;
 		VulkanBuffer m_DrawBuffer;
+
+		// Rotating these descriptor buffers only works if I change the data each frame.
+		// When I get in the hang of CS try to use only 1 Buffer instead of 2-3 and use CS to update relevant data.
+		// This way maybe we could benefit from device-local buffers.
 		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_GlobalBuffers;
 		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_DrawDataBuffers;
 		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_DescriptorSets;
@@ -128,7 +131,7 @@ namespace imp
 		std::unordered_map<uint32_t, Comp::IndexedVertexBuffers> m_VertexBuffers;
 
 	public:
-		// TODO: remove this section
+		// TODO: remove this section and replace with some API
 
 		std::vector<DrawDataSingle> m_DrawData;
 		std::vector<CameraData>		m_CameraData;

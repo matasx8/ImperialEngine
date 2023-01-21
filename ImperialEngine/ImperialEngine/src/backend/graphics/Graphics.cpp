@@ -73,7 +73,9 @@ void imp::Graphics::Initialize(const EngineGraphicsSettings& settings, Window* w
     CreateImGUI();
 }
 
-
+// TODO ST-BUG:
+// This doesn't work when going in ST because I'm using this bool as a hack to
+// upload the first data to DrawBuffer. When I remove this ST should work.
 static bool FirstFrame = true;
 void imp::Graphics::StartFrame()
 {

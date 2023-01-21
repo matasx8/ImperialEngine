@@ -275,26 +275,33 @@ namespace imp
 	// TODO: remove barrier to prevent whole engine stall
 	// TODO: figure out why I'm copying this data around? Is there a way to prevent doubling down this data?
 	// at least remove these dumb duplicate types like 'CameraData', just use Camera component
+	static int changed = 10;
 	void Engine::EngineThreadSyncFunc() noexcept
 	{
 		IPROF("Engine::EngineThreadSync");
 		m_Window.UpdateDeltaTime();
-		m_Gfx.m_DrawData.clear();
-		m_Gfx.m_CameraData.clear();
 
-		const auto renderableChildren = m_Entities.view<Comp::ChildComponent, Comp::Mesh, Comp::Material>();
-		const auto transforms = m_Entities.view<Comp::Transform>();
-		for (auto ent : renderableChildren)
+		// Change DrawData if new entities were added/removed
+		if (changed > 0)
 		{
-			const auto& mesh = renderableChildren.get<Comp::Mesh>(ent);
-			//const Comp::Material& material = renderableChildren.get<Comp::Material>(ent);
-			const auto& parent = renderableChildren.get<Comp::ChildComponent>(ent).parent;
-			const auto& transform = transforms.get<Comp::Transform>(parent);
+			m_Gfx.m_DrawData.resize(0);
 
-			m_Gfx.m_DrawData.emplace_back(transform.transform, mesh.meshId);
+			const auto renderableChildren = m_Entities.view<Comp::ChildComponent, Comp::Mesh, Comp::Material>();
+			const auto transforms = m_Entities.view<Comp::Transform>();
+			for (auto ent : renderableChildren)
+			{
+				const auto& mesh = renderableChildren.get<Comp::Mesh>(ent);
+				//const Comp::Material& material = renderableChildren.get<Comp::Material>(ent);
+				const auto& parent = renderableChildren.get<Comp::ChildComponent>(ent).parent;
+				const auto& transform = transforms.get<Comp::Transform>(parent);
+
+				m_Gfx.m_DrawData.emplace_back(transform.transform, mesh.meshId);
+			}
+			changed--;
 		}
 
 		const auto cameras = m_Entities.view<Comp::Transform, Comp::Camera>();
+		m_Gfx.m_CameraData.resize(0);
 		for (auto ent : cameras)
 		{
 			const auto& transform = cameras.get<Comp::Transform>(ent);

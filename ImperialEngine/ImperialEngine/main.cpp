@@ -6,7 +6,7 @@
 int main()
 {
 	EngineSettings settings;
-#if _DEBUG && !_DEV // for some reason _DEBUG is not removed
+#if _DEBUG && !_DEV
 	settings = { EngineSettingsTemplate::kEngineSettingsDebug };
 #elif _DEV
 	settings = { EngineSettingsTemplate::kEngineSettingsDevelopment };
@@ -15,7 +15,6 @@ int main()
 #endif
 	imp::Engine engine;
 	
-	// maybe return error code or something like dat, so user can try to reinit with dif settings
 	if (!engine.Initialize(settings))
 		return 1;
 
