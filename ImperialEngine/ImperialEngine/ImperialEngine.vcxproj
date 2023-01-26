@@ -317,6 +317,7 @@
     <ClInclude Include="src\frontend\Window.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Shaders\glsl\drawGen.comp.glsl" />
     <None Include="src\extern\IMGUI\vGizmo.h.bak" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

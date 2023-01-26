@@ -299,5 +299,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="src\extern\IMGUI\vGizmo.h.bak" />
+    <None Include="Shaders\glsl\drawGen.comp.glsl" />
   </ItemGroup>
 </Project>

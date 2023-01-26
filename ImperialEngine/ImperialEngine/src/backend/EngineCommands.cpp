@@ -51,11 +51,22 @@ namespace imp
 		m_Gfx.CreateAndUploadMaterials(*re);
 	}
 
+	void Engine::Cmd_UploadComputePrograms(std::shared_ptr<void> rsc)
+	{
+		auto re = (std::vector<imp::CmdRsc::ComputeProgramCreationRequest>*)rsc.get();
+		m_Gfx.CreateComputePrograms(*re);
+	}
+
 	void Engine::Cmd_ChangeRenderMode(std::shared_ptr<void> rsc)
 	{
 		// Changing settings should only happen at start of the frame.
 		// Later move this command to someplace else on main thread
 		auto* re = (EngineRenderMode*)rsc.get();
 		m_Gfx.GetGraphicsSettings().renderMode = *re;
+	}
+
+	void Engine::Cmd_UpdateDraws(std::shared_ptr<void> rsc)
+	{
+		m_Gfx.DispatchUpdateDrawCommands();
 	}
 }

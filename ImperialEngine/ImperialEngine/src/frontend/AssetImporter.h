@@ -27,8 +27,8 @@ namespace imp
 		void Initialize();
 		void LoadScene(const std::string& path);
 		void LoadMaterials(const std::string& path);
+		void LoadComputeProgams(const std::string& path);
 
-		void Destroy();
 	private:
 
 		void LoadFile(Assimp::Importer& imp, const std::filesystem::path& path);

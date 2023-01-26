@@ -3,12 +3,9 @@
 
 namespace imp
 {
+	// TODO compute-drawindirect: rework pipeline manager
 	PipelineManager::PipelineManager()
-		: m_PipelineMap()
-	{
-	}
-
-	void PipelineManager::Initialize()
+		: m_PipelineMap(), m_ComputePipelineMap()
 	{
 	}
 
@@ -46,7 +43,7 @@ namespace imp
 		pushRange.size = sizeof(uint32_t); // index into draw data
 		pushRange.offset = 0;
 		pushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-		const auto pipelineLayoutCI = MakePipelineLayoutCI(pushRange, config);
+		const auto pipelineLayoutCI = MakePipelineLayoutCI(&pushRange, config.descriptorSetLayout);
 		const auto pipelineLayout = MakePipelineLayout(device, pipelineLayoutCI);
 
 		const auto pipelineCI = MakePipelineCI(shaderStages, &vertInputState, &inputAssembly, &viewportState, nullptr, &rasterizationState, &msaaState, &colorBlendState, &depthStencilState, pipelineLayout, rp.GetVkRenderPass(), 0);
@@ -65,14 +62,34 @@ namespace imp
 		return m_PipelineMap.at(config);
 	}
 
-	//auto PipelineManager::GetPipeline() const
-	//{	// trying out modern c++ magic
-	//	return m_TemporarySinglePipeline.GetPipeline() == VK_NULL_HANDLE ? std::make_optional<std::reference_wrapper<const Pipeline>>(std::reference_wrapper<const Pipeline>(m_TemporarySinglePipeline)) : std::nullopt;
-	//}
-
-	void PipelineManager::Destroy(VkDevice device)
+	const Pipeline& PipelineManager::GetComputePipeline(const ComputePipelineConfig& config)
 	{
+		return m_ComputePipelineMap.at(config);
 	}
+
+	void PipelineManager::CreateComputePipeline(VkDevice device, const ComputePipelineConfig& config)
+	{
+		VkComputePipelineCreateInfo createInfo = { VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO };
+
+		VkPipelineShaderStageCreateInfo stage = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
+		stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+		stage.module = config.computeModule;
+		stage.pName = "main";
+
+		const auto pipeLayoutCI = MakePipelineLayoutCI(nullptr, config.descriptorSetLayout);
+		const auto pipeLayout = MakePipelineLayout(device, pipeLayoutCI);
+
+		createInfo.stage = stage;
+		createInfo.layout = pipeLayout;
+
+		VkPipeline pipeline = VK_NULL_HANDLE;
+		const auto res = vkCreateComputePipelines(device, VK_NULL_HANDLE, 1, &createInfo, 0, &pipeline);
+		assert(res == VK_SUCCESS);
+
+		const auto pipe = Pipeline(pipeline, pipeLayout);
+		m_ComputePipelineMap[config] = pipe;
+	}
+
 	VkPipelineShaderStageCreateInfo PipelineManager::MakeShaderStageCI(VkShaderModule module, VkShaderStageFlagBits stage) const
 	{
 		VkPipelineShaderStageCreateInfo ci;
@@ -189,15 +206,14 @@ namespace imp
 		return ci;
 	}
 
-	VkPipelineLayoutCreateInfo PipelineManager::MakePipelineLayoutCI(const auto& pushRange, const PipelineConfig& config) const
+	VkPipelineLayoutCreateInfo PipelineManager::MakePipelineLayoutCI(const VkPushConstantRange* pushRange, const VkDescriptorSetLayout& layout) const
 	{
-		assert(pushRange.size);
 		VkPipelineLayoutCreateInfo ci;
 		ci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		ci.setLayoutCount = 1;
-		ci.pSetLayouts = &config.descriptorSetLayout;
-		ci.pushConstantRangeCount = 1;
-		ci.pPushConstantRanges = &pushRange;
+		ci.pSetLayouts = &layout;
+		ci.pushConstantRangeCount = pushRange ? 1 : 0;
+		ci.pPushConstantRanges = pushRange;
 		ci.pNext = nullptr;
 		ci.flags = 0;
 		return ci;

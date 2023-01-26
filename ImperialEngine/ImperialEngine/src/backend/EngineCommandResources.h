@@ -17,10 +17,17 @@ namespace imp
 		struct MaterialCreationRequest
 		{
 			std::string shaderName;
+			// TODO compute-drawindirect: why are these shared ptrs?
 			std::shared_ptr<std::string> vertexSpv;
 			// Indirect variant
 			std::shared_ptr<std::string> vertexIndSpv;
 			std::shared_ptr<std::string> fragmentSpv;
+		};
+
+		struct ComputeProgramCreationRequest
+		{
+			std::string shaderName;
+			std::shared_ptr<std::string> spv;
 		};
 	}
 }

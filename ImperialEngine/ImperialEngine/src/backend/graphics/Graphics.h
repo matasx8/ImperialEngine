@@ -43,6 +43,7 @@ namespace imp
 		Graphics();
 		void Initialize(const EngineGraphicsSettings& settings, Window* window);
 
+		void DispatchUpdateDrawCommands();
 		void StartFrame();
 		void RenderCameras();
 		void RenderImGUI();
@@ -50,6 +51,11 @@ namespace imp
 
 		void CreateAndUploadMeshes(const std::vector<CmdRsc::MeshCreationRequest>& meshCreationData);
 		void CreateAndUploadMaterials(const std::vector<CmdRsc::MaterialCreationRequest>& materialCreationData);
+		void CreateComputePrograms(const std::vector<CmdRsc::ComputeProgramCreationRequest>& computeProgramRequests);
+
+		// Will return ref to VulkanBuffer used for uploading new draw data.
+		// Waits for fence associated with buffer to make sure it's not used by the GPU anymore.
+		VulkanBuffer& GetDrawDataStagingBuffer();
 
 		EngineGraphicsSettings& GetGraphicsSettings();
 
@@ -128,9 +134,9 @@ namespace imp
 		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_DrawDataBuffers;
 		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_DescriptorSets;
 
+	public:
 		std::unordered_map<uint32_t, Comp::IndexedVertexBuffers> m_VertexBuffers;
 
-	public:
 		// TODO: remove this section and replace with some API
 
 		std::vector<DrawDataSingle> m_DrawData;

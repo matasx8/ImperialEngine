@@ -11,7 +11,21 @@ namespace imp
 		VkShaderModule fragModule;
 		VkDescriptorSetLayout descriptorSetLayout;
 		auto operator<=>(const PipelineConfig&) const = default;
+	};
 
+	struct ComputePipelineConfig
+	{
+		VkShaderModule computeModule;
+		VkDescriptorSetLayout descriptorSetLayout;
+		auto operator<=>(const ComputePipelineConfig&) const = default;
+	};
+
+	struct ComputePipelineConfigHash
+	{
+		size_t operator()(const ComputePipelineConfig& config) const
+		{
+			return XXH64(&config, sizeof(ComputePipelineConfig), 0);
+		}
 	};
 
 	struct PipelineConfigHash

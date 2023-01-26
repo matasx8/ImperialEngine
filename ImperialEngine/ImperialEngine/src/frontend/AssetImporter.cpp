@@ -52,11 +52,23 @@ namespace imp
 		// where we load the pure assets and THEN in the editor we can assign a material to an entity. After serializing gets implemented
 		// we should be able to load the serialized scene and know which entity has which component and etc.
 
-		printf("[Asset Importer] Successfully loaded materials from '%s' with %d materials\n", path.c_str(), static_cast<int>(paths.size()));
+		printf("[Asset Importer] Successfully loaded materials from '%s' with %i materials\n", path.c_str(), static_cast<int>(paths.size()));
 	}
 
-	void AssetImporter::Destroy()
+	void AssetImporter::LoadComputeProgams(const std::string& path)
 	{
+		const auto paths = OS::GetAllFileNamesInDirectory(path);
+
+		std::vector<CmdRsc::ComputeProgramCreationRequest> reqs;
+		for (const auto& shaderPath : paths)
+		{
+			if (shaderPath.string().find(".comp") == std::string::npos)
+				continue;
+
+			reqs.emplace_back(shaderPath.filename().stem().stem().stem().string(), OS::ReadFileContents(shaderPath.string()));
+		}
+		m_Engine.m_Q->add(std::mem_fn(&Engine::Cmd_UploadComputePrograms), std::make_shared<std::vector<imp::CmdRsc::ComputeProgramCreationRequest>>(reqs));
+		printf("[Asset Importer] Successfully loaded compute programs from '%s' with %i total shaders\n", path.c_str(), static_cast<int>(paths.size()));
 	}
 
 	void AssetImporter::LoadFile(Assimp::Importer& imp, const std::filesystem::path& path)
@@ -172,7 +184,13 @@ namespace imp
 		// Not likely we will have anything more than a vertex and fragment shader anytime soon.
 		// Easy way to find unique values only using shader file name without extension
 		for (const auto& shader : shaders)
+		{
+			// skip compute
+			if (shader.string().find(".comp") != std::string::npos)
+				break;
+
 			shaderSet.insert(shader.parent_path().string() + "/" + shader.stem().stem().stem().string()); //TODO: fix this nonsense
+		}
 
 		std::vector<CmdRsc::MaterialCreationRequest> reqs;
 		for (const auto& shader : shaderSet)

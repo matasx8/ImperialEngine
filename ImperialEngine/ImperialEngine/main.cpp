@@ -21,6 +21,8 @@ int main()
 	// load stuff
 	engine.LoadScene();
 
+	engine.SyncRenderThread();
+
 	// update - sync - render - update
 	while (!engine.ShouldClose())
 	{

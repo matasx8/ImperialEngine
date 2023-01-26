@@ -46,9 +46,12 @@ namespace imp
 		void CleanUpWindow();
 		void CleanUpGraphics();
 		void CleanUpUI();
-		void CleanUpAssetImporter();
 
 		void LoadDefaultStuff();
+
+		// Signal that number of draws have changed
+		void MarkDrawDataDirty() { m_DrawDataDirty = true; }
+		bool IsDrawDataDirty() { return m_DrawDataDirty; }
 
 		void RenderCameras();
 		void RenderImGUI();
@@ -61,6 +64,8 @@ namespace imp
 
 		// entity stuff
 		entt::registry m_Entities;
+
+		bool m_DrawDataDirty;
 
 		// parallel stuff
 		prl::WorkQ<Engine>* m_Q;
@@ -95,7 +100,9 @@ namespace imp
 		void Cmd_RenderImGUI(std::shared_ptr<void> rsc);
 		void Cmd_UploadMeshes(std::shared_ptr<void> rsc);
 		void Cmd_UploadMaterials(std::shared_ptr<void> rsc);
+		void Cmd_UploadComputePrograms(std::shared_ptr<void> rsc);
 		void Cmd_ChangeRenderMode(std::shared_ptr<void> rsc);
+		void Cmd_UpdateDraws(std::shared_ptr<void> rsc);
 	};
 }
 

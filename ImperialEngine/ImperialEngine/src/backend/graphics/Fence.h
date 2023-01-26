@@ -5,6 +5,7 @@ namespace imp
 {
 	struct Fence : public VulkanResource
 	{
+		Fence() : fence(VK_NULL_HANDLE) {}
 		Fence(VkFence sem);
 		void Destroy(VkDevice device) override;
 

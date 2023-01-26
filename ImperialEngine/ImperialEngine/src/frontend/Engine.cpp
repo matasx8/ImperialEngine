@@ -13,7 +13,7 @@
 namespace imp
 {
 	Engine::Engine()
-		: m_Entities(), m_Q(nullptr), m_Worker(nullptr), m_SyncPoint(nullptr), m_EngineSettings(), m_Window(), m_UI(), m_Gfx(), m_AssetImporter(*this)
+		: m_Entities(), m_DrawDataDirty(false), m_Q(nullptr), m_Worker(nullptr), m_SyncPoint(nullptr), m_EngineSettings(), m_Window(), m_UI(), m_Gfx(), m_AssetImporter(*this)
 	{
 	}
 
@@ -31,7 +31,6 @@ namespace imp
 
 		// unfortunately we must wait until imgui is initialized on the backend
 		m_SyncPoint->arrive_and_wait();
-		SyncRenderThread();	// and then insert another barrier for first frame
 		return true;
 	}
 
@@ -39,7 +38,9 @@ namespace imp
 	{
 		m_AssetImporter.LoadScene("Scene/");
 		m_AssetImporter.LoadMaterials("Shaders/spir-v");
+		m_AssetImporter.LoadComputeProgams("Shaders/spir-v");
 		LoadDefaultStuff();
+		MarkDrawDataDirty();
 	}
 
 	void Engine::StartFrame()
@@ -92,6 +93,9 @@ namespace imp
 
 	void Engine::AddDemoEntity(uint32_t count)
 	{
+		if (count)
+			MarkDrawDataDirty();
+
 		srand(42);
 
 		static constexpr uint32_t numMeshes = 2u; // lets say we have 2 meshes
@@ -198,11 +202,6 @@ namespace imp
 		m_UI.Destroy();
 	}
 
-	void Engine::CleanUpAssetImporter()
-	{
-		m_AssetImporter.Destroy();
-	}
-
 	void Engine::LoadDefaultStuff()
 	{			
 		const auto camera = m_Entities.create();
@@ -275,15 +274,22 @@ namespace imp
 	// TODO: remove barrier to prevent whole engine stall
 	// TODO: figure out why I'm copying this data around? Is there a way to prevent doubling down this data?
 	// at least remove these dumb duplicate types like 'CameraData', just use Camera component
-	static int changed = 10;
 	void Engine::EngineThreadSyncFunc() noexcept
 	{
 		IPROF("Engine::EngineThreadSync");
 		m_Window.UpdateDeltaTime();
 
 		// Change DrawData if new entities were added/removed
-		if (changed > 0)
+		if (IsDrawDataDirty())
 		{
+			// get ref to draw data vulkan buffer
+			// fill it using some new api that might look like this emplace back
+
+			// TODO compute-drawindirect: return something along the lines of IGPUBuffer.
+			// could be nice to make GPU buffers have an interface of a vector
+			VulkanBuffer& drawDataBuffer = m_Gfx.GetDrawDataStagingBuffer();
+			drawDataBuffer.resize(0);
+
 			m_Gfx.m_DrawData.resize(0);
 
 			const auto renderableChildren = m_Entities.view<Comp::ChildComponent, Comp::Mesh, Comp::Material>();
@@ -295,9 +301,27 @@ namespace imp
 				const auto& parent = renderableChildren.get<Comp::ChildComponent>(ent).parent;
 				const auto& transform = transforms.get<Comp::Transform>(parent);
 
+				const auto meshData = m_Gfx.m_VertexBuffers[mesh.meshId];
+				
+				// TODO finishing touches: change this to some struct that wouldn't expose vulkan.
+				VkDrawIndexedIndirectCommand cmd;
+				cmd.indexCount = meshData.indices.GetCount();
+				cmd.instanceCount = 1;
+				cmd.firstIndex = meshData.indices.GetOffset();
+				cmd.vertexOffset = meshData.vertices.GetOffset();
+				cmd.firstInstance = 0;
+				// ok this actually works.
+				drawDataBuffer.push_back(&cmd, sizeof(VkDrawIndexedIndirectCommand));
+
+				// insert copy command for render thread here
+
+				// TODO compute-drawindirect: to not disturb the current descriptor system I'll leave this. But this means
+				// that it's very bad performance to copy everything double time so remove this ASAP if we conclude that
+				// we don't need a buffer for each frame in flight.
 				m_Gfx.m_DrawData.emplace_back(transform.transform, mesh.meshId);
 			}
-			changed--;
+			m_Q->add(std::mem_fn(&Engine::Cmd_UpdateDraws), std::shared_ptr<void>());
+			m_DrawDataDirty = false;
 		}
 
 		const auto cameras = m_Entities.view<Comp::Transform, Comp::Camera>();

@@ -21,10 +21,7 @@ namespace imp
 	inline constexpr uint32_t kDrawDataBufferBindingSlot	= kMaterialBufferBindingSlot + kMaterialBufferBindCount;
 	inline constexpr uint32_t kDefaultMaterialIndex			= 0;
 
-	struct ShaderDescription
-	{
-
-	};
+	inline constexpr uint32_t kComputeBindingCount			= 2;
 
 	struct GlobalData
 	{
@@ -45,6 +42,7 @@ namespace imp
 	};
 
 	class VulkanMemory;
+	class PipelineManager;
 	struct MemoryProps;
 	struct DrawDataSingle;
 
@@ -53,13 +51,17 @@ namespace imp
 	public:
 		VulkanShaderManager();
 
-		void Initialize(VkDevice device, VulkanMemory& memory, const EngineGraphicsSettings& settings, const MemoryProps& memProps);
+		void Initialize(VkDevice device, VulkanMemory& memory, const EngineGraphicsSettings& settings, const MemoryProps& memProps, VulkanBuffer& drawCommands);
 
 		VulkanShader GetShader(const std::string& shaderName) const;
 		VkDescriptorSet GetDescriptorSet(uint32_t idx) const;
+		VkDescriptorSet GetComputeDescriptorSet(uint32_t idx) const;
 		VkDescriptorSetLayout GetDescriptorSetLayout() const;
+		VkDescriptorSetLayout GetComputeDescriptorSetLayout() const;
+		VulkanBuffer& GetDrawDataBuffer() { return m_DrawCommands; }
 
 		void CreateVulkanShaderSet(VkDevice device, const CmdRsc::MaterialCreationRequest& req);
+		void CreateComputePrograms(VkDevice device, PipelineManager& pipeManager, const CmdRsc::ComputeProgramCreationRequest& req);
 		void UpdateGlobalData(VkDevice device, uint32_t descriptorSetIdx, const GlobalData& data);
 		void UpdateDrawData(VkDevice device, uint32_t descriptorSetIdx, const std::vector<DrawDataSingle> drawData);
 
@@ -69,9 +71,10 @@ namespace imp
 		VkShaderModule CreateShaderModule(VkDevice device, const std::string& shaderCode);
 		void CreateMegaDescriptorSets(VkDevice device);
 		void CreateMegaDescriptorSetLayout(VkDevice device);
+		void CreateComputeDescriptorSetLayout(VkDevice device);
 		VkDescriptorSetLayoutBinding CreateDescriptorBinding(uint32_t binding, uint32_t descriptorCount, VkDescriptorType type, VkShaderStageFlags stageFlags);
 
-		void WriteUpdateDescriptorSets(VkDevice device, VkDescriptorType type, auto& buffers, size_t descriptorDataSize, uint32_t bindSlot, uint32_t descriptorCount);
+		void WriteUpdateDescriptorSets(VkDevice device, VkDescriptorSet* dSets, VkDescriptorType type, auto& buffers, size_t descriptorDataSize, uint32_t bindSlot, uint32_t descriptorCount, uint32_t dSetCount);
 		void UpdateDescriptorData(VkDevice device, VulkanBuffer& buffer, size_t size, uint32_t offset, const void* data);
 
 		void CreateDefaultMaterial(VkDevice device);
@@ -84,7 +87,11 @@ namespace imp
 		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_MaterialDataBuffers;
 		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_DrawDataBuffers;
 
+		VulkanBuffer m_DrawCommands;
+
 		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_DescriptorSets;
+		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_ComputeDescriptorSets;
 		VkDescriptorSetLayout m_DescriptorSetLayout;
+		VkDescriptorSetLayout m_ComputeDescriptorSetLayout;
 	};
 }
