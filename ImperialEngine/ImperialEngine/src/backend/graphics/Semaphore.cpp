@@ -19,6 +19,7 @@ namespace imp
 		return Create(device);
 	}
 
+	Semaphore::Semaphore() : semaphore(VK_NULL_HANDLE) {};
 	Semaphore::Semaphore(VkSemaphore sem) : semaphore(sem) {};
 
 	void Semaphore::Destroy(VkDevice device)

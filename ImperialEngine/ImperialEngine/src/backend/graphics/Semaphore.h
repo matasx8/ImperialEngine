@@ -5,6 +5,7 @@ namespace imp
 {
 	struct Semaphore : public VulkanResource
 	{
+		Semaphore();
 		Semaphore(VkSemaphore sem);
 		void Destroy(VkDevice device) override;
 

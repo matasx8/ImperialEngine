@@ -29,7 +29,7 @@ namespace imp
 		VkDescriptorBufferInfo RegisterSubBuffer(size_t size);
 		uint32_t FindNewSubBufferIndex(size_t size);
 
-		void GiveFence(Fence& fence) {};
+		void GiveFence(const Fence& fence) { m_Fence = fence; };
 		bool HasFence() const { return m_Fence.fence != VK_NULL_HANDLE; }
 		bool IsCurrentlyUsedByGPU(VkDevice device);
 		void WaitUntilNotUsedByGPU(VkDevice device, PrimitivePool<Fence, FenceFactory>& m_FencePool);

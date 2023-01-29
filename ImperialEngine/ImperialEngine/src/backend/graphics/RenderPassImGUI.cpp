@@ -22,5 +22,5 @@ void imp::RenderPassImGUI::Execute(Graphics& gfx, const CameraData& cam)
 	ImGui_ImplVulkan_RenderDrawData(draw_data, cmb.cmb);
 	EndRenderPass(gfx, cmb);
 	cmb.End();
-	gfx.m_CbManager.Submit(gfx.m_GfxQueue, gfx.m_LogicalDevice, cmbs, GetSemaphoresToWaitOn(), kSubmitSynchForPresent, gfx.m_CurrentFrame);
+	gfx.m_CbManager.SubmitInternal(cmb, {});
 }

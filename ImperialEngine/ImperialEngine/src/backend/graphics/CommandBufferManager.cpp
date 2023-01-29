@@ -7,7 +7,7 @@
 namespace imp
 {
     CommandBufferManager::CommandBufferManager(PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool, PrimitivePool<Fence, FenceFactory>& fencePool)
-        : m_BufferingMode(), m_FrameClock(), m_IsNewFrame(true), m_GfxCommandPools(), m_SemaphorePool(semaphorePool), m_FencePool(fencePool)
+        : m_BufferingMode(), m_FrameClock(), m_IsNewFrame(true), m_GfxCommandPools(), m_CommandsBuffersToSubmit(), m_SemaphoresToWaitOnSubmit(), m_CurrentFence(), m_SemaphorePool(semaphorePool), m_FencePool(fencePool)
     {
     }
 
@@ -29,6 +29,8 @@ namespace imp
 
             m_GfxCommandPools.emplace_back(pool);
         }
+
+        m_CurrentFence = m_FencePool.Get(device, 0ull);
     }
 
     static std::vector<VkCommandBuffer> GetCmbs(std::vector<CommandBuffer> commandBuffers)
@@ -39,56 +41,69 @@ namespace imp
         return buffs;
     }
 
-    SubmitSynchPrimitives CommandBufferManager::Submit(VkQueue submitQueue, VkDevice device, std::vector<CommandBuffer> commandBuffers, std::vector<VkSemaphore> waitSemaphores, SubmitType submitType, uint64_t currFrame)
+    void CommandBufferManager::SubmitInternal(CommandBuffer& cb)
+    {
+        m_CommandsBuffersToSubmit.emplace_back(cb);
+    }    
+    
+    void CommandBufferManager::SubmitInternal(CommandBuffer& cb, const std::vector<Semaphore>& semaphores)
+    {
+        SubmitInternal(cb);
+        m_SemaphoresToWaitOnSubmit.insert(m_SemaphoresToWaitOnSubmit.end(), semaphores.begin(), semaphores.end());
+    }
+
+    SubmitSynchPrimitives CommandBufferManager::SubmitToQueue(VkQueue submitQueue, VkDevice device, SubmitType submitType, uint64_t currFrame)
     {
         IPROF_FUNC;
         // need to add fence for command buffers to know when we can reset them
         // need to add semaphore to know when we can present
         Semaphore semaphore = m_SemaphorePool.Get(device, currFrame);
         semaphore.UpdateLastUsed(currFrame);
-        Fence fence = m_FencePool.Get(device, currFrame);
-        fence.UpdateLastUsed(currFrame);
 
-        // TOOD: along with semaphore we must provide where to wait. For quick hac I'm assuming this because
-        // currently all additional semaphores are from transfer operations
+        // TOOD: along with semaphore we must provide where to wait.
         std::vector<VkPipelineStageFlags> waitStages;
-        for (int i = 0; i < waitSemaphores.size(); i++)
+        std::vector<VkSemaphore> semaphores;
+        for (auto& sem : m_SemaphoresToWaitOnSubmit)
         {
-            if (i == 0)
-                waitStages.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-            else
-                waitStages.push_back(VK_PIPELINE_STAGE_TRANSFER_BIT);
-
+            waitStages.push_back(VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
             // Recycle used semaphores
-            m_SemaphorePool.Return(Semaphore(waitSemaphores[i]));
+            m_SemaphorePool.Return(sem);
+            semaphores.emplace_back(sem.semaphore);
         }
 
         VkSubmitInfo submitInfo = {};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.waitSemaphoreCount = static_cast<uint32_t>(waitSemaphores.size());
-        submitInfo.pWaitSemaphores = waitSemaphores.data(); // semaphore for swapchain image or other dependency between queue operation
+        submitInfo.waitSemaphoreCount = static_cast<uint32_t>(semaphores.size());
+        submitInfo.pWaitSemaphores = semaphores.data(); // semaphore for swapchain image or other dependency between queue operation
         submitInfo.pWaitDstStageMask = waitStages.data();
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = &semaphore.semaphore;
-        submitInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
-        auto ccs = GetCmbs(commandBuffers);
+        submitInfo.commandBufferCount = static_cast<uint32_t>(m_CommandsBuffersToSubmit.size());
+        auto ccs = GetCmbs(m_CommandsBuffersToSubmit);
         submitInfo.pCommandBuffers = ccs.data();
 
 
-        VkResult result = vkQueueSubmit(submitQueue, 1, &submitInfo, fence.fence);
+        VkResult result = vkQueueSubmit(submitQueue, 1, &submitInfo, m_CurrentFence.fence);
         if (result != VK_SUCCESS)
             throw std::runtime_error("Failed to submit Command Buffer to Queue!");
 
+        SubmitSynchPrimitives primitives = { VK_NULL_HANDLE, VK_NULL_HANDLE };
         if (submitType == kSubmitSynchForPresent)
         {
-            m_GfxCommandPools[m_FrameClock].ReturnCommandBuffers(commandBuffers, semaphore.semaphore, fence.fence);
-            return { VK_NULL_HANDLE, VK_NULL_HANDLE };
+            m_GfxCommandPools[m_FrameClock].ReturnCommandBuffers(m_CommandsBuffersToSubmit, semaphore.semaphore, m_CurrentFence.fence);
         }
         else
         {
-            m_GfxCommandPools[m_FrameClock].ReturnCommandBuffers(commandBuffers, VK_NULL_HANDLE, fence.fence);
-            return { semaphore, fence };
+            m_GfxCommandPools[m_FrameClock].ReturnCommandBuffers(m_CommandsBuffersToSubmit, VK_NULL_HANDLE, m_CurrentFence.fence);
+            primitives = { semaphore, m_CurrentFence };
         }
+
+        m_CurrentFence = m_FencePool.Get(device, currFrame);
+        m_CurrentFence.UpdateLastUsed(currFrame);
+        m_CommandsBuffersToSubmit.resize(0ull);
+        m_SemaphoresToWaitOnSubmit.resize(0ull);
+
+        return primitives;
     }
 
     void CommandBufferManager::SignalFrameEnded()
@@ -116,6 +131,11 @@ namespace imp
     std::vector<VkSemaphore>& CommandBufferManager::GetCommandExecSemaphores()
     {
         return m_GfxCommandPools[m_FrameClock].semaphores;
+    }
+
+    const Fence& CommandBufferManager::GetCurrentFence() const
+    {
+        return m_CurrentFence;
     }
 
     void CommandBufferManager::Destroy(VkDevice device)

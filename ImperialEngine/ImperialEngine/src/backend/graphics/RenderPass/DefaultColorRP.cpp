@@ -62,8 +62,13 @@ namespace imp
 		if(gfx.m_DrawBuffer.HasSemaphore())
 			semaphores.push_back(gfx.m_DrawBuffer.StealSemaphore());
 
-		// put this in EndRenderPass?
-		auto synchs = gfx.m_CbManager.Submit(gfx.m_GfxQueue, gfx.m_LogicalDevice, cmbs, semaphores, kSubmitDontCare, gfx.m_CurrentFrame);
-		std::for_each(m_Surfaces.begin(), m_Surfaces.end(), [&](Surface& surf) {surf.AddSemaphore(synchs.semaphore.semaphore); });
+		//TODO: switch using VkSemaphores to imp::Semaphores
+		std::vector<Semaphore> ourSemaphores;
+		for (const auto& sem : semaphores)
+			ourSemaphores.push_back(Semaphore(sem));
+
+		gfx.m_CbManager.SubmitInternal(cmb, ourSemaphores); // should provide semaphores here
+		// also add semaphore?
+		//std::for_each(m_Surfaces.begin(), m_Surfaces.end(), [&](Surface& surf) {surf.AddSemaphore(synchs.semaphore.semaphore); });
 	}
 }

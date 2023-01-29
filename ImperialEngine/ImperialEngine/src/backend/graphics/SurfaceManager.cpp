@@ -27,6 +27,28 @@ imp::Surface imp::SurfaceManager::GetSurface(const SurfaceDesc& desc, VkDevice d
 	return surf.mapped();
 }
 
+std::vector<VkSemaphore> imp::SurfaceManager::GetSemaphoresToWaitOn(VkDevice device, uint64_t currFrame, Swapchain& swapchainWorkaround)
+{
+    std::vector<VkSemaphore> sems;
+    for (auto& surf : m_SurfacePool)
+    {
+        auto sem = surf.second.GetSemaphore();
+        if (sem)
+        {
+            sems.push_back(sem);
+            surf.second.RemoveSemaphore();
+        }
+
+    }
+
+    // another workaround to aquire the semaphore needed for knowing when the swpachain image is free
+    // should always return immediately
+    auto& swapchainSurface = swapchainWorkaround.GetSwapchainImageSurface(device, currFrame);
+    sems.push_back(swapchainSurface.GetSemaphore());
+    // TODO: remove also?
+    return sems;
+}
+
 void imp::SurfaceManager::ReturnSurfaces(std::vector<Surface>& surfaces, Swapchain& swapchainWorkaround)
 {
     for (auto& surf : surfaces)

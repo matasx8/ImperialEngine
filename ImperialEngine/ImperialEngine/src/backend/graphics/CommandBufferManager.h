@@ -49,11 +49,17 @@ namespace imp
 		CommandBufferManager(PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool, PrimitivePool<Fence, FenceFactory>& fencePool);
 		void Initialize(VkDevice device, QueueFamilyIndices familyIndices, EngineSwapchainImageCount imageCount);
 
-		SubmitSynchPrimitives Submit(VkQueue submitQueue, VkDevice device, std::vector<CommandBuffer> commandBuffers, std::vector<VkSemaphore> waitSemaphores, SubmitType submitType, uint64_t currFrame);
+		// Submit command buffer to internal command buffer queue. Will keep them until SubmitToQueue is called.
+		void SubmitInternal(CommandBuffer& cb);
+		void SubmitInternal(CommandBuffer& cb, const std::vector<Semaphore>& semaphores);
+
+		// Submit accumulated command buffers to VkQueue
+		SubmitSynchPrimitives SubmitToQueue(VkQueue submitQueue, VkDevice device, SubmitType submitType, uint64_t currFrame);
 		void SignalFrameEnded();
 		std::vector<CommandBuffer> AquireCommandBuffers(VkDevice device, uint32_t count);
 		CommandBuffer AquireCommandBuffer(VkDevice device);
 		std::vector<VkSemaphore>& GetCommandExecSemaphores();
+		const Fence& GetCurrentFence() const;
 
 		void Destroy(VkDevice device);
 	private:
@@ -63,6 +69,9 @@ namespace imp
 		bool m_IsNewFrame;
 
 		std::vector<CommandPool> m_GfxCommandPools;
+		std::vector<CommandBuffer> m_CommandsBuffersToSubmit;
+		std::vector<Semaphore> m_SemaphoresToWaitOnSubmit;
+		Fence m_CurrentFence;
 
 		PrimitivePool<Semaphore, SemaphoreFactory>& m_SemaphorePool;
 		PrimitivePool<Fence, FenceFactory>& m_FencePool;

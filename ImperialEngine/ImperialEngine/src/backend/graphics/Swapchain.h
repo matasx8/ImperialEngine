@@ -26,7 +26,7 @@ namespace imp
 		void UpdateSwapchainImage(Surface& surf);
 
 		SurfaceDesc GetSwapchainImageSurfaceDesc() const;
-		Surface GetSwapchainImageSurface(VkDevice device, uint64_t currFrame);
+		Surface& GetSwapchainImageSurface(VkDevice device, uint64_t currFrame);
 		uint32_t GetSwapchainImageCount() const;
 		uint32_t GetFrameClock() const;
 

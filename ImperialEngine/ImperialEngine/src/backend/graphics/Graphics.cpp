@@ -99,12 +99,27 @@ namespace imp
         vkCmdBindPipeline(cb.cmb, VK_PIPELINE_BIND_POINT_COMPUTE, updateDrawsProgram.GetPipeline());
         vkCmdBindDescriptorSets(cb.cmb, VK_PIPELINE_BIND_POINT_COMPUTE, updateDrawsProgram.GetPipelineLayout(), 0, 1, &dset, 0, nullptr);
         vkCmdDispatch(cb.cmb, (m_NumDraws + 31) / 32, 1, 1);
+
+        // need to make sure memory write is visible
+        VkBufferMemoryBarrier bufferMemBar = {};
+        bufferMemBar.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+        bufferMemBar.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+        bufferMemBar.dstAccessMask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+        bufferMemBar.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        bufferMemBar.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        bufferMemBar.buffer = m_DrawBuffer.GetBuffer();
+        bufferMemBar.offset = 0;
+        bufferMemBar.size = VK_WHOLE_SIZE;
+
+        // flush stages until CS is done
+        // suspend until DRAW INDRICET
+        vkCmdPipelineBarrier(cb.cmb, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, 0, 0, nullptr, 1, &bufferMemBar, 0, nullptr);
         cb.End();
 
-
-        auto synchs = m_CbManager.Submit(m_GfxQueue, m_LogicalDevice, { cb.cmb }, {}, kSubmitDontCare, m_CurrentFrame);
-        m_ShaderManager.GetDrawDataBuffer(m_Swapchain.GetFrameClock()).GiveFence(synchs.fence);
-        m_DrawBuffer.GiveSemaphore(synchs.semaphore.semaphore);
+        // Ideally would batch this to some transfer / compute queue that happens at the start of the frame.
+        // But for now just submit to avoid having to many submit to queue commands
+        m_CbManager.SubmitInternal(cb);
+        m_ShaderManager.GetDrawDataBuffer(m_Swapchain.GetFrameClock()).GiveFence(m_CbManager.GetCurrentFence()); // get fence from CB
     }
 
     void Graphics::StartFrame()
@@ -141,6 +156,8 @@ namespace imp
 
     void Graphics::EndFrame()
     {
+        m_CbManager.SubmitToQueue(m_GfxQueue, m_LogicalDevice, kSubmitSynchForPresent, m_CurrentFrame);
+
         m_Swapchain.Present(m_PresentationQueue, m_CbManager.GetCommandExecSemaphores());
         m_CbManager.SignalFrameEnded();
         m_SurfaceManager.SignalFrameEnded();
@@ -188,7 +205,8 @@ namespace imp
 
         cb.End();
 
-        auto synchs = m_CbManager.Submit(m_GfxQueue, m_LogicalDevice, cbs, {}, kSubmitDontCare, m_CurrentFrame);
+        m_CbManager.SubmitInternal(cb);
+        auto synchs = m_CbManager.SubmitToQueue(m_GfxQueue, m_LogicalDevice, kSubmitDontCare, m_CurrentFrame);
         m_VertexBuffer.GiveSemaphore(synchs.semaphore.semaphore);
         m_IndexBuffer.GiveSemaphore(synchs.semaphore.semaphore);
     }
@@ -208,7 +226,12 @@ namespace imp
     VulkanBuffer& Graphics::GetDrawDataStagingBuffer()
     {
         auto& drawDataBuffer = m_ShaderManager.GetDrawDataBuffer(m_Swapchain.GetFrameClock());
-        drawDataBuffer.WaitUntilNotUsedByGPU(m_LogicalDevice, m_FencePool);
+
+        // Dont wait on fence that might've been reset already, since cb manager controls those fences.
+        // potential design flaw to consider fixing later
+        if(m_CurrentFrame - drawDataBuffer.GetLastUsed() >= m_Settings.swapchainImageCount)
+            drawDataBuffer.WaitUntilNotUsedByGPU(m_LogicalDevice, m_FencePool);
+
         return drawDataBuffer;
     }
 
@@ -472,7 +495,8 @@ namespace imp
         cbs[0].Begin();
         ImGui_ImplVulkan_CreateFontsTexture(cbs[0].cmb);
         cbs[0].End();
-        auto synchs = m_CbManager.Submit(m_GfxQueue, m_LogicalDevice, cbs, {}, kSubmitDontCare, m_CurrentFrame);
+        m_CbManager.SubmitInternal(cbs[0]);
+        auto synchs = m_CbManager.SubmitToQueue(m_GfxQueue, m_LogicalDevice, kSubmitDontCare, m_CurrentFrame);
 
         // Since we're completely discarding this semaphore nothing will wait for it, can throw out
         m_VulkanGarbageCollector.AddGarbageResource(std::make_shared<Semaphore>(synchs.semaphore));

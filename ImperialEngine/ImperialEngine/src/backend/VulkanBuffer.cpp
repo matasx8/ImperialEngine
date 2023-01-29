@@ -87,12 +87,11 @@ namespace imp
 
 	void VulkanBuffer::WaitUntilNotUsedByGPU(VkDevice device, PrimitivePool<Fence, FenceFactory>& m_FencePool)
 	{
-		if (m_Fence.fence != VK_NULL_HANDLE)
+		if (m_Fence.fence != VK_NULL_HANDLE && GetLastUsed())
 		{
-			const auto res = vkWaitForFences(device, 1, &m_Fence.fence, VK_TRUE, 9999999999999999999); // TODO compute-drawIndirect: change to proper number
+			const auto res = vkWaitForFences(device, 1, &m_Fence.fence, VK_TRUE, ~0ull);
 			assert(res == VK_SUCCESS);
 
-			m_FencePool.Return(m_Fence);
 			m_Fence.fence = VK_NULL_HANDLE;
 		}
 	}

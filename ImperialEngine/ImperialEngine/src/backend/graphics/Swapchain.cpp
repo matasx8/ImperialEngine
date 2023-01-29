@@ -122,7 +122,7 @@ imp::SurfaceDesc imp::Swapchain::GetSwapchainImageSurfaceDesc() const
     return desc;
 }
 
-imp::Surface imp::Swapchain::GetSwapchainImageSurface(VkDevice device, uint64_t currFrame)
+imp::Surface& imp::Swapchain::GetSwapchainImageSurface(VkDevice device, uint64_t currFrame)
 {
     if (m_NeedsAcquiring)
         AcquireNextImage(device, currFrame);

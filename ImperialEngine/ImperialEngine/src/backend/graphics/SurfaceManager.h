@@ -19,6 +19,7 @@ namespace imp
 		//Framebuffer GetFramebuffer(const RenderPass& rp, VkDevice device, const std::vector<Surface>& surfaces);
 		Framebuffer CreateFramebuffer(const RenderPass& rp, const std::vector<Surface>& surfaces, VkDevice device);
 		Surface GetSurface(const SurfaceDesc& desc, VkDevice device);
+		std::vector<VkSemaphore> GetSemaphoresToWaitOn(VkDevice device, uint64_t currFrame, Swapchain& swapchainWorkaround);
 
 		void ReturnSurfaces(std::vector<Surface>& surfaces, Swapchain& swapchainWorkaround);
 
