@@ -8,7 +8,6 @@
 #include <extern/GLM/ext/matrix_transform.hpp>
 #include <extern/GLM/ext/matrix_clip_space.hpp>
 #include <extern/GLM/gtx/quaternion.hpp>
-#include <extern/IPROF/iprof.hpp>
 
 namespace imp
 {
@@ -45,13 +44,11 @@ namespace imp
 
 	void Engine::StartFrame()
 	{
-		IPROF_FUNC;
 		m_Q->add(std::mem_fn(&Engine::Cmd_StartFrame), std::shared_ptr<void>());
 	}
 
 	void Engine::Update()
 	{
-		IPROF_FUNC;
 		// not sure if this should be here
 		m_Window.UpdateImGUI();
 		m_Window.Update();
@@ -61,14 +58,12 @@ namespace imp
 
 	void Engine::Render()
 	{
-		IPROF_FUNC;
 		RenderCameras();
 		RenderImGUI();
 	}
 
 	void Engine::EndFrame()
 	{
-		IPROF_FUNC;
 		m_Q->add(std::mem_fn(&Engine::Cmd_EndFrame), std::shared_ptr<void>());
 	}
 
@@ -80,10 +75,7 @@ namespace imp
 
 	void Engine::SyncGameThread()
 	{
-		InternalProfiler::aggregateEntries();
-		InternalProfiler::addThisThreadEntriesToAllThreadStats();
-		IPROF_FUNC;
-			m_SyncPoint->arrive_and_wait();
+		m_SyncPoint->arrive_and_wait();
 	}
 
 	void Engine::SwitchRenderingMode(EngineRenderMode newRenderMode)
@@ -286,7 +278,6 @@ namespace imp
 	// at least remove these dumb duplicate types like 'CameraData', just use Camera component
 	void Engine::EngineThreadSyncFunc() noexcept
 	{
-		IPROF("Engine::EngineThreadSync");
 		m_Window.UpdateDeltaTime();
 
 		if (IsDrawDataDirty())

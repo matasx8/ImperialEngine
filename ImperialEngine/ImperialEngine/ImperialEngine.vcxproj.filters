@@ -120,9 +120,6 @@
     <ClCompile Include="src\extern\IMGUI\imGuIZMOquat.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\extern\IPROF\iprof.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\backend\graphics\RenderPass\RenderPassFactorySimple.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -270,12 +267,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\extern\IMGUI\imGuIZMOquat.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\extern\IPROF\hitime.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\extern\IPROF\iprof.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\backend\graphics\RenderPass\RenderPassFactory.h">

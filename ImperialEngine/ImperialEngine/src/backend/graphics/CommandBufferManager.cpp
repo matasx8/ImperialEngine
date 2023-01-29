@@ -2,7 +2,6 @@
 #include "Utils/Pool.h"
 #include <stdexcept>
 #include <cassert>
-#include <IPROF/iprof.hpp>
 
 namespace imp
 {
@@ -54,7 +53,6 @@ namespace imp
 
     SubmitSynchPrimitives CommandBufferManager::SubmitToQueue(VkQueue submitQueue, VkDevice device, SubmitType submitType, uint64_t currFrame)
     {
-        IPROF_FUNC;
         // need to add fence for command buffers to know when we can reset them
         // need to add semaphore to know when we can present
         Semaphore semaphore = m_SemaphorePool.Get(device, currFrame);

@@ -251,7 +251,6 @@
     <ClCompile Include="src\extern\IMGUI\backends\imgui_impl_glfw.cpp" />
     <ClCompile Include="src\extern\IMGUI\backends\imgui_impl_vulkan.cpp" />
     <ClCompile Include="src\extern\IMGUI\imGuIZMOquat.cpp" />
-    <ClCompile Include="src\extern\IPROF\iprof.cpp" />
     <ClCompile Include="src\frontend\AssetImporter.cpp" />
     <ClCompile Include="src\frontend\Components\Components.cpp" />
     <ClCompile Include="src\frontend\EngineSettings.cpp" />
@@ -300,8 +299,6 @@
     <ClInclude Include="src\extern\IMGUI\vGizmo.h" />
     <ClInclude Include="src\extern\IMGUI\vGizmoMath.h" />
     <ClInclude Include="src\extern\IMGUI\vgMath.h" />
-    <ClInclude Include="src\extern\IPROF\hitime.hpp" />
-    <ClInclude Include="src\extern\IPROF\iprof.hpp" />
     <ClInclude Include="src\frontend\AssetImporter.h" />
     <ClInclude Include="src\frontend\Debug.h" />
     <ClInclude Include="src\frontend\EngineSettings.h" />

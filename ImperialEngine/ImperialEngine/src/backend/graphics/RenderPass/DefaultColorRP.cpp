@@ -1,7 +1,6 @@
 #include "DefaultColorRP.h"
 #include "backend/graphics/Graphics.h"
 #include "GLM/gtc/matrix_transform.hpp"
-#include <IPROF/iprof.hpp>
 
 namespace imp
 {
@@ -12,7 +11,6 @@ namespace imp
 
 	void DefaultColorRP::Execute(Graphics& gfx, const CameraData& cam)
 	{
-		IPROF_FUNC;
 		constexpr uint32_t numCmbs = 1;
 		auto cmbs = gfx.m_CbManager.AquireCommandBuffers(gfx.m_LogicalDevice, numCmbs);
 		CommandBuffer cmb = cmbs[0];

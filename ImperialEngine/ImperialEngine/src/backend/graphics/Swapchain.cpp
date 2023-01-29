@@ -4,7 +4,6 @@
 #include <stdexcept>
 #include <cassert>
 #include <backend/graphics/RenderPass/RenderPass.h>
-#include <IPROF/iprof.hpp>
 
 imp::Swapchain::Swapchain(PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool)
     : m_Swapchain(), m_Format(), m_Extent(), m_PresentMode(), m_ImageCount(), m_SwapchainIndex(), m_FrameClock(), m_NeedsAcquiring(), m_SwapchainImages(), m_Semaphores(), m_SemaphorePool(semaphorePool)
@@ -90,7 +89,6 @@ void imp::Swapchain::Present(VkQueue presentQ, const std::vector<VkSemaphore>& s
 
 void imp::Swapchain::AcquireNextImage(VkDevice device, uint64_t currentFrame)
 {
-    IPROF_FUNC;
     // Get a random semaphore
     auto sem = m_SemaphorePool.Get(device, currentFrame).semaphore;
     // use that semaphore to be signaled when it's available

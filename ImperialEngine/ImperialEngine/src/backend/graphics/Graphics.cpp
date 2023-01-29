@@ -10,7 +10,6 @@
 #include <cassert>
 #include <extern/IMGUI/backends/imgui_impl_vulkan.h>
 #include <numeric>
-#include <extern/IPROF/iprof.hpp>
 
 namespace imp
 {
@@ -129,7 +128,6 @@ namespace imp
 
     void Graphics::RenderCameras()
     {
-        IPROF_FUNC;
         for (const auto& camera : m_CameraData)
         {
             GlobalData data;
@@ -148,7 +146,6 @@ namespace imp
 
     void Graphics::RenderImGUI()
     {
-        IPROF_FUNC;
         renderpassgui->Execute(*this, m_CameraData[0]);
         auto surfaces = renderpassgui->GiveSurfaces();
         m_SurfaceManager.ReturnSurfaces(surfaces, m_Swapchain);

@@ -5,7 +5,6 @@
 #include "Components/Components.h"
 #include <imgui.h>
 #include <extern/IMGUI/imGuIZMOquat.h>
-#include <extern/IPROF/iprof.hpp>
 #include <sstream>
 
 namespace imp
@@ -61,39 +60,7 @@ namespace imp
 				ImGui::Text("This is going to be profiling data");
 				constexpr ImVec4 mainThreadCol(1.0f, 1.0f, 0.0f, 1.0f);
 				constexpr ImVec4 renderThreadCol(0.0f, 1.0f, 0.0f, 1.0f);
-				std::lock_guard<std::mutex> bouncer(InternalProfiler::allThreadStatLock);
-				const auto& stats = InternalProfiler::allThreadStats;
 
-				// this will do for now, but find better profiling lib because this one sucks
-				for (auto& si : stats)
-				{
-					int neededPops = 0;
-					int styleNeededPops = 0;
-					for (auto& ti : si.first)
-					{
-						neededPops++;
-						std::stringstream ss;
-						ss << ti;
-						ss << ": " << MILLI_SECS(si.second.totalTime) / float(si.second.numVisits);
-						ImGui::SetNextItemOpen(true, ImGuiCond_Always);
-						const std::string str = ss.str();
-						if (str.find("Engine") != std::string::npos)
-						{
-							ImGui::PushStyleColor(styleNeededPops, mainThreadCol);
-							styleNeededPops++;
-						}
-						else if (str.find("Graphics") != std::string::npos)
-						{
-							ImGui::PushStyleColor(styleNeededPops, renderThreadCol);
-							styleNeededPops++;
-						}
-
-						ImGui::TreeNode(str.c_str());
-					}
-					for(auto i = 0; i < neededPops; i++)
-						ImGui::TreePop();
-					ImGui::PopStyleColor(styleNeededPops);
-				}
 				ImGui::EndTabItem();
 			}
 			if (ImGui::BeginTabItem("Camera"))
