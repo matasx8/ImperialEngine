@@ -291,8 +291,6 @@ namespace imp
 
 		if (IsDrawDataDirty())
 		{
-			// TODO compute-drawindirect: return something along the lines of IGPUBuffer.
-			// could be nice to make GPU buffers have an interface of a vector
 			IGPUBuffer& drawDataBuffer = m_Gfx.GetDrawDataStagingBuffer();
 			drawDataBuffer.resize(0);
 
