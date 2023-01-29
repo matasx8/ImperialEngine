@@ -7,12 +7,12 @@
 namespace imp
 {
 	VulkanBuffer::VulkanBuffer()
-		: m_Buffer(VK_NULL_HANDLE), m_Memory(VK_NULL_HANDLE), m_Size(), m_WriteOffset(), m_NumElements(), m_MemoryPtr(nullptr), m_TempOffset(), m_Fence()
+		: m_Buffer(VK_NULL_HANDLE), m_Memory(VK_NULL_HANDLE), m_Size(), m_WriteOffset(), m_TempOffset(), m_Fence()
 	{
 	}
 
 	VulkanBuffer::VulkanBuffer(uint32_t size, VkBuffer buffer, VkDeviceMemory mem)
-		: m_Buffer(buffer), m_Memory(mem), m_Size(size), m_WriteOffset(), m_NumElements(), m_MemoryPtr(nullptr), m_TempOffset(), m_Fence()
+		: m_Buffer(buffer), m_Memory(mem), m_Size(size), m_WriteOffset(), m_TempOffset(), m_Fence()
 	{
 	}
 
@@ -34,24 +34,6 @@ namespace imp
 	uint32_t VulkanBuffer::GetOffset() const
 	{
 		return m_WriteOffset;
-	}
-
-	void VulkanBuffer::resize(size_t size)
-	{
-		m_NumElements = size;
-		// Should i also adjust write offset?
-	}
-
-	void VulkanBuffer::push_back(const void* data, size_t size)
-	{
-		// TODO compute-drawindirect: until I provide IGPUBuffer interface I'm going to assume each element is the same size
-		assert(data);
-		assert(size);
-		const auto offset = m_NumElements * size;
-		char* tempPtr = reinterpret_cast<char*>(m_MemoryPtr);
-		tempPtr += offset;
-		std::memcpy(tempPtr, data, size);
-		m_NumElements++;
 	}
 
 	void VulkanBuffer::RegisterNewUpload(uint32_t size)

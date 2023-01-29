@@ -83,7 +83,7 @@ namespace imp
     void Graphics::DispatchUpdateDrawCommands()
     {
         // Update the new global draw count
-        m_NumDraws = GetDrawDataStagingBuffer().GetNumElements();
+        m_NumDraws = GetDrawDataStagingBuffer().size();
         const auto dispatchCount = (m_NumDraws + 31) / 32;
 
         // TODO compute-drawIndirect: make the interface for getting shaders better. At least make
@@ -223,7 +223,7 @@ namespace imp
             m_ShaderManager.CreateComputePrograms(m_LogicalDevice, m_PipelineManager, req);
     }
 
-    VulkanBuffer& Graphics::GetDrawDataStagingBuffer()
+    IGPUBuffer& Graphics::GetDrawDataStagingBuffer()
     {
         auto& drawDataBuffer = m_ShaderManager.GetDrawDataBuffer(m_Swapchain.GetFrameClock());
 

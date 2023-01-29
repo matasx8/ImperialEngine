@@ -55,7 +55,7 @@ namespace imp
 
 		// Will return ref to VulkanBuffer used for uploading new draw data.
 		// Waits for fence associated with buffer to make sure it's not used by the GPU anymore.
-		VulkanBuffer& GetDrawDataStagingBuffer();
+		IGPUBuffer& GetDrawDataStagingBuffer();
 
 		const Comp::IndexedVertexBuffers& GetMeshData(uint32_t index) const;
 

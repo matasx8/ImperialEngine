@@ -1,5 +1,6 @@
 #pragma once
 #include "backend/graphics/Fence.h"
+#include "backend/graphics/IGPUBuffer.h"
 
 namespace imp
 {
@@ -7,7 +8,7 @@ namespace imp
 		typename FactoryFunction>
 	class PrimitivePool;
 
-	class VulkanBuffer : public VulkanResource
+	class VulkanBuffer : public VulkanResource, public IGPUBuffer
 	{
 	public:
 		VulkanBuffer();
@@ -17,10 +18,6 @@ namespace imp
 		VkBuffer GetBuffer() const;
 		VkDeviceMemory GetMemory() const;
 		uint32_t GetOffset() const;
-
-		// cpu to gpu buffer interface:
-		void resize(size_t size);
-		void push_back(const void* data, size_t size);
 
 		// Updates size and offset
 		void RegisterNewUpload(uint32_t size);
@@ -34,12 +31,7 @@ namespace imp
 		bool IsCurrentlyUsedByGPU(VkDevice device);
 		void WaitUntilNotUsedByGPU(VkDevice device, PrimitivePool<Fence, FenceFactory>& m_FencePool);
 
-		// We're tracking if this memmory is currently mapped by the fact if it's not pointing to null
-		bool IsMemoryMappedByHost() const { return m_MemoryPtr != nullptr; }
-		void MapWholeBuffer(VkDevice device);
-		const void* GetRawMappedBufferPointer() const { return m_MemoryPtr; }
-
-		size_t GetNumElements() const { return m_NumElements; }
+		virtual void MapWholeBuffer(VkDevice device) override;
 
 		void Destroy(VkDevice device) override;
 
@@ -50,8 +42,6 @@ namespace imp
 		uint32_t m_Size; // in bytes
 		// Since we don't support removing stuff from buffers, we can use this to know what's the used size of the buffer
 		uint32_t m_WriteOffset;
-		size_t m_NumElements;
-		void* m_MemoryPtr;
 
 		// temp controls for sub buffer managment
 		uint32_t m_TempOffset;

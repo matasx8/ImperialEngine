@@ -296,6 +296,9 @@
     <ClInclude Include="src\backend\graphics\Fence.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\backend\graphics\IGPUBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\extern\IMGUI\vGizmo.h.bak" />

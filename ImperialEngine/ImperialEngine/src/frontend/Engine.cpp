@@ -266,7 +266,7 @@ namespace imp
 		}
 	}
 
-	inline void GenerateIndirectDrawCommand(VulkanBuffer& dstBuffer, const Comp::IndexedVertexBuffers& meshData)
+	inline void GenerateIndirectDrawCommand(IGPUBuffer& dstBuffer, const Comp::IndexedVertexBuffers& meshData)
 	{
 		// TODO finishing touches: change this to some struct that wouldn't expose vulkan.
 		VkDrawIndexedIndirectCommand cmd;
@@ -293,7 +293,7 @@ namespace imp
 		{
 			// TODO compute-drawindirect: return something along the lines of IGPUBuffer.
 			// could be nice to make GPU buffers have an interface of a vector
-			VulkanBuffer& drawDataBuffer = m_Gfx.GetDrawDataStagingBuffer();
+			IGPUBuffer& drawDataBuffer = m_Gfx.GetDrawDataStagingBuffer();
 			drawDataBuffer.resize(0);
 
 			m_Gfx.m_DrawData.resize(0);
