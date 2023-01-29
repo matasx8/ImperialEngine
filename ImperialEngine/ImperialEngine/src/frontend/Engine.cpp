@@ -307,6 +307,7 @@ namespace imp
 				const auto& transform = transforms.get<Comp::Transform>(parent);
 
 				// Needed for GPU-driven
+				// TOOD compute: only do what's necessary for either rendering modes
 				const auto& meshData = m_Gfx.GetMeshData(mesh.meshId);
 				GenerateIndirectDrawCommand(drawDataBuffer, meshData);
 
