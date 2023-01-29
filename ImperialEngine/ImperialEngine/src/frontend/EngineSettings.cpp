@@ -34,6 +34,7 @@ EngineSettings::EngineSettings(EngineSettingsTemplate settingsTemplate)
 	//VK_NV_DEVICE_DIAGNOSTICS_CONFIG_EXTENSION_NAME
 	};
 	gfxSettings.swapchainImageCount = kEngineSwapchainTripleBuffering;
-	gfxSettings.preferredPresentModes = { kEnginePresentMailbox, kEnginePresentFifo };
+	// TODO nice-to-have: add dropdown to select presentation mode in ui in runtime
+	gfxSettings.preferredPresentModes = { /*kEnginePresentMailbox,*/ kEnginePresentFifo};
 	gfxSettings.renderMode = static_cast<EngineRenderMode>(kDefaultEngineRenderMode);
 }

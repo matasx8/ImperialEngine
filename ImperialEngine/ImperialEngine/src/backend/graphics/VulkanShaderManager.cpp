@@ -32,11 +32,11 @@ namespace imp
 			m_MaterialDataBuffers[i] = memory.GetBuffer(device, kMaterialBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, memProps);
 			m_DrawDataBuffers[i] = memory.GetBuffer(device, kDrawDataBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, memProps);
 
+			// compute data:
+			m_DrawCommands[i] = memory.GetBuffer(device, kDrawCommandBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, memProps);
+			m_DrawCommands[i].MapWholeBuffer(device);
 		}
 
-		// compute data:
-		m_DrawCommands = memory.GetBuffer(device, kDrawCommandBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, memProps);
-		m_DrawCommands.MapWholeBuffer(device);
 
 		CreateMegaDescriptorSets(device);
 		WriteUpdateDescriptorSets(device, m_DescriptorSets.data(), VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_GlobalBuffers, sizeof(GlobalData), kGlobalBufferBindingSlot, kGlobalBufferBindCount, kEngineSwapchainExclusiveMax - 1);
@@ -44,11 +44,9 @@ namespace imp
 		WriteUpdateDescriptorSets(device, m_DescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawDataBuffers, sizeof(ShaderDrawData), kDrawDataBufferBindingSlot, kMaxDrawCount, kEngineSwapchainExclusiveMax - 1);
 
 		// Compute:
-		// TODO: fix this workaround:
-		std::array<VulkanBuffer, 1> dsc = { m_DrawCommands };
-		std::array<VulkanBuffer, 1> dc = { drawCommands };
-		WriteUpdateDescriptorSets(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, dsc, kDrawCommandBufferSize, 0, 1, 1);
-		WriteUpdateDescriptorSets(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, dc, kDrawCommandBufferSize, 1, 1, 1);
+		std::array<VulkanBuffer, 3> dc = { drawCommands, drawCommands, drawCommands };
+		WriteUpdateDescriptorSets(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawCommands, kDrawCommandBufferSize, 0, 1, kEngineSwapchainExclusiveMax - 1);
+		WriteUpdateDescriptorSets(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, dc, kDrawCommandBufferSize, 1, 1, kEngineSwapchainExclusiveMax - 1);
 
 		CreateDefaultMaterial(device);
 	}

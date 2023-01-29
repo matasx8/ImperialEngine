@@ -40,8 +40,8 @@ namespace imp
         m_IndexBuffer(),
         m_MeshBuffer(),
         m_DrawBuffer(),
+        m_NumDraws(),
         m_GlobalBuffers(),
-        m_DrawDataBuffers(),
         m_DescriptorSets(),
         m_VertexBuffers(),
         m_DrawData(),
@@ -82,6 +82,10 @@ namespace imp
 
     void Graphics::DispatchUpdateDrawCommands()
     {
+        // Update the new global draw count
+        m_NumDraws = GetDrawDataStagingBuffer().GetNumElements();
+        const auto dispatchCount = (m_NumDraws + 31) / 32;
+
         // TODO compute-drawIndirect: make the interface for getting shaders better. At least make
         // shader manager return the configs immediately
         const auto updateDrawCS = m_ShaderManager.GetShader("drawGen.comp");
@@ -94,31 +98,17 @@ namespace imp
         cb.Begin();
         vkCmdBindPipeline(cb.cmb, VK_PIPELINE_BIND_POINT_COMPUTE, updateDrawsProgram.GetPipeline());
         vkCmdBindDescriptorSets(cb.cmb, VK_PIPELINE_BIND_POINT_COMPUTE, updateDrawsProgram.GetPipelineLayout(), 0, 1, &dset, 0, nullptr);
-        vkCmdDispatch(cb.cmb, (GetDrawDataStagingBuffer().GetNumElements() + 31) / 32, 1, 1);
+        vkCmdDispatch(cb.cmb, (m_NumDraws + 31) / 32, 1, 1);
         cb.End();
-        m_CbManager.Submit(m_GfxQueue, m_LogicalDevice, { cb.cmb }, {}, kSubmitDontCare, m_CurrentFrame);
+
+
+        auto synchs = m_CbManager.Submit(m_GfxQueue, m_LogicalDevice, { cb.cmb }, {}, kSubmitDontCare, m_CurrentFrame);
+        m_ShaderManager.GetDrawDataBuffer(m_Swapchain.GetFrameClock()).GiveFence(synchs.fence);
+        m_DrawBuffer.GiveSemaphore(synchs.semaphore.semaphore);
     }
 
     void Graphics::StartFrame()
     {
-        if (false) // first frame
-        {
-            FirstFrame = false;
-            const auto usageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-            const auto memoryFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-
-            // upload draw commands
-            CommandBuffer cb = m_CbManager.AquireCommandBuffer(m_LogicalDevice);
-            cb.Begin();
-
-            auto& dbuf = m_ShaderManager.GetDrawDataBuffer();
-            
-            UploadVulkanBuffer(usageFlags, memoryFlags, m_DrawBuffer, cb, dbuf.GetNumElements() * sizeof(VkDrawIndexedIndirectCommand), dbuf.GetRawMappedBufferPointer());
-            cb.End();
-            auto synchs = m_CbManager.Submit(m_GfxQueue, m_LogicalDevice, { cb }, {}, kSubmitDontCare, m_CurrentFrame);
-            m_DrawBuffer.GiveSemaphore(synchs.semaphore.semaphore);
-        }
-        // Here we update the shader data for DrawData
         m_ShaderManager.UpdateDrawData(m_LogicalDevice, m_Swapchain.GetFrameClock(), m_DrawData);
     }
 
@@ -217,9 +207,14 @@ namespace imp
 
     VulkanBuffer& Graphics::GetDrawDataStagingBuffer()
     {
-        auto& drawDataBuffer = m_ShaderManager.GetDrawDataBuffer();
-        drawDataBuffer.WaitUntilNotUsedByGPU(m_LogicalDevice);
+        auto& drawDataBuffer = m_ShaderManager.GetDrawDataBuffer(m_Swapchain.GetFrameClock());
+        drawDataBuffer.WaitUntilNotUsedByGPU(m_LogicalDevice, m_FencePool);
         return drawDataBuffer;
+    }
+
+    const Comp::IndexedVertexBuffers& Graphics::GetMeshData(uint32_t index) const
+    {
+        return m_VertexBuffers.at(index);
     }
 
     EngineGraphicsSettings& Graphics::GetGraphicsSettings()

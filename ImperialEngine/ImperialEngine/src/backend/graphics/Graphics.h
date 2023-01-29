@@ -57,6 +57,8 @@ namespace imp
 		// Waits for fence associated with buffer to make sure it's not used by the GPU anymore.
 		VulkanBuffer& GetDrawDataStagingBuffer();
 
+		const Comp::IndexedVertexBuffers& GetMeshData(uint32_t index) const;
+
 		EngineGraphicsSettings& GetGraphicsSettings();
 
 		void Destroy();
@@ -126,12 +128,12 @@ namespace imp
 		VulkanBuffer m_IndexBuffer;
 		VulkanBuffer m_MeshBuffer;
 		VulkanBuffer m_DrawBuffer;
+		uint32_t m_NumDraws;
 
 		// Rotating these descriptor buffers only works if I change the data each frame.
 		// When I get in the hang of CS try to use only 1 Buffer instead of 2-3 and use CS to update relevant data.
 		// This way maybe we could benefit from device-local buffers.
 		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_GlobalBuffers;
-		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_DrawDataBuffers;
 		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_DescriptorSets;
 
 	public:

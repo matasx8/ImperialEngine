@@ -58,7 +58,7 @@ namespace imp
 		VkDescriptorSet GetComputeDescriptorSet(uint32_t idx) const;
 		VkDescriptorSetLayout GetDescriptorSetLayout() const;
 		VkDescriptorSetLayout GetComputeDescriptorSetLayout() const;
-		VulkanBuffer& GetDrawDataBuffer() { return m_DrawCommands; }
+		VulkanBuffer& GetDrawDataBuffer(uint32_t idx) { return m_DrawCommands[idx]; }
 
 		void CreateVulkanShaderSet(VkDevice device, const CmdRsc::MaterialCreationRequest& req);
 		void CreateComputePrograms(VkDevice device, PipelineManager& pipeManager, const CmdRsc::ComputeProgramCreationRequest& req);
@@ -87,7 +87,7 @@ namespace imp
 		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_MaterialDataBuffers;
 		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_DrawDataBuffers;
 
-		VulkanBuffer m_DrawCommands;
+		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_DrawCommands;
 
 		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_DescriptorSets;
 		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_ComputeDescriptorSets;

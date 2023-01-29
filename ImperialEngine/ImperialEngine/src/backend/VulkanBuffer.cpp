@@ -1,4 +1,5 @@
 #include "VulkanBuffer.h"
+#include "Utils/Pool.h"
 #include <stdio.h>
 #include <cassert>
 #include <cstring>
@@ -84,11 +85,16 @@ namespace imp
 		return res == VK_TIMEOUT;
 	}
 
-	void VulkanBuffer::WaitUntilNotUsedByGPU(VkDevice device) const
+	void VulkanBuffer::WaitUntilNotUsedByGPU(VkDevice device, PrimitivePool<Fence, FenceFactory>& m_FencePool)
 	{
-		//assert(m_Fence.fence != VK_NULL_HANDLE);
-		//const auto res = vkWaitForFences(device, 1, &m_Fence.fence, VK_TRUE, 9999999999999999999); // TODO: change to proper number
-		//assert(res == VK_SUCCESS);
+		if (m_Fence.fence != VK_NULL_HANDLE)
+		{
+			const auto res = vkWaitForFences(device, 1, &m_Fence.fence, VK_TRUE, 9999999999999999999); // TODO compute-drawIndirect: change to proper number
+			assert(res == VK_SUCCESS);
+
+			m_FencePool.Return(m_Fence);
+			m_Fence.fence = VK_NULL_HANDLE;
+		}
 	}
 
 	void VulkanBuffer::MapWholeBuffer(VkDevice device)

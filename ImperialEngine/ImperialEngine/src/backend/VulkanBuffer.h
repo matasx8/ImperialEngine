@@ -3,6 +3,10 @@
 
 namespace imp
 {
+	template<typename T,
+		typename FactoryFunction>
+	class PrimitivePool;
+
 	class VulkanBuffer : public VulkanResource
 	{
 	public:
@@ -28,7 +32,7 @@ namespace imp
 		void GiveFence(Fence& fence) {};
 		bool HasFence() const { return m_Fence.fence != VK_NULL_HANDLE; }
 		bool IsCurrentlyUsedByGPU(VkDevice device);
-		void WaitUntilNotUsedByGPU(VkDevice device) const;
+		void WaitUntilNotUsedByGPU(VkDevice device, PrimitivePool<Fence, FenceFactory>& m_FencePool);
 
 		// We're tracking if this memmory is currently mapped by the fact if it's not pointing to null
 		bool IsMemoryMappedByHost() const { return m_MemoryPtr != nullptr; }

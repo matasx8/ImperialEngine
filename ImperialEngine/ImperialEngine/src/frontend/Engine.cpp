@@ -96,8 +96,6 @@ namespace imp
 		if (count)
 			MarkDrawDataDirty();
 
-		srand(42);
-
 		static constexpr uint32_t numMeshes = 2u; // lets say we have 2 meshes
 
 		auto& reg = m_Entities;
@@ -213,7 +211,7 @@ namespace imp
 		glm::mat4x4 proj = glm::perspective(glm::radians(45.0f), (float)m_Window.GetWidth() / (float)m_Window.GetHeight(), 5.0f, 100.0f);
 		m_Entities.emplace<Comp::Camera>(camera, proj, glm::mat4x4(), kCamOutColor, true);
 
-		AddDemoEntity(9999);
+		//AddDemoEntity(9999);
 	}
 
 	void Engine::RenderCameras()
@@ -268,6 +266,18 @@ namespace imp
 		}
 	}
 
+	inline void GenerateIndirectDrawCommand(VulkanBuffer& dstBuffer, const Comp::IndexedVertexBuffers& meshData)
+	{
+		// TODO finishing touches: change this to some struct that wouldn't expose vulkan.
+		VkDrawIndexedIndirectCommand cmd;
+		cmd.indexCount = meshData.indices.GetCount();
+		cmd.instanceCount = 1;
+		cmd.firstIndex = meshData.indices.GetOffset();
+		cmd.vertexOffset = meshData.vertices.GetOffset();
+		cmd.firstInstance = 0;
+		dstBuffer.push_back(&cmd, sizeof(VkDrawIndexedIndirectCommand));
+	}
+
 	// This member function gets executed when both main and render thread arrive at the barrier.
 	// Can be used to sync data.
 	// Keep as fast as possible.
@@ -279,12 +289,8 @@ namespace imp
 		IPROF("Engine::EngineThreadSync");
 		m_Window.UpdateDeltaTime();
 
-		// Change DrawData if new entities were added/removed
 		if (IsDrawDataDirty())
 		{
-			// get ref to draw data vulkan buffer
-			// fill it using some new api that might look like this emplace back
-
 			// TODO compute-drawindirect: return something along the lines of IGPUBuffer.
 			// could be nice to make GPU buffers have an interface of a vector
 			VulkanBuffer& drawDataBuffer = m_Gfx.GetDrawDataStagingBuffer();
@@ -297,27 +303,14 @@ namespace imp
 			for (auto ent : renderableChildren)
 			{
 				const auto& mesh = renderableChildren.get<Comp::Mesh>(ent);
-				//const Comp::Material& material = renderableChildren.get<Comp::Material>(ent);
 				const auto& parent = renderableChildren.get<Comp::ChildComponent>(ent).parent;
 				const auto& transform = transforms.get<Comp::Transform>(parent);
 
-				const auto meshData = m_Gfx.m_VertexBuffers[mesh.meshId];
-				
-				// TODO finishing touches: change this to some struct that wouldn't expose vulkan.
-				VkDrawIndexedIndirectCommand cmd;
-				cmd.indexCount = meshData.indices.GetCount();
-				cmd.instanceCount = 1;
-				cmd.firstIndex = meshData.indices.GetOffset();
-				cmd.vertexOffset = meshData.vertices.GetOffset();
-				cmd.firstInstance = 0;
-				// ok this actually works.
-				drawDataBuffer.push_back(&cmd, sizeof(VkDrawIndexedIndirectCommand));
+				// Needed for GPU-driven
+				const auto& meshData = m_Gfx.GetMeshData(mesh.meshId);
+				GenerateIndirectDrawCommand(drawDataBuffer, meshData);
 
-				// insert copy command for render thread here
-
-				// TODO compute-drawindirect: to not disturb the current descriptor system I'll leave this. But this means
-				// that it's very bad performance to copy everything double time so remove this ASAP if we conclude that
-				// we don't need a buffer for each frame in flight.
+				// Also update shader draw data. Also contains mesh id, that CPU-driven can use to generate draw commands
 				m_Gfx.m_DrawData.emplace_back(transform.transform, mesh.meshId);
 			}
 			m_Q->add(std::mem_fn(&Engine::Cmd_UpdateDraws), std::shared_ptr<void>());
