@@ -1,5 +1,6 @@
 #version 450 //glsl 4.5
 #extension GL_EXT_nonuniform_qualifier : require
+#extension GL_ARB_shader_draw_parameters: require
 
 layout (location = 0) in vec3 pos;
 layout (location = 1) in vec3 norm;
@@ -25,15 +26,15 @@ layout (set = 0, binding = 129) buffer DrawData{
 	uint pad;
 	uint pad2;
 	} drawData[];
-
+	
 layout(push_constant) uniform PushModel{
 	uint idx;
 } pushModel;
 	
 void main()
 {
-	vec3 lol = vec3(materialData[drawData[pushModel.idx].materialIdx].color);
-	mat4 model = drawData[pushModel.idx].Transform;
+	vec3 lol = vec3(materialData[drawData[gl_DrawIDARB].materialIdx].color);
+	mat4 model = drawData[gl_DrawIDARB].Transform;
     vec3 ecPos      = vec3(model * vec4(pos, 1.0));
     vec3 tnorm      = norm;
     vec3 lightVec   = normalize(lol  - ecPos);

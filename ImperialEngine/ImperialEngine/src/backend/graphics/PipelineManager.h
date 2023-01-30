@@ -10,13 +10,12 @@ namespace imp
 	{
 	public: 
 		PipelineManager();
-		void Initialize();
 
-		void CreatePipeline(VkDevice device, const RenderPass& rp, const PipelineConfig& config);
+		Pipeline CreatePipeline(VkDevice device, const RenderPass& rp, const PipelineConfig& config);
 		const Pipeline& GetOrCreatePipeline(VkDevice device, const RenderPass& rp, const PipelineConfig& config);
-		auto GetPipeline() const;
+		const Pipeline& GetComputePipeline(const ComputePipelineConfig& config);
 
-		void Destroy(VkDevice device);
+		void CreateComputePipeline(VkDevice device, const ComputePipelineConfig& config);
 
 	private:
 
@@ -31,7 +30,7 @@ namespace imp
 		VkPipelineMultisampleStateCreateInfo MakeMSAAStateCI(const RenderPass& rp) const;
 		VkPipelineColorBlendStateCreateInfo MakeColorBlendStateCI(const auto& blendAttState) const;
 		VkPipelineDepthStencilStateCreateInfo MakeDepthStencilStateCI() const;
-		VkPipelineLayoutCreateInfo MakePipelineLayoutCI(const auto& pushRange, const PipelineConfig& config) const;
+		VkPipelineLayoutCreateInfo MakePipelineLayoutCI(const VkPushConstantRange* pushRange, const VkDescriptorSetLayout& layout) const;
 		VkPipelineLayout MakePipelineLayout(VkDevice device, const VkPipelineLayoutCreateInfo& ci) const;
 		VkGraphicsPipelineCreateInfo MakePipelineCI(const VkPipelineShaderStageCreateInfo* shaderStages, const VkPipelineVertexInputStateCreateInfo* vertexInputCreateInfo, const
 			VkPipelineInputAssemblyStateCreateInfo* inputAssembly, const VkPipelineViewportStateCreateInfo* viewportStateCreateInfo, const
@@ -40,7 +39,8 @@ namespace imp
 			VkPipelineDepthStencilStateCreateInfo* depthStencilCreateInfo, const VkPipelineLayout pipelineLayout, const
 			VkRenderPass renderPass, VkPipelineCreateFlags flags) const;
 		VkPipeline MakePipeline(VkDevice device, const VkGraphicsPipelineCreateInfo& ci) const;
-		// TODO: have an O(1) get container of pipelines
-		Pipeline m_TemporarySinglePipeline;
+
+		std::unordered_map<PipelineConfig, Pipeline, PipelineConfigHash> m_PipelineMap;
+		std::unordered_map<ComputePipelineConfig, Pipeline, ComputePipelineConfigHash> m_ComputePipelineMap;
 	};
 }

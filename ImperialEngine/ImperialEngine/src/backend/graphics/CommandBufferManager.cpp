@@ -1,179 +1,221 @@
 #include "CommandBufferManager.h"
+#include "Utils/Pool.h"
+#include "Utils/SimpleTimer.h"
 #include <stdexcept>
 #include <cassert>
-#include <IPROF/iprof.hpp>
 
-imp::CommandBufferManager::CommandBufferManager()
-    : m_BufferingMode(), m_FrameClock(), m_GfxCommandPools()
+namespace imp
 {
-}
+    CommandBufferManager::CommandBufferManager(PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool, PrimitivePool<Fence, FenceFactory>& fencePool, SimpleTimer& timer)
+        : m_BufferingMode(), m_FrameClock(), m_IsNewFrame(true), m_GfxCommandPools(), m_CommandsBuffersToSubmit(), m_SemaphoresToWaitOnSubmit(), m_CurrentFence(), m_SemaphorePool(semaphorePool), m_FencePool(fencePool), m_Timer(timer)
+    {
+    }
 
-void imp::CommandBufferManager::Initialize(VkDevice device, QueueFamilyIndices familyIndices, EngineSwapchainImageCount imageCount)
-{
-    m_BufferingMode = static_cast<uint32_t>(imageCount);
-	for (int i = 0; i < imageCount; i++)
-	{
-        VkCommandPoolCreateInfo poolInfo;
-        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        poolInfo.flags = 0; // we're resetting whole pools so no need for reset flag bit.
-        poolInfo.queueFamilyIndex = familyIndices.graphicsFamily;
-        poolInfo.pNext = nullptr;
+    void CommandBufferManager::Initialize(VkDevice device, QueueFamilyIndices familyIndices, EngineSwapchainImageCount imageCount)
+    {
+        m_BufferingMode = static_cast<uint32_t>(imageCount);
+        for (int i = 0; i < imageCount; i++)
+        {
+            VkCommandPoolCreateInfo poolInfo;
+            poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+            poolInfo.flags = 0; // we're resetting whole pools so no need for reset flag bit.
+            poolInfo.queueFamilyIndex = familyIndices.graphicsFamily;
+            poolInfo.pNext = nullptr;
 
-        VkCommandPool pool;
-        VkResult result = vkCreateCommandPool(device, &poolInfo, nullptr, &pool);
+            VkCommandPool pool;
+            VkResult result = vkCreateCommandPool(device, &poolInfo, nullptr, &pool);
+            if (result != VK_SUCCESS)
+                throw std::runtime_error("Failed to create a command pool");
+
+            m_GfxCommandPools.emplace_back(pool);
+        }
+
+        m_CurrentFence = m_FencePool.Get(device, 0ull);
+    }
+
+    static std::vector<VkCommandBuffer> GetCmbs(std::vector<CommandBuffer> commandBuffers)
+    {
+        std::vector<VkCommandBuffer> buffs;
+        for (auto& buff : commandBuffers)
+            buffs.push_back(buff.cmb);
+        return buffs;
+    }
+
+    void CommandBufferManager::SubmitInternal(CommandBuffer& cb)
+    {
+        m_CommandsBuffersToSubmit.emplace_back(cb);
+    }    
+    
+    void CommandBufferManager::SubmitInternal(CommandBuffer& cb, const std::vector<Semaphore>& semaphores)
+    {
+        SubmitInternal(cb);
+        m_SemaphoresToWaitOnSubmit.insert(m_SemaphoresToWaitOnSubmit.end(), semaphores.begin(), semaphores.end());
+    }
+
+    SubmitSynchPrimitives CommandBufferManager::SubmitToQueue(VkQueue submitQueue, VkDevice device, SubmitType submitType, uint64_t currFrame)
+    {
+        // need to add fence for command buffers to know when we can reset them
+        // need to add semaphore to know when we can present
+        Semaphore semaphore = m_SemaphorePool.Get(device, currFrame);
+        semaphore.UpdateLastUsed(currFrame);
+
+        // TOOD: along with semaphore we must provide where to wait.
+        std::vector<VkPipelineStageFlags> waitStages;
+        std::vector<VkSemaphore> semaphores;
+        for (auto& sem : m_SemaphoresToWaitOnSubmit)
+        {
+            waitStages.push_back(VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+            // Recycle used semaphores
+            m_SemaphorePool.Return(sem);
+            semaphores.emplace_back(sem.semaphore);
+        }
+
+        VkSubmitInfo submitInfo = {};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.waitSemaphoreCount = static_cast<uint32_t>(semaphores.size());
+        submitInfo.pWaitSemaphores = semaphores.data(); // semaphore for swapchain image or other dependency between queue operation
+        submitInfo.pWaitDstStageMask = waitStages.data();
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores = &semaphore.semaphore;
+        submitInfo.commandBufferCount = static_cast<uint32_t>(m_CommandsBuffersToSubmit.size());
+        auto ccs = GetCmbs(m_CommandsBuffersToSubmit);
+        submitInfo.pCommandBuffers = ccs.data();
+
+
+        VkResult result = vkQueueSubmit(submitQueue, 1, &submitInfo, m_CurrentFence.fence);
         if (result != VK_SUCCESS)
-            throw std::runtime_error("Failed to create a command pool");
+            throw std::runtime_error("Failed to submit Command Buffer to Queue!");
 
-        m_GfxCommandPools.emplace_back(pool);
-	}
-}
+        SubmitSynchPrimitives primitives = { VK_NULL_HANDLE, VK_NULL_HANDLE };
+        if (submitType == kSubmitSynchForPresent)
+        {
+            m_GfxCommandPools[m_FrameClock].ReturnCommandBuffers(m_CommandsBuffersToSubmit, semaphore.semaphore, m_CurrentFence.fence);
+        }
+        else
+        {
+            m_GfxCommandPools[m_FrameClock].ReturnCommandBuffers(m_CommandsBuffersToSubmit, VK_NULL_HANDLE, m_CurrentFence.fence);
+            primitives = { semaphore, m_CurrentFence };
+        }
 
-static std::vector<VkCommandBuffer> GetCmbs(std::vector<imp::CommandBuffer> commandBuffers)
-{
-    std::vector<VkCommandBuffer> buffs;
-    for (auto& buff : commandBuffers)
-        buffs.push_back(buff.cmb);
-    return buffs;
-}
+        m_CurrentFence = m_FencePool.Get(device, currFrame);
+        m_CurrentFence.UpdateLastUsed(currFrame);
+        m_CommandsBuffersToSubmit.resize(0ull);
+        m_SemaphoresToWaitOnSubmit.resize(0ull);
 
-imp::SubmitSynchPrimitives imp::CommandBufferManager::Submit(VkQueue submitQueue, VkDevice device, std::vector<CommandBuffer> commandBuffers, std::vector<VkSemaphore> waitSemaphores)
-{
-    IPROF_FUNC;
-    // need to add fence for command buffers to know when we can reset them
-    // need to add semaphore to know when we can present
-    const auto semaphore = GetSemaphore(device);
-    const auto fence = GetFence(device);
-
-    VkSubmitInfo submitInfo = {};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.waitSemaphoreCount = waitSemaphores.size();
-    submitInfo.pWaitSemaphores = waitSemaphores.data(); // semaphore for swapchain image or other dependency between queue operation
-    VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT }; // I've no idea what to put here
-    submitInfo.pWaitDstStageMask = waitStages;
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = &semaphore;
-    submitInfo.commandBufferCount = commandBuffers.size();
-    auto ccs = GetCmbs(commandBuffers);
-    submitInfo.pCommandBuffers = ccs.data();
-
-
-    VkResult result = vkQueueSubmit(submitQueue, 1, &submitInfo, fence);
-    if (result != VK_SUCCESS)
-        throw std::runtime_error("Failed to submit Command Buffer to Queue!");
-
-    m_GfxCommandPools[m_FrameClock].ReturnCommandBuffers(commandBuffers, semaphore, fence);
-
-    return { semaphore, fence };
-}
-
-void imp::CommandBufferManager::SignalFrameEnded()
-{
-    m_FrameClock++;
-    m_FrameClock %= m_BufferingMode;
-    m_IsNewFrame = true;
-}
-
-std::vector<imp::CommandBuffer> imp::CommandBufferManager::AquireCommandBuffers(VkDevice device, uint32_t count)
-{
-    if (m_IsNewFrame)
-        m_GfxCommandPools[m_FrameClock].Reset(device);
-    return m_GfxCommandPools[m_FrameClock].AquireCommandBuffers(device, count);
-}
-
-std::vector<VkSemaphore>& imp::CommandBufferManager::GetCommandExecSemaphores()
-{
-    return m_GfxCommandPools[m_FrameClock].semaphores;
-}
-
-void imp::CommandBufferManager::Destroy(VkDevice device)
-{
-    for (auto& pool : m_GfxCommandPools)
-    {
-        vkDestroyCommandPool(device, pool.pool, nullptr);
-        for (auto& fence : pool.fences)
-            vkDestroyFence(device, fence, nullptr);
-        for (auto& sem : pool.semaphores)
-            vkDestroySemaphore(device, sem, nullptr);
-    }
-}
-
-VkSemaphore imp::CommandBufferManager::GetSemaphore(VkDevice device)
-{
-    VkSemaphore sem = 0;
-    VkSemaphoreCreateInfo semaphoreCreateInfo = {};
-    semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-    const auto res = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &sem);
-    assert(res == VK_SUCCESS);
-    return sem;
-}
-
-VkFence imp::CommandBufferManager::GetFence(VkDevice device)
-{
-    VkFence fence = 0;
-    VkFenceCreateInfo fenceCreateInfo = {};
-    fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    const auto res = vkCreateFence(device, &fenceCreateInfo, nullptr, &fence);
-    assert(res == VK_SUCCESS);
-    return fence;
-}
-
-std::vector<imp::CommandBuffer> imp::CommandPool::AquireCommandBuffers(VkDevice device, uint32_t count)
-{
-    std::vector<CommandBuffer> buffers;
-    for (uint32_t i = 0; i < count; i++)
-    {
-        if (readyPool.size() == 0)
-            break;
-        buffers.emplace_back(readyPool.front());
-        readyPool.pop();
+        return primitives;
     }
 
-    uint32_t left = count - buffers.size();
-    if (left)
+    void CommandBufferManager::SignalFrameEnded()
     {
-        VkCommandBufferAllocateInfo cbAllocInfo = {};
-        cbAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        cbAllocInfo.commandPool = pool;
-        cbAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        cbAllocInfo.commandBufferCount = left;
-        std::vector<VkCommandBuffer> newBufs(left);
-        VkResult result = vkAllocateCommandBuffers(device, &cbAllocInfo, newBufs.data());
-        if (result != VK_SUCCESS)
-            throw std::runtime_error("Failed to allocate Command Buffers");
-
-        for (auto& buff : newBufs)
-            buffers.emplace_back(buff);
+        m_FrameClock++;
+        m_FrameClock %= m_BufferingMode;
+        m_IsNewFrame = true;
     }
-    return buffers;
-}
 
-void imp::CommandPool::ReturnCommandBuffers(std::vector<CommandBuffer>& buffers, VkSemaphore semaphore, VkFence fence)
-{
-    donePool.insert(donePool.end(), buffers.begin(), buffers.end());
-    semaphores.push_back(semaphore);
-    fences.push_back(fence);
-}
-
-void imp::CommandPool::Reset(VkDevice device)
-{
-    if (fences.size())
+    std::vector<CommandBuffer> CommandBufferManager::AquireCommandBuffers(VkDevice device, uint32_t count)
     {
-        const auto res = vkWaitForFences(device, fences.size(), fences.data(), VK_TRUE, ~0ull);
+        if (m_IsNewFrame)
+        {
+            m_GfxCommandPools[m_FrameClock].Reset(device, m_SemaphorePool, m_FencePool, m_Timer);
+            m_IsNewFrame = false;
+        }
+        return m_GfxCommandPools[m_FrameClock].AquireCommandBuffers(device, count);
+    }
+
+    CommandBuffer CommandBufferManager::AquireCommandBuffer(VkDevice device)
+    {
+        return AquireCommandBuffers(device, 1)[0];
+    }
+
+    std::vector<VkSemaphore>& CommandBufferManager::GetCommandExecSemaphores()
+    {
+        return m_GfxCommandPools[m_FrameClock].semaphores;
+    }
+
+    const Fence& CommandBufferManager::GetCurrentFence() const
+    {
+        return m_CurrentFence;
+    }
+
+    void CommandBufferManager::Destroy(VkDevice device)
+    {
+        for (auto& pool : m_GfxCommandPools)
+        {
+            vkDestroyCommandPool(device, pool.pool, nullptr);
+            for (auto& fence : pool.fences)
+                vkDestroyFence(device, fence, nullptr);
+            for (auto& sem : pool.semaphores)
+                vkDestroySemaphore(device, sem, nullptr);
+        }
+    }
+
+    std::vector<CommandBuffer> CommandPool::AquireCommandBuffers(VkDevice device, uint32_t count)
+    {
+        std::vector<CommandBuffer> buffers;
+        for (uint32_t i = 0; i < count; i++)
+        {
+            if (readyPool.size() == 0)
+                break;
+            buffers.emplace_back(readyPool.front());
+            readyPool.pop();
+        }
+
+        uint32_t left = count - static_cast<uint32_t>(buffers.size());
+        if (left)
+        {
+            VkCommandBufferAllocateInfo cbAllocInfo = {};
+            cbAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+            cbAllocInfo.commandPool = pool;
+            cbAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+            cbAllocInfo.commandBufferCount = left;
+            std::vector<VkCommandBuffer> newBufs(left);
+            VkResult result = vkAllocateCommandBuffers(device, &cbAllocInfo, newBufs.data());
+            if (result != VK_SUCCESS)
+                throw std::runtime_error("Failed to allocate Command Buffers");
+
+            for (auto& buff : newBufs)
+                buffers.emplace_back(buff);
+        }
+        return buffers;
+    }
+
+    void CommandPool::ReturnCommandBuffers(std::vector<CommandBuffer>& buffers, VkSemaphore semaphore, VkFence fence)
+    {
+        donePool.insert(donePool.end(), buffers.begin(), buffers.end());
+        if (semaphore != VK_NULL_HANDLE)
+            semaphores.push_back(semaphore);
+        if (fence != VK_NULL_HANDLE)
+            fences.push_back(fence);
+    }
+
+    void CommandPool::Reset(VkDevice device, PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool, PrimitivePool<Fence, FenceFactory>& fencePool, SimpleTimer& timer)
+    {
+        if (fences.size())
+        {
+            timer.start();
+            const auto res = vkWaitForFences(device, static_cast<uint32_t>(fences.size()), fences.data(), VK_TRUE, ~0ull);
+            assert(res == VK_SUCCESS);
+            timer.stop();
+        }
+        for (auto& buff : donePool)
+            readyPool.push(buff);
+
+        auto res = vkResetCommandPool(device, pool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
         assert(res == VK_SUCCESS);
-    }
-    for (auto& buff : donePool)
-        readyPool.push(buff);
-    // TODO: not sure if releasing resources is good?
-    auto res = vkResetCommandPool(device, pool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
-    assert(res == VK_SUCCESS);
 
-    for (int i = 0; i < fences.size(); i++)
-    {
-        vkDestroyFence(device, fences[i], nullptr);
-        vkDestroySemaphore(device, semaphores[i], nullptr);
+        if (fences.size())
+            vkResetFences(device, fences.size(), fences.data());
+
+        for (int i = 0; i < fences.size(); i++)
+        {
+            fencePool.Return(fences[i]);
+        }
+
+        for (int i = 0; i < semaphores.size(); i++)
+            semaphorePool.Return(semaphores[i]);
+
+        donePool.resize(0);
+        fences.resize(0);
+        semaphores.resize(0);
     }
-    // not sure if best and simplest way to clear vector?
-    donePool = {};
-    fences = {};
-    semaphores = {};
 }

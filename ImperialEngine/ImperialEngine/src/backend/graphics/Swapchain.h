@@ -6,20 +6,27 @@
 #include "frontend/EngineSettings.h"
 #include "backend/graphics/GraphicsCaps.h"
 #include "backend/graphics/Surface.h"
+#include "backend/graphics/Semaphore.h"
 
 namespace imp
 {
+	template<typename T,
+		typename FactoryFunction>
+	class PrimitivePool;
 	class Swapchain : NonCopyable
 	{
 	public:
-		Swapchain();
+		Swapchain(PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool);
 		void Create(VkPhysicalDevice physicalDevice, VkDevice device, VkSurfaceKHR windowSurface, const EngineGraphicsSettings& gfxSettings, const PhysicalDeviceSurfaceCaps& surfaceCaps, VkExtent2D extent);
 
 		void Present(VkQueue presentQ, const std::vector<VkSemaphore>& semaphores);
-		void AcquireNextImage(VkDevice device);
+		void AcquireNextImage(VkDevice device, uint64_t currentFrame);
+
+		// TODO: workaround:
+		void UpdateSwapchainImage(Surface& surf);
 
 		SurfaceDesc GetSwapchainImageSurfaceDesc() const;
-		Surface GetSwapchainImageSurface(VkDevice device);
+		Surface& GetSwapchainImageSurface(VkDevice device, uint64_t currFrame);
 		uint32_t GetSwapchainImageCount() const;
 		uint32_t GetFrameClock() const;
 
@@ -39,5 +46,6 @@ namespace imp
 
 		std::array<Surface, kEngineSwapchainExclusiveMax - 1> m_SwapchainImages;
 		std::array<VkSemaphore, kEngineSwapchainExclusiveMax - 1> m_Semaphores;
+		PrimitivePool<Semaphore, SemaphoreFactory>& m_SemaphorePool;
 	};
 }

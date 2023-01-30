@@ -3,7 +3,6 @@
 #include "backend/VulkanGarbageCollector.h"
 #include "Graphics.h"
 #include <cassert>
-#include <IPROF/iprof.hpp>
 
 namespace imp
 {
@@ -14,7 +13,6 @@ namespace imp
 
 	std::vector<std::shared_ptr<RenderPass>>& RenderPassGenerator::GetRenderPasses(VkDevice device, const CameraData& data, const Swapchain& swapchain)
 	{
-		IPROF_FUNC;
 		assert(m_Factory.get());
 
 		auto RenderPassCache = m_RenderPassMap.find(data.cameraID);

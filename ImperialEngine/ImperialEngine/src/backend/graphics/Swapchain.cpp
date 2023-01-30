@@ -1,12 +1,12 @@
 #include "Swapchain.h"
 #include "backend/graphics/GraphicsCaps.h"
+#include "Utils/Pool.h"
 #include <stdexcept>
 #include <cassert>
 #include <backend/graphics/RenderPass/RenderPass.h>
-#include <IPROF/iprof.hpp>
 
-imp::Swapchain::Swapchain()
-    : m_Swapchain(), m_Format(), m_Extent(), m_PresentMode(), m_ImageCount(), m_SwapchainIndex(), m_FrameClock(), m_NeedsAcquiring(), m_SwapchainImages(), m_Semaphores()
+imp::Swapchain::Swapchain(PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool)
+    : m_Swapchain(), m_Format(), m_Extent(), m_PresentMode(), m_ImageCount(), m_SwapchainIndex(), m_FrameClock(), m_NeedsAcquiring(), m_SwapchainImages(), m_Semaphores(), m_SemaphorePool(semaphorePool)
 {
 }
 
@@ -87,13 +87,21 @@ void imp::Swapchain::Present(VkQueue presentQ, const std::vector<VkSemaphore>& s
     m_NeedsAcquiring = true;
 }
 
-void imp::Swapchain::AcquireNextImage(VkDevice device)
+void imp::Swapchain::AcquireNextImage(VkDevice device, uint64_t currentFrame)
 {
-    IPROF_FUNC;
-    const auto res = vkAcquireNextImageKHR(device, m_Swapchain, ~0ull, m_Semaphores[m_FrameClock], VK_NULL_HANDLE, &m_SwapchainIndex);
+    // Get a random semaphore
+    auto sem = m_SemaphorePool.Get(device, currentFrame).semaphore;
+    // use that semaphore to be signaled when it's available
+    const auto res = vkAcquireNextImageKHR(device, m_Swapchain, ~0ull, sem, VK_NULL_HANDLE, &m_SwapchainIndex);
     assert(res == VK_SUCCESS);
-    m_SwapchainImages[m_SwapchainIndex].AddSemaphore(m_Semaphores[m_FrameClock]);
+    // add that semaphore to the swapchain image that will be used
+    m_SwapchainImages[m_SwapchainIndex].AddSemaphore(sem);
     m_NeedsAcquiring = false;
+}
+
+void imp::Swapchain::UpdateSwapchainImage(Surface& surf)
+{
+    m_SwapchainImages[m_SwapchainIndex] = surf;
 }
 
 imp::SurfaceDesc imp::Swapchain::GetSwapchainImageSurfaceDesc() const
@@ -112,12 +120,11 @@ imp::SurfaceDesc imp::Swapchain::GetSwapchainImageSurfaceDesc() const
     return desc;
 }
 
-imp::Surface imp::Swapchain::GetSwapchainImageSurface(VkDevice device)
+imp::Surface& imp::Swapchain::GetSwapchainImageSurface(VkDevice device, uint64_t currFrame)
 {
     if (m_NeedsAcquiring)
-        AcquireNextImage(device);
-    else
-        m_SwapchainImages[m_SwapchainIndex].RemoveSemaphore();
+        AcquireNextImage(device, currFrame);
+
     return m_SwapchainImages[m_SwapchainIndex];
 }
 
@@ -156,12 +163,9 @@ void imp::Swapchain::PopulateNewSwapchainImages(VkDevice device)
         Image img(image, imageView, 0);
         const uint32_t numSamples = 1;
         SurfaceDesc desc = GetSwapchainImageSurfaceDesc();
-        const uint64_t frameLastUsed = ~0ull;
+
+        const uint64_t frameLastUsed = ~0ull; // should never delete swapchain images
         m_SwapchainImages[i] = Surface(img, desc, frameLastUsed);
-        VkSemaphoreCreateInfo semaphoreCreateInfo = {};
-        semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-        const auto res = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &m_Semaphores[i]);
-        assert(res == VK_SUCCESS);
         i++;
     }
 }

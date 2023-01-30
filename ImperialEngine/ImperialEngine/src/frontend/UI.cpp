@@ -5,7 +5,6 @@
 #include "Components/Components.h"
 #include <imgui.h>
 #include <extern/IMGUI/imGuIZMOquat.h>
-#include <extern/IPROF/iprof.hpp>
 #include <sstream>
 
 namespace imp
@@ -50,14 +49,10 @@ namespace imp
 			{
 				ImGui::Text("Various utilities..");
 				static int clicked = 0;
-				if (ImGui::Button("Add Monkey"))
-					engine.AddDemoEntity(1, 1);
-				if (ImGui::Button("Add A LOT of Monkey"))
-					engine.AddDemoEntity(1000, 1);
-				if (ImGui::Button("Add Donut"))
-					engine.AddDemoEntity(1, 0);
-				if (ImGui::Button("Add A LOT of Donut"))
-					engine.AddDemoEntity(1000, 0);
+				if (ImGui::Button("Add random meshes"))
+					engine.AddDemoEntity(1);
+				if (ImGui::Button("Add A LOT of random meshes (10k)"))
+					engine.AddDemoEntity(10000);
 				ImGui::EndTabItem();
 			}
 			if (ImGui::BeginTabItem("Profiling"))
@@ -65,39 +60,51 @@ namespace imp
 				ImGui::Text("This is going to be profiling data");
 				constexpr ImVec4 mainThreadCol(1.0f, 1.0f, 0.0f, 1.0f);
 				constexpr ImVec4 renderThreadCol(0.0f, 1.0f, 0.0f, 1.0f);
-				std::lock_guard<std::mutex> bouncer(InternalProfiler::allThreadStatLock);
-				const auto& stats = InternalProfiler::allThreadStats;
+				constexpr ImVec4 syncCol(1.0f, 1.0f, 1.0f, 1.0f);
 
-				// this will do for now, but find better profiling lib because this one sucks
-				for (auto& si : stats)
-				{
-					int neededPops = 0;
-					int styleNeededPops = 0;
-					for (auto& ti : si.first)
-					{
-						neededPops++;
-						std::stringstream ss;
-						ss << ti;
-						ss << ": " << MILLI_SECS(si.second.totalTime) / float(si.second.numVisits);
-						ImGui::SetNextItemOpen(true, ImGuiCond_Always);
-						const std::string str = ss.str();
-						if (str.find("Engine") != std::string::npos)
-						{
-							ImGui::PushStyleColor(styleNeededPops, mainThreadCol);
-							styleNeededPops++;
-						}
-						else if (str.find("Graphics") != std::string::npos)
-						{
-							ImGui::PushStyleColor(styleNeededPops, renderThreadCol);
-							styleNeededPops++;
-						}
+				const auto& timings = engine.GetFrameTimings();
+				const auto& syncTimings = engine.GetSyncTimings();
+				const auto& gfxTimings = engine.GetGfxFrameTimings();
+				const auto& gfxSyncTimings = engine.GetGfxSyncTimings();
 
-						ImGui::TreeNode(str.c_str());
-					}
-					for(auto i = 0; i < neededPops; i++)
-						ImGui::TreePop();
-					ImGui::PopStyleColor(styleNeededPops);
-				}
+				std::stringstream ss1;
+				std::stringstream ss2;
+				std::stringstream ss3;
+				std::stringstream ss4;
+				std::stringstream ss5;
+				std::stringstream ss6;
+				std::stringstream ss7;
+				std::stringstream ss8;
+
+				ss1 << "Main Thread time spent working on frame 'n': ";
+				ss1 << timings.frameWorkTime.ms();
+				ss2 << "Main Thread time spent waiting for Render Thread 'n': ";
+				ss2 << timings.waitTime.ms();
+				ss3 << "Main Thread total time spent working and waiting on frame 'n': ";
+				ss3 << timings.totalFrameTime.ms();
+				ss4 << "Time spent executing sync function: ";
+				ss4 << syncTimings.ms();
+				ss5 << "Render Thread time spent working on frame 'n': ";
+				ss5 << gfxTimings.frameWorkTime.ms();
+				ss6 << "Render Thread time spent waiting for Main Thread 'n': ";
+				ss6 << gfxTimings.waitTime.ms();
+				ss7 << "Render Thread total time spent working and waiting on frame 'n': ";
+				ss7 << gfxTimings.totalFrameTime.ms();
+				ss8 << "Render Thread time spent waiting for GPU: ";
+				ss8 << gfxSyncTimings.ms();
+
+				ImGui::TextColored(mainThreadCol, ss1.str().c_str());
+				ImGui::TextColored(mainThreadCol, ss2.str().c_str());
+				ImGui::TextColored(mainThreadCol, ss3.str().c_str());
+				ImGui::TextColored(syncCol, ss4.str().c_str());
+				ImGui::TextColored(renderThreadCol, ss5.str().c_str());
+				ImGui::TextColored(renderThreadCol, ss6.str().c_str());
+				ImGui::TextColored(renderThreadCol, ss7.str().c_str());
+				ImGui::TextColored(renderThreadCol, ss8.str().c_str());
+
+				// there are some other places we're waiting for gpu
+				// could add time spent working and not waiting
+
 				ImGui::EndTabItem();
 			}
 			if (ImGui::BeginTabItem("Camera"))
@@ -108,6 +115,13 @@ namespace imp
 					auto& transform = cameras.get<Comp::Transform>(ent);
 					auto& cam = cameras.get<Comp::Camera>(ent);
 					auto& pos = transform.GetPosition();
+
+					ImGui::Text("Select Rendering Mode:");
+					static int renderItemSelected = static_cast<int>(kDefaultEngineRenderMode);
+					if (ImGui::Combo("Rendering Mode", &renderItemSelected, "Traditional CPU-Driven\0GPU-Driven\0GPU-Driven Mesh Shading"))
+					{
+						engine.SwitchRenderingMode(static_cast<EngineRenderMode>(renderItemSelected));
+					}
 
 					ImGui::Text("Select Camera Output [not implemeted yet]:");
 					static int itemSelected = 0;

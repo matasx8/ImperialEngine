@@ -1,93 +1,126 @@
 #include "VulkanBuffer.h"
+#include "Utils/Pool.h"
 #include <stdio.h>
 #include <cassert>
+#include <cstring>
 
-imp::VulkanBuffer::VulkanBuffer()
-	: m_Buffer(VK_NULL_HANDLE), m_Memory(VK_NULL_HANDLE), m_Size(0), m_TempOffset(0)
+namespace imp
 {
-}
+	VulkanBuffer::VulkanBuffer()
+		: m_Buffer(VK_NULL_HANDLE), m_Memory(VK_NULL_HANDLE), m_Size(), m_WriteOffset(), m_TempOffset(), m_Fence()
+	{
+	}
 
-imp::VulkanBuffer::VulkanBuffer(uint32_t size, VkBuffer buffer, VkDeviceMemory mem)
-	: m_Buffer(buffer), m_Memory(mem), m_Size(size), m_TempOffset(0)
-{
-}
+	VulkanBuffer::VulkanBuffer(uint32_t size, VkBuffer buffer, VkDeviceMemory mem)
+		: m_Buffer(buffer), m_Memory(mem), m_Size(size), m_WriteOffset(), m_TempOffset(), m_Fence()
+	{
+	}
 
-uint32_t imp::VulkanBuffer::GetSize() const
-{
-	return m_Size;
-}
+	uint32_t VulkanBuffer::GetSize() const
+	{
+		return m_Size;
+	}
 
-VkBuffer imp::VulkanBuffer::GetBuffer() const
-{
-	return m_Buffer;
-}
+	VkBuffer VulkanBuffer::GetBuffer() const
+	{
+		return m_Buffer;
+	}
 
-VkDeviceMemory imp::VulkanBuffer::GetMemory() const
-{
-	return m_Memory;
-}
+	VkDeviceMemory VulkanBuffer::GetMemory() const
+	{
+		return m_Memory;
+	}
 
-uint32_t imp::VulkanBuffer::GetOffset() const
-{
-	return m_WriteOffset;
-}
+	uint32_t VulkanBuffer::GetOffset() const
+	{
+		return m_WriteOffset;
+	}
 
-void imp::VulkanBuffer::RegisterNewUpload(uint32_t size)
-{
-	m_WriteOffset += size;
-}
+	void VulkanBuffer::RegisterNewUpload(uint32_t size)
+	{
+		m_WriteOffset += size;
+	}
 
-VkDescriptorBufferInfo imp::VulkanBuffer::RegisterSubBuffer(size_t size)
-{
-	// currently no misalignment protection - be safe
-	VkDescriptorBufferInfo bi;
-	bi.buffer = m_Buffer;
-	bi.range = size;
-	bi.offset = m_TempOffset;
+	VkDescriptorBufferInfo VulkanBuffer::RegisterSubBuffer(size_t size)
+	{
+		// currently no misalignment protection - be safe
+		VkDescriptorBufferInfo bi;
+		bi.buffer = m_Buffer;
+		bi.range = size;
+		bi.offset = m_TempOffset;
 
-	m_TempOffset += size;
-	return bi;
-}
+		m_TempOffset += size;
+		return bi;
+	}
 
-uint32_t imp::VulkanBuffer::FindNewSubBufferIndex(size_t size)
-{
-	assert(size);
-	assert(m_TempOffset % size == 0);
-	return m_TempOffset / size;
-}
+	uint32_t VulkanBuffer::FindNewSubBufferIndex(size_t size)
+	{
+		assert(size);
+		assert(m_TempOffset % size == 0);
+		return m_TempOffset / size;
+	}
 
-void imp::VulkanBuffer::Destroy(VkDevice device)
-{
-	vkDestroyBuffer(device, m_Buffer, nullptr);
-	vkFreeMemory(device, m_Memory, nullptr);
-}
+	bool VulkanBuffer::IsCurrentlyUsedByGPU(VkDevice device)
+	{
+		assert(m_Fence.fence != VK_NULL_HANDLE);
+		const auto res = vkWaitForFences(device, 1, &m_Fence.fence, VK_TRUE, 0);
+		return res == VK_TIMEOUT;
+	}
 
-imp::VulkanSubBuffer::VulkanSubBuffer()
-	: m_Offset(0), m_Count(0)
-{
-}
+	void VulkanBuffer::WaitUntilNotUsedByGPU(VkDevice device, PrimitivePool<Fence, FenceFactory>& m_FencePool)
+	{
+		if (m_Fence.fence != VK_NULL_HANDLE && GetLastUsed())
+		{
+			const auto res = vkWaitForFences(device, 1, &m_Fence.fence, VK_TRUE, ~0ull);
+			assert(res == VK_SUCCESS);
 
-imp::VulkanSubBuffer::VulkanSubBuffer(uint32_t offset, uint32_t count)
-	: m_Offset(offset), m_Count(count)
-{
-}
+			m_Fence.fence = VK_NULL_HANDLE;
+		}
+	}
 
-uint32_t imp::VulkanSubBuffer::GetOffset() const
-{
-	return m_Offset;
-}
+	void VulkanBuffer::MapWholeBuffer(VkDevice device)
+	{
+		assert(IsMemoryMappedByHost() == false);
+		const auto res = vkMapMemory(device, m_Memory, 0, m_Size, 0, &m_MemoryPtr);
+		assert(res == VK_SUCCESS);
+	}
 
-uint32_t imp::VulkanSubBuffer::GetCount() const
-{
-	return m_Count;
-}
+	void VulkanBuffer::Destroy(VkDevice device)
+	{
+		if (IsMemoryMappedByHost())
+			vkUnmapMemory(device, m_Memory);
 
-size_t imp::VulkanSubBuffer::GetSize(size_t elementSize) const
-{
-	return elementSize * m_Count;
-}
+		vkDestroyBuffer(device, m_Buffer, nullptr);
+		vkFreeMemory(device, m_Memory, nullptr);
+	}
 
-void imp::VulkanSubBuffer::Destroy(VkDevice device)
-{
-	printf("TODO:");
+	VulkanSubBuffer::VulkanSubBuffer()
+		: m_Offset(0), m_Count(0)
+	{
+	}
+
+	VulkanSubBuffer::VulkanSubBuffer(uint32_t offset, uint32_t count)
+		: m_Offset(offset), m_Count(count)
+	{
+	}
+
+	uint32_t VulkanSubBuffer::GetOffset() const
+	{
+		return m_Offset;
+	}
+
+	uint32_t VulkanSubBuffer::GetCount() const
+	{
+		return m_Count;
+	}
+
+	size_t VulkanSubBuffer::GetSize(size_t elementSize) const
+	{
+		return elementSize * m_Count;
+	}
+
+	void VulkanSubBuffer::Destroy(VkDevice device)
+	{
+		printf("TODO:");
+	}
 }

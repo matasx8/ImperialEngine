@@ -2,6 +2,7 @@
 #include "backend/graphics/VkDebug.h"
 
 imp::ValidationLayers::ValidationLayers()
+    : m_DebugMessenger()
 {
 }
 

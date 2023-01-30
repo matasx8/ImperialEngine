@@ -120,13 +120,16 @@
     <ClCompile Include="src\extern\IMGUI\imGuIZMOquat.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\extern\IPROF\iprof.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\backend\graphics\RenderPass\RenderPassFactorySimple.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\backend\graphics\RenderPass\DefaultDepthRP.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\backend\graphics\Semaphore.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\backend\graphics\Fence.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -266,12 +269,6 @@
     <ClInclude Include="src\extern\IMGUI\imGuIZMOquat.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\extern\IPROF\hitime.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\extern\IPROF\iprof.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\backend\graphics\RenderPass\RenderPassFactory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -281,8 +278,24 @@
     <ClInclude Include="src\backend\graphics\RenderPass\DefaultDepthRP.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Utils\Pool.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\backend\graphics\Semaphore.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\backend\graphics\Fence.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\backend\graphics\IGPUBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Utils\SimpleTimer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\extern\IMGUI\vGizmo.h.bak" />
+    <None Include="Shaders\glsl\drawGen.comp.glsl" />
   </ItemGroup>
 </Project>

@@ -4,15 +4,15 @@
 #include "backend/graphics/VulkanShaderManager.h"
 #include "backend/graphics/PipelineManager.h"
 #include "backend/graphics/SurfaceManager.h"
-#include "backend/graphics/GraphicsCaps.h"
 #include "backend/graphics/RenderPassImGUI.h"
-#include "backend/graphics/RenderPass/RenderPass.h"
+#include "backend/graphics/Semaphore.h"
 #include "backend/graphics/Swapchain.h"
 #include "backend/graphics/VkDebug.h"
 #include "backend/VulkanGarbageCollector.h"
 #include "backend/VulkanMemory.h"
 #include "backend/VkWindow.h"
-#include "Utils/NonCopyable.h"
+#include "Utils/Pool.h"
+#include "Utils/SimpleTimer.h"
 #include "frontend/Components/Components.h"
 #include <extern/ENTT/entt.hpp>
 #include <barrier>
@@ -44,6 +44,7 @@ namespace imp
 		Graphics();
 		void Initialize(const EngineGraphicsSettings& settings, Window* window);
 
+		void DispatchUpdateDrawCommands();
 		void StartFrame();
 		void RenderCameras();
 		void RenderImGUI();
@@ -51,13 +52,24 @@ namespace imp
 
 		void CreateAndUploadMeshes(const std::vector<CmdRsc::MeshCreationRequest>& meshCreationData);
 		void CreateAndUploadMaterials(const std::vector<CmdRsc::MaterialCreationRequest>& materialCreationData);
+		void CreateComputePrograms(const std::vector<CmdRsc::ComputeProgramCreationRequest>& computeProgramRequests);
+
+		// Will return ref to VulkanBuffer used for uploading new draw data.
+		// Waits for fence associated with buffer to make sure it's not used by the GPU anymore.
+		IGPUBuffer& GetDrawDataStagingBuffer();
+
+		const Comp::IndexedVertexBuffers& GetMeshData(uint32_t index) const;
+
+		Timings& GetFrameTimings() { return m_Timer; }
+		Timings& GetOldFrameTimings() { return m_OldTimer; }
+		SimpleTimer& GetSyncTimings() { return m_SyncTimer; }
+		SimpleTimer& GetOldSyncTimings() { return m_SyncTimer; }
+
+		EngineGraphicsSettings& GetGraphicsSettings();
 
 		void Destroy();
 
-		static VkSemaphore GetSemaphore(VkDevice device);
-
 	private:
-
 
 		void CreateInstance();
 		void FindPhysicalDevice();
@@ -109,34 +121,44 @@ namespace imp
 		PipelineManager m_PipelineManager;
 		RenderPassGenerator m_RenderPassManager;
 
+		Timings m_Timer;
+		Timings m_OldTimer;
+		SimpleTimer m_SyncTimer; // time spent waiting for gpu
+		SimpleTimer m_OldSyncTimer;
+
+		// Pools
+		PrimitivePool<Semaphore, SemaphoreFactory> m_SemaphorePool;
+		PrimitivePool<Fence, FenceFactory> m_FencePool;
+
 		VkWindow m_Window;
 		VulkanMemory m_MemoryManager;
 		MemoryProps m_DeviceMemoryProps;
 
-		// can i use any of the entt data structures?
 		VulkanBuffer m_VertexBuffer;
 		VulkanBuffer m_IndexBuffer;
 		VulkanBuffer m_MeshBuffer;
+		VulkanBuffer m_DrawBuffer;
+		uint32_t m_NumDraws;
+
+		// Rotating these descriptor buffers only works if I change the data each frame.
+		// When I get in the hang of CS try to use only 1 Buffer instead of 2-3 and use CS to update relevant data.
+		// This way maybe we could benefit from device-local buffers.
 		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_GlobalBuffers;
-		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_DrawDataBuffers;
 		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_DescriptorSets;
 
+	public:
 		std::unordered_map<uint32_t, Comp::IndexedVertexBuffers> m_VertexBuffers;
 
-	public:
-		// TODO: remove this section
+		// TODO: remove this section and replace with some API
 
 		std::vector<DrawDataSingle> m_DrawData;
 		std::vector<CameraData>		m_CameraData;
-		//DrawData<DrawDataSingle> m_DrawData;
 	private:
 
 		friend class RenderPass;
 		friend class RenderPassImGUI;
 		friend class DefaultColorRP;
 		friend class DefaultDepthRP;
-		// prototyping..
-		//RenderPass* renderpass;
 		std::shared_ptr<RenderPass> renderpassgui;
 	};
 }

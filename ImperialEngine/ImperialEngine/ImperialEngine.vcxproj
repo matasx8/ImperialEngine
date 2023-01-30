@@ -169,12 +169,13 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>$(ProjectDir)/src;$(VULKAN_SDK)/Include/vulkan;$(VK_SDK_PATH)/Include/vulkan;$(ProjectDir)/src/extern/IMGUI;$(ProjectDir)/src/extern/;$(ProjectDir)/src/extern/ENTT;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)extern/GLFW/;$(VK_SDK_PATH);$(VULKAN_SDK);$(ProjectDir)extern/IMGUI/debug;$(ProjectDir)extern/ASSIMP/</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;Lib/vulkan-1.lib;StaticDearImGUI.lib;assimp-vc143-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)extern/GLFW/;$(VK_SDK_PATH);$(VULKAN_SDK);$(ProjectDir)extern/IMGUI/debug;$(ProjectDir)extern/ASSIMP/;$(ProjectDir)extern/XXHASH/</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;Lib/vulkan-1.lib;StaticDearImGUI.lib;assimp-vc143-mt.lib;xxhash.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Development|x64'">
@@ -186,12 +187,13 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>$(ProjectDir)/src;$(VULKAN_SDK)/Include/vulkan;$(VK_SDK_PATH)/Include/vulkan;$(ProjectDir)/src/extern/IMGUI;$(ProjectDir)/src/extern/;$(ProjectDir)/src/extern/ENTT;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UndefinePreprocessorDefinitions>_DEBUG</UndefinePreprocessorDefinitions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)extern/GLFW/;$(VK_SDK_PATH);$(VULKAN_SDK);$(ProjectDir)extern/IMGUI/debug;$(ProjectDir)extern/ASSIMP/</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;Lib/vulkan-1.lib;StaticDearImGUI.lib;assimp-vc143-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)extern/GLFW/;$(VK_SDK_PATH);$(VULKAN_SDK);$(ProjectDir)extern/IMGUI/debug;$(ProjectDir)extern/ASSIMP/;$(ProjectDir)extern/XXHASH/</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;Lib/vulkan-1.lib;StaticDearImGUI.lib;assimp-vc143-mt.lib;xxhash.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -206,20 +208,22 @@
       <AdditionalIncludeDirectories>$(ProjectDir)/src;$(VULKAN_SDK)/Include/vulkan;$(VK_SDK_PATH)/Include/vulkan;$(ProjectDir)/src/extern/IMGUI;$(ProjectDir)/src/extern/;$(ProjectDir)/src/extern/ENTT;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <Optimization>MaxSpeed</Optimization>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)extern/GLFW/;$(VK_SDK_PATH);$(VULKAN_SDK);$(ProjectDir)extern/IMGUI/release;$(ProjectDir)extern/ASSIMP/</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;Lib/vulkan-1.lib;StaticDearImGUI.lib;assimp-vc143-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)extern/GLFW/;$(VK_SDK_PATH);$(VULKAN_SDK);$(ProjectDir)extern/IMGUI/release;$(ProjectDir)extern/ASSIMP/;$(ProjectDir)extern/XXHASH/</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glfw3.lib;Lib/vulkan-1.lib;StaticDearImGUI.lib;assimp-vc143-mt.lib;xxhash.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\backend\EngineCommands.cpp" />
     <ClCompile Include="src\backend\graphics\CommandBuffer.cpp" />
     <ClCompile Include="src\backend\graphics\CommandBufferManager.cpp" />
+    <ClCompile Include="src\backend\graphics\Fence.cpp" />
     <ClCompile Include="src\backend\graphics\Framebuffer.cpp" />
     <ClCompile Include="src\backend\graphics\Graphics.cpp" />
     <ClCompile Include="src\backend\graphics\GraphicsCaps.cpp" />
@@ -232,6 +236,7 @@
     <ClCompile Include="src\backend\graphics\RenderPassGeneratorBase.cpp" />
     <ClCompile Include="src\backend\graphics\RenderPassImGUI.cpp" />
     <ClCompile Include="src\backend\graphics\RenderPass\RenderPassFactorySimple.cpp" />
+    <ClCompile Include="src\backend\graphics\Semaphore.cpp" />
     <ClCompile Include="src\backend\graphics\Surface.cpp" />
     <ClCompile Include="src\backend\graphics\SurfaceManager.cpp" />
     <ClCompile Include="src\backend\graphics\Swapchain.cpp" />
@@ -246,7 +251,6 @@
     <ClCompile Include="src\extern\IMGUI\backends\imgui_impl_glfw.cpp" />
     <ClCompile Include="src\extern\IMGUI\backends\imgui_impl_vulkan.cpp" />
     <ClCompile Include="src\extern\IMGUI\imGuIZMOquat.cpp" />
-    <ClCompile Include="src\extern\IPROF\iprof.cpp" />
     <ClCompile Include="src\frontend\AssetImporter.cpp" />
     <ClCompile Include="src\frontend\Components\Components.cpp" />
     <ClCompile Include="src\frontend\EngineSettings.cpp" />
@@ -261,9 +265,11 @@
     <ClInclude Include="src\backend\EnumTranslator.h" />
     <ClInclude Include="src\backend\graphics\CommandBuffer.h" />
     <ClInclude Include="src\backend\graphics\CommandBufferManager.h" />
+    <ClInclude Include="src\backend\graphics\Fence.h" />
     <ClInclude Include="src\backend\graphics\Framebuffer.h" />
     <ClInclude Include="src\backend\graphics\Graphics.h" />
     <ClInclude Include="src\backend\graphics\GraphicsCaps.h" />
+    <ClInclude Include="src\backend\graphics\IGPUBuffer.h" />
     <ClInclude Include="src\backend\graphics\Pipeline.h" />
     <ClInclude Include="src\backend\graphics\PipelineManager.h" />
     <ClInclude Include="src\backend\graphics\RenderPassGeneratorBase.h" />
@@ -274,6 +280,7 @@
     <ClInclude Include="src\backend\graphics\RenderPass\RenderPass.h" />
     <ClInclude Include="src\backend\graphics\RenderPass\RenderPassFactory.h" />
     <ClInclude Include="src\backend\graphics\RenderPass\RenderPassFactorySimple.h" />
+    <ClInclude Include="src\backend\graphics\Semaphore.h" />
     <ClInclude Include="src\backend\graphics\Surface.h" />
     <ClInclude Include="src\backend\graphics\SurfaceManager.h" />
     <ClInclude Include="src\backend\graphics\Swapchain.h" />
@@ -292,8 +299,6 @@
     <ClInclude Include="src\extern\IMGUI\vGizmo.h" />
     <ClInclude Include="src\extern\IMGUI\vGizmoMath.h" />
     <ClInclude Include="src\extern\IMGUI\vgMath.h" />
-    <ClInclude Include="src\extern\IPROF\hitime.hpp" />
-    <ClInclude Include="src\extern\IPROF\iprof.hpp" />
     <ClInclude Include="src\frontend\AssetImporter.h" />
     <ClInclude Include="src\frontend\Debug.h" />
     <ClInclude Include="src\frontend\EngineSettings.h" />
@@ -304,11 +309,14 @@
     <ClInclude Include="src\frontend\Components\Components.h" />
     <ClInclude Include="src\frontend\Engine.h" />
     <ClInclude Include="src\frontend\UI.h" />
+    <ClInclude Include="src\Utils\Pool.h" />
+    <ClInclude Include="src\Utils\SimpleTimer.h" />
     <ClInclude Include="src\Utils\Utilities.h" />
     <ClInclude Include="src\Utils\NonCopyable.h" />
     <ClInclude Include="src\frontend\Window.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Shaders\glsl\drawGen.comp.glsl" />
     <None Include="src\extern\IMGUI\vGizmo.h.bak" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

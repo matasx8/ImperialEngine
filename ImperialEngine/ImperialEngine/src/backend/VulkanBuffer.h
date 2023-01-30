@@ -1,9 +1,14 @@
 #pragma once
-#include "VulkanResource.h"
+#include "backend/graphics/Fence.h"
+#include "backend/graphics/IGPUBuffer.h"
 
 namespace imp
 {
-	class VulkanBuffer : public VulkanResource
+	template<typename T,
+		typename FactoryFunction>
+	class PrimitivePool;
+
+	class VulkanBuffer : public VulkanResource, public IGPUBuffer
 	{
 	public:
 		VulkanBuffer();
@@ -21,6 +26,13 @@ namespace imp
 		VkDescriptorBufferInfo RegisterSubBuffer(size_t size);
 		uint32_t FindNewSubBufferIndex(size_t size);
 
+		void GiveFence(const Fence& fence) { m_Fence = fence; };
+		bool HasFence() const { return m_Fence.fence != VK_NULL_HANDLE; }
+		bool IsCurrentlyUsedByGPU(VkDevice device);
+		void WaitUntilNotUsedByGPU(VkDevice device, PrimitivePool<Fence, FenceFactory>& m_FencePool);
+
+		virtual void MapWholeBuffer(VkDevice device) override;
+
 		void Destroy(VkDevice device) override;
 
 	private:
@@ -33,6 +45,8 @@ namespace imp
 
 		// temp controls for sub buffer managment
 		uint32_t m_TempOffset;
+
+		Fence m_Fence;
 	};
 
 	class VulkanSubBuffer : public VulkanResource
