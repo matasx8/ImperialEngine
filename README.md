@@ -4,11 +4,11 @@ Vulkan real-time rendering engine named after my cat Marcus Aurelius
 
 
 ## Notable things implemented (fancy keywords)
-* Producer-Consumer
-* Run-time polymorphism multi-threading achitecture
+* Producer-Consumer multi-threading architecture
 * Data Oriented EnTT ECS
 * Dear ImGUI
 * Bindless Rendering
+* GPU-driven Rendering
 
 ## How to Build and Run
 * Must have VS22, Vulkan SDK, C++ 20
