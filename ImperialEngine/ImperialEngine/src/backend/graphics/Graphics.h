@@ -12,6 +12,7 @@
 #include "backend/VulkanMemory.h"
 #include "backend/VkWindow.h"
 #include "Utils/Pool.h"
+#include "Utils/SimpleTimer.h"
 #include "frontend/Components/Components.h"
 #include <extern/ENTT/entt.hpp>
 #include <barrier>
@@ -58,6 +59,11 @@ namespace imp
 		IGPUBuffer& GetDrawDataStagingBuffer();
 
 		const Comp::IndexedVertexBuffers& GetMeshData(uint32_t index) const;
+
+		Timings& GetFrameTimings() { return m_Timer; }
+		Timings& GetOldFrameTimings() { return m_OldTimer; }
+		SimpleTimer& GetSyncTimings() { return m_SyncTimer; }
+		SimpleTimer& GetOldSyncTimings() { return m_SyncTimer; }
 
 		EngineGraphicsSettings& GetGraphicsSettings();
 
@@ -115,6 +121,10 @@ namespace imp
 		PipelineManager m_PipelineManager;
 		RenderPassGenerator m_RenderPassManager;
 
+		Timings m_Timer;
+		Timings m_OldTimer;
+		SimpleTimer m_SyncTimer; // time spent waiting for gpu
+		SimpleTimer m_OldSyncTimer;
 
 		// Pools
 		PrimitivePool<Semaphore, SemaphoreFactory> m_SemaphorePool;

@@ -1,5 +1,6 @@
 #pragma once
 #include "Utils/NonCopyable.h"
+#include "Utils/SimpleTimer.h"
 #include "extern/ENTT/entt.hpp"
 #include "backend/graphics/Graphics.h"
 #include "backend/parallel/WorkQ_ST.h"
@@ -26,6 +27,11 @@ namespace imp
 		void EndFrame();
 		void SyncRenderThread();
 		void SyncGameThread();
+
+		const Timings& GetFrameTimings() { return m_OldTimer; }
+		const Timings& GetGfxFrameTimings() { return m_Gfx.GetFrameTimings(); }
+		const SimpleTimer& GetSyncTimings() { return m_OldSyncTime; }
+		const SimpleTimer& GetGfxSyncTimings() { return m_Gfx.GetSyncTimings(); }
 
 		// Will affect the next frame
 		void SwitchRenderingMode(EngineRenderMode newRenderMode);
@@ -81,6 +87,11 @@ namespace imp
 		// window stuff
 		Window m_Window;
 		UI m_UI;
+
+		Timings m_Timer;
+		SimpleTimer m_SyncTime;
+		Timings m_OldTimer;
+		SimpleTimer m_OldSyncTime;
 
 		// graphics stuff
 		Graphics m_Gfx;

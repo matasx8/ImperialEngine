@@ -51,8 +51,8 @@ namespace imp
 				static int clicked = 0;
 				if (ImGui::Button("Add random meshes"))
 					engine.AddDemoEntity(1);
-				if (ImGui::Button("Add A LOT of random meshes"))
-					engine.AddDemoEntity(1000);
+				if (ImGui::Button("Add A LOT of random meshes (10k)"))
+					engine.AddDemoEntity(10000);
 				ImGui::EndTabItem();
 			}
 			if (ImGui::BeginTabItem("Profiling"))
@@ -60,6 +60,50 @@ namespace imp
 				ImGui::Text("This is going to be profiling data");
 				constexpr ImVec4 mainThreadCol(1.0f, 1.0f, 0.0f, 1.0f);
 				constexpr ImVec4 renderThreadCol(0.0f, 1.0f, 0.0f, 1.0f);
+				constexpr ImVec4 syncCol(1.0f, 1.0f, 1.0f, 1.0f);
+
+				const auto& timings = engine.GetFrameTimings();
+				const auto& syncTimings = engine.GetSyncTimings();
+				const auto& gfxTimings = engine.GetGfxFrameTimings();
+				const auto& gfxSyncTimings = engine.GetGfxSyncTimings();
+
+				std::stringstream ss1;
+				std::stringstream ss2;
+				std::stringstream ss3;
+				std::stringstream ss4;
+				std::stringstream ss5;
+				std::stringstream ss6;
+				std::stringstream ss7;
+				std::stringstream ss8;
+
+				ss1 << "Main Thread time spent working on frame 'n': ";
+				ss1 << timings.frameWorkTime.ms();
+				ss2 << "Main Thread time spent waiting for Render Thread 'n': ";
+				ss2 << timings.waitTime.ms();
+				ss3 << "Main Thread total time spent working and waiting on frame 'n': ";
+				ss3 << timings.totalFrameTime.ms();
+				ss4 << "Time spent executing sync function: ";
+				ss4 << syncTimings.ms();
+				ss5 << "Render Thread time spent working on frame 'n': ";
+				ss5 << gfxTimings.frameWorkTime.ms();
+				ss6 << "Render Thread time spent waiting for Main Thread 'n': ";
+				ss6 << gfxTimings.waitTime.ms();
+				ss7 << "Render Thread total time spent working and waiting on frame 'n': ";
+				ss7 << gfxTimings.totalFrameTime.ms();
+				ss8 << "Render Thread time spent waiting for GPU: ";
+				ss8 << gfxSyncTimings.ms();
+
+				ImGui::TextColored(mainThreadCol, ss1.str().c_str());
+				ImGui::TextColored(mainThreadCol, ss2.str().c_str());
+				ImGui::TextColored(mainThreadCol, ss3.str().c_str());
+				ImGui::TextColored(syncCol, ss4.str().c_str());
+				ImGui::TextColored(renderThreadCol, ss5.str().c_str());
+				ImGui::TextColored(renderThreadCol, ss6.str().c_str());
+				ImGui::TextColored(renderThreadCol, ss7.str().c_str());
+				ImGui::TextColored(renderThreadCol, ss8.str().c_str());
+
+				// there are some other places we're waiting for gpu
+				// could add time spent working and not waiting
 
 				ImGui::EndTabItem();
 			}

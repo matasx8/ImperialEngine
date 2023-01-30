@@ -310,6 +310,7 @@
     <ClInclude Include="src\frontend\Engine.h" />
     <ClInclude Include="src\frontend\UI.h" />
     <ClInclude Include="src\Utils\Pool.h" />
+    <ClInclude Include="src\Utils\SimpleTimer.h" />
     <ClInclude Include="src\Utils\Utilities.h" />
     <ClInclude Include="src\Utils\NonCopyable.h" />
     <ClInclude Include="src\frontend\Window.h" />

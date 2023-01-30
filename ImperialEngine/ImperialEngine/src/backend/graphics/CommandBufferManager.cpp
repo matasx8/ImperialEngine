@@ -1,12 +1,13 @@
 #include "CommandBufferManager.h"
 #include "Utils/Pool.h"
+#include "Utils/SimpleTimer.h"
 #include <stdexcept>
 #include <cassert>
 
 namespace imp
 {
-    CommandBufferManager::CommandBufferManager(PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool, PrimitivePool<Fence, FenceFactory>& fencePool)
-        : m_BufferingMode(), m_FrameClock(), m_IsNewFrame(true), m_GfxCommandPools(), m_CommandsBuffersToSubmit(), m_SemaphoresToWaitOnSubmit(), m_CurrentFence(), m_SemaphorePool(semaphorePool), m_FencePool(fencePool)
+    CommandBufferManager::CommandBufferManager(PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool, PrimitivePool<Fence, FenceFactory>& fencePool, SimpleTimer& timer)
+        : m_BufferingMode(), m_FrameClock(), m_IsNewFrame(true), m_GfxCommandPools(), m_CommandsBuffersToSubmit(), m_SemaphoresToWaitOnSubmit(), m_CurrentFence(), m_SemaphorePool(semaphorePool), m_FencePool(fencePool), m_Timer(timer)
     {
     }
 
@@ -115,7 +116,7 @@ namespace imp
     {
         if (m_IsNewFrame)
         {
-            m_GfxCommandPools[m_FrameClock].Reset(device, m_SemaphorePool, m_FencePool);
+            m_GfxCommandPools[m_FrameClock].Reset(device, m_SemaphorePool, m_FencePool, m_Timer);
             m_IsNewFrame = false;
         }
         return m_GfxCommandPools[m_FrameClock].AquireCommandBuffers(device, count);
@@ -187,12 +188,14 @@ namespace imp
             fences.push_back(fence);
     }
 
-    void CommandPool::Reset(VkDevice device, PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool, PrimitivePool<Fence, FenceFactory>& fencePool)
+    void CommandPool::Reset(VkDevice device, PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool, PrimitivePool<Fence, FenceFactory>& fencePool, SimpleTimer& timer)
     {
         if (fences.size())
         {
+            timer.start();
             const auto res = vkWaitForFences(device, static_cast<uint32_t>(fences.size()), fences.data(), VK_TRUE, ~0ull);
             assert(res == VK_SUCCESS);
+            timer.stop();
         }
         for (auto& buff : donePool)
             readyPool.push(buff);

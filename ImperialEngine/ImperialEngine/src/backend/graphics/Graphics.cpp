@@ -25,11 +25,15 @@ namespace imp
         m_Swapchain(m_SemaphorePool),
         m_CurrentFrame(0ul),
         m_VulkanGarbageCollector(),
-        m_CbManager(m_SemaphorePool, m_FencePool),
+        m_CbManager(m_SemaphorePool, m_FencePool, m_SyncTimer),
         m_SurfaceManager(),
         m_ShaderManager(),
         m_PipelineManager(),
         m_RenderPassManager(&m_VulkanGarbageCollector),
+        m_Timer(),
+        m_OldTimer(),
+        m_SyncTimer(),
+        m_OldSyncTimer(),
         m_SemaphorePool(SemaphoreFactory()),
         m_FencePool(FenceFactory()),
         m_Window(),
@@ -160,6 +164,7 @@ namespace imp
         m_SurfaceManager.SignalFrameEnded();
         m_VulkanGarbageCollector.DestroySafeResources(m_LogicalDevice, m_CurrentFrame);
         m_CurrentFrame++;
+        m_Timer.frameWorkTime.stop();
     }
 
     void Graphics::CreateAndUploadMeshes(const std::vector<CmdRsc::MeshCreationRequest>& meshCreationData)

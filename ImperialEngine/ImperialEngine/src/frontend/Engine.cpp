@@ -75,7 +75,24 @@ namespace imp
 
 	void Engine::SyncGameThread()
 	{
+		auto& frameWorkTime = m_Timer.frameWorkTime;
+		auto& totalTime = m_Timer.totalFrameTime;
+		auto& waitTime = m_Timer.waitTime;
+
+		frameWorkTime.stop();
+
 		m_SyncPoint->arrive_and_wait();
+
+		totalTime.stop();
+
+		// time spent waiting for other thread is 'total frame time' - 'sync time'
+		waitTime.elapsed_time = totalTime.elapsed_time - m_SyncTime.elapsed_time;
+
+		m_OldTimer = m_Timer;
+		m_OldSyncTime = m_SyncTime;
+
+		// start the timer again
+		m_Timer.StartAll();
 	}
 
 	void Engine::SwitchRenderingMode(EngineRenderMode newRenderMode)
@@ -233,6 +250,7 @@ namespace imp
 
 	void Engine::UpdateRegistry()
 	{
+		MarkDrawDataDirty();
 		UpdateCameras();
 	}
 
@@ -278,6 +296,7 @@ namespace imp
 	// at least remove these dumb duplicate types like 'CameraData', just use Camera component
 	void Engine::EngineThreadSyncFunc() noexcept
 	{
+		m_SyncTime.start();
 		m_Window.UpdateDeltaTime();
 
 		if (IsDrawDataDirty())
@@ -318,6 +337,19 @@ namespace imp
 			static constexpr uint32_t cameraID = 0; // TODO: add this to camera comp
 			m_Gfx.m_CameraData.emplace_back(cam.projection, cam.view, cam.camOutputType, cameraID, cam.dirty);
 		}
+		m_SyncTime.stop();
+
+		auto& gfxTimer = m_Gfx.GetFrameTimings();
+		auto& oldTimer = m_Gfx.GetOldFrameTimings();
+		auto& gfxSyncTimer = m_Gfx.GetSyncTimings();
+		auto& gfxOldSyncTimer = m_Gfx.GetOldSyncTimings();
+
+		gfxTimer.totalFrameTime.stop();
+		gfxTimer.waitTime.elapsed_time = gfxTimer.totalFrameTime.elapsed_time - gfxTimer.frameWorkTime.elapsed_time - m_SyncTime.elapsed_time;
+		oldTimer = gfxTimer;
+		gfxOldSyncTimer = gfxSyncTimer;
+
+		gfxTimer.StartAll();
 	}
 
 }

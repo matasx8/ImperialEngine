@@ -15,6 +15,7 @@ namespace imp
 	template<typename T,
 		typename FactoryFunction>
 	class PrimitivePool;
+	class SimpleTimer;
 
 	enum SubmitType
 	{
@@ -34,7 +35,7 @@ namespace imp
 
 		std::vector<CommandBuffer> AquireCommandBuffers(VkDevice device, uint32_t count);
 		void ReturnCommandBuffers(std::vector<CommandBuffer>& donePool, VkSemaphore semaphore, VkFence fence);
-		void Reset(VkDevice device, PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool, PrimitivePool<Fence, FenceFactory>& fencePool);
+		void Reset(VkDevice device, PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool, PrimitivePool<Fence, FenceFactory>& fencePool, SimpleTimer& timer);
 	};
 
 	struct SubmitSynchPrimitives
@@ -46,7 +47,7 @@ namespace imp
 	class CommandBufferManager : NonCopyable
 	{
 	public:
-		CommandBufferManager(PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool, PrimitivePool<Fence, FenceFactory>& fencePool);
+		CommandBufferManager(PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool, PrimitivePool<Fence, FenceFactory>& fencePool, SimpleTimer& timer);
 		void Initialize(VkDevice device, QueueFamilyIndices familyIndices, EngineSwapchainImageCount imageCount);
 
 		// Submit command buffer to internal command buffer queue. Will keep them until SubmitToQueue is called.
@@ -75,5 +76,6 @@ namespace imp
 
 		PrimitivePool<Semaphore, SemaphoreFactory>& m_SemaphorePool;
 		PrimitivePool<Fence, FenceFactory>& m_FencePool;
+		SimpleTimer& m_Timer;
 	};
 }
