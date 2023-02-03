@@ -89,18 +89,20 @@ namespace imp
         m_NumDraws = GetDrawDataStagingBuffer().size();
         const auto dispatchCount = (m_NumDraws + 31) / 32;
 
-        // TODO compute-drawIndirect: make the interface for getting shaders better. At least make
+        // TODO nice-to-have: make the interface for getting shaders better. At least make
         // shader manager return the configs immediately
         const auto updateDrawCS = m_ShaderManager.GetShader("drawGen.comp");
-        ComputePipelineConfig config = { updateDrawCS.GetShaderModule(), m_ShaderManager.GetComputeDescriptorSetLayout()};
+        ComputePipelineConfig config = { updateDrawCS.GetShaderModule(), m_ShaderManager.GetDescriptorSetLayout(),m_ShaderManager.GetComputeDescriptorSetLayout()};
         const auto updateDrawsProgram = m_PipelineManager.GetComputePipeline(config);
-        const auto dset = m_ShaderManager.GetComputeDescriptorSet(m_Swapchain.GetFrameClock());
+        const auto dset1 = m_ShaderManager.GetDescriptorSet(m_Swapchain.GetFrameClock());
+        const auto dset2 = m_ShaderManager.GetComputeDescriptorSet(m_Swapchain.GetFrameClock());
+        std::array<VkDescriptorSet, 2> dsets = { dset1, dset2 };
 
         // TODO: make RAII?
         CommandBuffer cb = m_CbManager.AquireCommandBuffer(m_LogicalDevice);
         cb.Begin();
         vkCmdBindPipeline(cb.cmb, VK_PIPELINE_BIND_POINT_COMPUTE, updateDrawsProgram.GetPipeline());
-        vkCmdBindDescriptorSets(cb.cmb, VK_PIPELINE_BIND_POINT_COMPUTE, updateDrawsProgram.GetPipelineLayout(), 0, 1, &dset, 0, nullptr);
+        vkCmdBindDescriptorSets(cb.cmb, VK_PIPELINE_BIND_POINT_COMPUTE, updateDrawsProgram.GetPipelineLayout(), 0, dsets.size(), dsets.data(), 0, nullptr);
         vkCmdDispatch(cb.cmb, (m_NumDraws + 31) / 32, 1, 1);
 
         // need to make sure memory write is visible

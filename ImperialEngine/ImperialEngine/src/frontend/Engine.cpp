@@ -278,14 +278,15 @@ namespace imp
 
 	inline void GenerateIndirectDrawCommand(IGPUBuffer& dstBuffer, const Comp::IndexedVertexBuffers& meshData)
 	{
-		// TODO finishing touches: change this to some struct that wouldn't expose vulkan.
-		VkDrawIndexedIndirectCommand cmd;
+		static constexpr uint32_t kNonsenseIndex = 0;
+		IndirectDrawCmd cmd;
 		cmd.indexCount = meshData.indices.GetCount();
 		cmd.instanceCount = 1;
 		cmd.firstIndex = meshData.indices.GetOffset();
 		cmd.vertexOffset = meshData.vertices.GetOffset();
 		cmd.firstInstance = 0;
-		dstBuffer.push_back(&cmd, sizeof(VkDrawIndexedIndirectCommand));
+		cmd.boundingVolumeIndex = kNonsenseIndex;
+		dstBuffer.push_back(&cmd, sizeof(IndirectDrawCmd));
 	}
 
 	// This member function gets executed when both main and render thread arrive at the barrier.
@@ -333,7 +334,6 @@ namespace imp
 			const auto& transform = cameras.get<Comp::Transform>(ent);
 			const auto& cam = cameras.get<Comp::Camera>(ent);
 
-			// should try to save bandwidth and do most calculation on main thread then send the data to render thread
 			static constexpr uint32_t cameraID = 0; // TODO: add this to camera comp
 			m_Gfx.m_CameraData.emplace_back(cam.projection, cam.view, cam.camOutputType, cameraID, cam.dirty);
 		}

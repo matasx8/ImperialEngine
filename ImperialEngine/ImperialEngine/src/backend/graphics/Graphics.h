@@ -37,6 +37,18 @@ namespace imp
 		bool hasUI;
 	};
 
+	struct IndirectDrawCmd
+	{
+		// VkDrawIndexedIndirectCommand:
+		uint32_t    indexCount;
+		uint32_t    instanceCount;
+		uint32_t    firstIndex;
+		int32_t     vertexOffset;
+		uint32_t    firstInstance;
+		// custom:
+		uint32_t	boundingVolumeIndex; // index to bounding volume descriptor
+	};
+
 
 	class Graphics : NonCopyable
 	{

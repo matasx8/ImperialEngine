@@ -17,6 +17,7 @@ namespace imp
 	{
 		VkShaderModule computeModule;
 		VkDescriptorSetLayout descriptorSetLayout;
+		VkDescriptorSetLayout descriptorSetLayout2;
 		auto operator<=>(const ComputePipelineConfig&) const = default;
 	};
 

@@ -43,7 +43,9 @@ namespace imp
 		pushRange.size = sizeof(uint32_t); // index into draw data
 		pushRange.offset = 0;
 		pushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-		const auto pipelineLayoutCI = MakePipelineLayoutCI(&pushRange, config.descriptorSetLayout);
+		std::vector<VkDescriptorSetLayout> layouts = { config.descriptorSetLayout };
+
+		const auto pipelineLayoutCI = MakePipelineLayoutCI(&pushRange, layouts);
 		const auto pipelineLayout = MakePipelineLayout(device, pipelineLayoutCI);
 
 		const auto pipelineCI = MakePipelineCI(shaderStages, &vertInputState, &inputAssembly, &viewportState, nullptr, &rasterizationState, &msaaState, &colorBlendState, &depthStencilState, pipelineLayout, rp.GetVkRenderPass(), 0);
@@ -76,7 +78,9 @@ namespace imp
 		stage.module = config.computeModule;
 		stage.pName = "main";
 
-		const auto pipeLayoutCI = MakePipelineLayoutCI(nullptr, config.descriptorSetLayout);
+		std::vector<VkDescriptorSetLayout> dsetLayouts = { config.descriptorSetLayout, config.descriptorSetLayout2 };
+
+		const auto pipeLayoutCI = MakePipelineLayoutCI(nullptr, dsetLayouts);
 		const auto pipeLayout = MakePipelineLayout(device, pipeLayoutCI);
 
 		createInfo.stage = stage;
@@ -206,12 +210,12 @@ namespace imp
 		return ci;
 	}
 
-	VkPipelineLayoutCreateInfo PipelineManager::MakePipelineLayoutCI(const VkPushConstantRange* pushRange, const VkDescriptorSetLayout& layout) const
+	VkPipelineLayoutCreateInfo PipelineManager::MakePipelineLayoutCI(const VkPushConstantRange* pushRange, const std::vector<VkDescriptorSetLayout>& layouts) const
 	{
 		VkPipelineLayoutCreateInfo ci;
 		ci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		ci.setLayoutCount = 1;
-		ci.pSetLayouts = &layout;
+		ci.setLayoutCount = layouts.size();
+		ci.pSetLayouts = layouts.data();
 		ci.pushConstantRangeCount = pushRange ? 1 : 0;
 		ci.pPushConstantRanges = pushRange;
 		ci.pNext = nullptr;

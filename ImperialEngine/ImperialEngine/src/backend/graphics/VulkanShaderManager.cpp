@@ -19,6 +19,7 @@ namespace imp
 		static constexpr uint32_t kGlobalBufferSize = sizeof(GlobalData) * kGlobalBufferBindCount;
 		static constexpr uint32_t kMaterialBufferSize = sizeof(ShaderDrawData) * kMaterialBufferBindCount;
 		static constexpr uint32_t kDrawDataBufferSize = sizeof(ShaderDrawData) * kMaxDrawCount;
+		static constexpr uint32_t kHostDrawCommandBufferSize = sizeof(IndirectDrawCmd) * (kMaxDrawCount + 31);
 		static constexpr uint32_t kDrawCommandBufferSize = sizeof(VkDrawIndexedIndirectCommand) * (kMaxDrawCount + 31);
 		// Here we create the needed buffers, descriptor sets and etc.
 		// also the default material
@@ -33,7 +34,7 @@ namespace imp
 			m_DrawDataBuffers[i] = memory.GetBuffer(device, kDrawDataBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, memProps);
 
 			// compute data:
-			m_DrawCommands[i] = memory.GetBuffer(device, kDrawCommandBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, memProps);
+			m_DrawCommands[i] = memory.GetBuffer(device, kHostDrawCommandBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, memProps);
 			m_DrawCommands[i].MapWholeBuffer(device);
 		}
 
@@ -45,7 +46,7 @@ namespace imp
 
 		// Compute:
 		std::array<VulkanBuffer, 3> dc = { drawCommands, drawCommands, drawCommands };
-		WriteUpdateDescriptorSets(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawCommands, kDrawCommandBufferSize, 0, 1, kEngineSwapchainExclusiveMax - 1);
+		WriteUpdateDescriptorSets(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawCommands, kHostDrawCommandBufferSize, 0, 1, kEngineSwapchainExclusiveMax - 1);
 		WriteUpdateDescriptorSets(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, dc, kDrawCommandBufferSize, 1, 1, kEngineSwapchainExclusiveMax - 1);
 
 		CreateDefaultMaterial(device);
@@ -94,7 +95,7 @@ namespace imp
 		const auto shader = VulkanShader(CreateShaderModule(device, *req.spv.get()));
 		m_ShaderMap[req.shaderName + ".comp"] = shader;
 
-		ComputePipelineConfig config = { shader.GetShaderModule(), m_ComputeDescriptorSetLayout };
+		ComputePipelineConfig config = { shader.GetShaderModule(), m_DescriptorSetLayout, m_ComputeDescriptorSetLayout };
 		pipeManager.CreateComputePipeline(device, config);
 	}
 
@@ -175,8 +176,8 @@ namespace imp
 
 	void VulkanShaderManager::CreateMegaDescriptorSets(VkDevice device)
 	{
-		CreateMegaDescriptorSetLayout(device);
-		CreateComputeDescriptorSetLayout(device);
+		CreateMegaDescriptorSetLayout(device);		// set 0
+		CreateComputeDescriptorSetLayout(device);	// set 1
 
 		// variable descriptor counts
 		VkDescriptorSetVariableDescriptorCountAllocateInfo variable_info = {};
