@@ -80,7 +80,12 @@ namespace imp
 
 		std::vector<VkDescriptorSetLayout> dsetLayouts = { config.descriptorSetLayout, config.descriptorSetLayout2 };
 
-		const auto pipeLayoutCI = MakePipelineLayoutCI(nullptr, dsetLayouts);
+		VkPushConstantRange pushRange;
+		pushRange.size = sizeof(glm::vec4) * 6; // index into draw data
+		pushRange.offset = 0;
+		pushRange.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+		const auto pipeLayoutCI = MakePipelineLayoutCI(&pushRange, dsetLayouts);
 		const auto pipeLayout = MakePipelineLayout(device, pipeLayoutCI);
 
 		createInfo.stage = stage;

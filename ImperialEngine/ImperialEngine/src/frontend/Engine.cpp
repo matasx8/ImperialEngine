@@ -217,10 +217,10 @@ namespace imp
 		static constexpr float defaultCameraYRotationRad = 0;
 		const auto defaultCameraTransform = glm::rotate(glm::translate(identity, glm::vec3(0.0f, 0.0f, 15.0f)), defaultCameraYRotationRad, glm::vec3(0.0f, 1.0f, 0.0f));
 		m_Entities.emplace<Comp::Transform>(camera, defaultCameraTransform);
-		glm::mat4x4 proj = glm::perspective(glm::radians(45.0f), (float)m_Window.GetWidth() / (float)m_Window.GetHeight(), 5.0f, 100.0f);
+		glm::mat4x4 proj = glm::perspective(glm::radians(45.0f), (float)m_Window.GetWidth() / (float)m_Window.GetHeight(), 5.0f, 1000.0f);
 		m_Entities.emplace<Comp::Camera>(camera, proj, glm::mat4x4(), kCamOutColor, true);
 
-		//AddDemoEntity(9999);
+		AddDemoEntity(100000);
 	}
 
 	void Engine::RenderCameras()

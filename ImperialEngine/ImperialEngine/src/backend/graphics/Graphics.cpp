@@ -10,6 +10,7 @@
 #include <cassert>
 #include <extern/IMGUI/backends/imgui_impl_vulkan.h>
 #include <numeric>
+#include <GLM/gtx/transform.hpp>
 
 namespace imp
 {
@@ -99,10 +100,21 @@ namespace imp
         const auto dset2 = m_ShaderManager.GetComputeDescriptorSet(m_Swapchain.GetFrameClock());
         std::array<VkDescriptorSet, 2> dsets = { dset1, dset2 };
 
+        glm::mat4 vp = glm::transpose(m_CameraData.front().Projection * m_CameraData.front().View);
+        std::array<glm::vec4, 6> frustum;
+        frustum[0] = vp[3] + vp[0];
+        frustum[1] = vp[3] - vp[0];
+        frustum[2] = vp[3] + vp[1];
+        frustum[3] = vp[3] - vp[1];
+        frustum[4] = vp[3] - vp[2];
+        frustum[5] = glm::vec4(0);
+
+
         // TODO: make RAII?
         CommandBuffer cb = m_CbManager.AquireCommandBuffer(m_LogicalDevice);
         cb.Begin();
         vkCmdBindPipeline(cb.cmb, VK_PIPELINE_BIND_POINT_COMPUTE, updateDrawsProgram.GetPipeline());
+        vkCmdPushConstants(cb.cmb, updateDrawsProgram.GetPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(frustum), frustum.data());
         vkCmdBindDescriptorSets(cb.cmb, VK_PIPELINE_BIND_POINT_COMPUTE, updateDrawsProgram.GetPipelineLayout(), 0, dsets.size(), dsets.data(), 0, nullptr);
         vkCmdDispatch(cb.cmb, (m_NumDraws + 31) / 32, 1, 1);
 
@@ -133,13 +145,19 @@ namespace imp
         m_ShaderManager.UpdateDrawData(m_LogicalDevice, m_Swapchain.GetFrameClock(), m_DrawData);
     }
 
+    static int first = 3;
     void Graphics::RenderCameras()
     {
         for (const auto& camera : m_CameraData)
         {
-            GlobalData data;
-            data.ViewProjection = camera.Projection * camera.View;
-            m_ShaderManager.UpdateGlobalData(m_LogicalDevice, m_Swapchain.GetFrameClock(), data);
+            if (first > 0)
+            {
+                GlobalData data;
+                //data.ViewProjection = glm::translate(camera.Projection * camera.View, glm::vec3(0.0, 0.0, -100.0));
+                data.ViewProjection = camera.Projection * camera.View;
+                m_ShaderManager.UpdateGlobalData(m_LogicalDevice, m_Swapchain.GetFrameClock(), data);
+                //first--;
+            }
 
             auto& renderPasses = m_RenderPassManager.GetRenderPasses(m_LogicalDevice, camera, m_Swapchain);
             for (auto& rp : renderPasses)
