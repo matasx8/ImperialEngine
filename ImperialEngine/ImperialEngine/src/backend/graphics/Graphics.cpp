@@ -182,8 +182,10 @@ namespace imp
 
         uint32_t vtxAllocSize = 0;
         uint32_t idxAllocSize = 0;
+        uint32_t bvAllocSize = 0;
         std::vector<Vertex> verts;
         std::vector<uint32_t> idxs;
+        std::vector<BoundingVolumeSphere> bvs;
         const uint32_t vertBufferOffset = m_VertexBuffer.GetOffset() / sizeof(Vertex);
         const uint32_t indBufferOffset = m_IndexBuffer.GetOffset() / sizeof(uint32_t);
         for (const auto& req : meshCreationData)
@@ -193,21 +195,28 @@ namespace imp
             VulkanSubBuffer idxSub = VulkanSubBuffer(idxs.size() + indBufferOffset, static_cast<uint32_t>(req.indices.size()));
             verts.insert(verts.end(), req.vertices.begin(), req.vertices.end());
             idxs.insert(idxs.end(), req.indices.begin(), req.indices.end());
+            bvs.push_back(req.boundingVolume);
             vtxAllocSize += static_cast<uint32_t>(req.vertices.size() * sizeof(Vertex));
             idxAllocSize += static_cast<uint32_t>(req.indices.size() * sizeof(uint32_t));
+            bvAllocSize += static_cast<uint32_t>(sizeof(BoundingVolumeSphere));
 
             m_VertexBuffers[req.id] = { idxSub, vtxSub };
-            //m_BoundingVolumes[req.id] = req.boundingVolume;
         }
 
+        // i shouldnt have to pass these
         const auto usageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
         const auto memoryFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
+        // TODO nice-to-have: batch uploads and use transfer queueu
         // upload vertices
         UploadVulkanBuffer(usageFlags, memoryFlags, m_VertexBuffer, cb, vtxAllocSize, verts.data());
 
         // upload indices
         UploadVulkanBuffer(usageFlags, memoryFlags, m_IndexBuffer, cb, idxAllocSize, idxs.data());
+
+        // upload BVs
+        assert(bvAllocSize);
+        UploadVulkanBuffer(usageFlags, memoryFlags, m_ShaderManager.GetBoundingVolumeBuffer(), cb, bvAllocSize, bvs.data());
 
         cb.End();
 

@@ -5,7 +5,7 @@ namespace imp
 	namespace utils
 	{
 		// Ritter's efficient algorithm for near-optimal sphere BV creation
-		SphereBV FindSphereBoundingVolume(const Vertex* vertices, size_t numVertices)
+		BoundingVolumeSphere FindSphereBoundingVolume(const Vertex* vertices, size_t numVertices)
 		{
 			glm::vec3 minX = vertices->pos;
 			glm::vec3 maxX = vertices->pos;
@@ -28,7 +28,7 @@ namespace imp
 			glm::vec3 diag = (maxX - minX) + (maxY - minY) + (maxZ - minZ);
 			glm::vec3 center = diag / 2.0f;
 			float radius = glm::length(center);
-			SphereBV bv = { center, radius };
+			BoundingVolumeSphere bv = { center, radius };
 			return bv;
 		}
 			//// 1. Find the vertex that is at the minimum and the vertex at the maximum along each of the x, y and z axes.

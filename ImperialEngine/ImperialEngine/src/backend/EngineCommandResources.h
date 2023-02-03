@@ -7,7 +7,7 @@
 namespace imp
 {
 	// TODO acceleration-part-1: put this somewhere else
-	struct SphereBV
+	struct BoundingVolumeSphere
 	{
 		glm::vec3 center;
 		float radius;
@@ -21,7 +21,7 @@ namespace imp
 			uint32_t id;
 			std::vector<Vertex> vertices;
 			std::vector<uint32_t> indices;
-			SphereBV boundingVolume;
+			BoundingVolumeSphere boundingVolume;
 		};
 
 		struct MaterialCreationRequest

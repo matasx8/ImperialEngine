@@ -60,6 +60,7 @@ namespace imp
 		VkDescriptorSetLayout GetDescriptorSetLayout() const;
 		VkDescriptorSetLayout GetComputeDescriptorSetLayout() const;
 		VulkanBuffer& GetDrawDataBuffer(uint32_t idx) { return m_DrawCommands[idx]; }
+		VulkanBuffer& GetBoundingVolumeBuffer();
 
 		void CreateVulkanShaderSet(VkDevice device, const CmdRsc::MaterialCreationRequest& req);
 		void CreateComputePrograms(VkDevice device, PipelineManager& pipeManager, const CmdRsc::ComputeProgramCreationRequest& req);

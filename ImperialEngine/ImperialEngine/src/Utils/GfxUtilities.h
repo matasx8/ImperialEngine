@@ -6,6 +6,6 @@ namespace imp
 {
 	namespace utils
 	{
-		SphereBV FindSphereBoundingVolume(const Vertex* vertices, size_t numVertices);
+		BoundingVolumeSphere FindSphereBoundingVolume(const Vertex* vertices, size_t numVertices);
 	}
 }

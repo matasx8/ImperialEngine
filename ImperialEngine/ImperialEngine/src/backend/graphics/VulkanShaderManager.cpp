@@ -28,7 +28,7 @@ namespace imp
 		static constexpr uint32_t kDrawDataBufferSize = sizeof(ShaderDrawData) * kMaxDrawCount;
 		static constexpr uint32_t kHostDrawCommandBufferSize = sizeof(IndirectDrawCmd) * (kMaxDrawCount + 31);
 		static constexpr uint32_t kDrawCommandBufferSize = sizeof(VkDrawIndexedIndirectCommand) * (kMaxDrawCount + 31);
-		static constexpr uint32_t kBoundingVolumeBufferSize = sizeof(SphereBV) * kMaxMeshCount;
+		static constexpr uint32_t kBoundingVolumeBufferSize = sizeof(BoundingVolumeSphere) * kMaxMeshCount;
 		static constexpr auto kHostVisisbleCoherentFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
 		uint32_t hostMemUsed = 0;
@@ -97,6 +97,11 @@ namespace imp
 	VkDescriptorSetLayout VulkanShaderManager::GetDescriptorSetLayout() const
 	{
 		return m_DescriptorSetLayout;
+	}
+
+	VulkanBuffer& VulkanShaderManager::GetBoundingVolumeBuffer()
+	{
+		return m_BoundingVolumes;
 	}
 
 	VkDescriptorSetLayout VulkanShaderManager::GetComputeDescriptorSetLayout() const
