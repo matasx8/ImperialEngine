@@ -16,7 +16,7 @@ layout(set = 0, binding = 0) uniform UboViewProjection{
 layout(set=0, binding = 1) buffer MaterialData
 {
 	vec4 color;
-} materialData[128];
+} materialData[128]; // TODO Bindless: Should I really be used seperate descriptors for this?
 
 layout (set = 0, binding = 129) buffer DrawData{
 	mat4 Transform;

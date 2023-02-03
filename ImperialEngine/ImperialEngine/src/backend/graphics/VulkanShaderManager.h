@@ -14,6 +14,7 @@ namespace imp
 	inline constexpr uint32_t kBindingCount					= 3;
 	inline constexpr uint32_t kMaxMaterialCount				= 128;
 	inline constexpr uint32_t kMaxDrawCount					= 1'000'000; //Should be upper bound, lets see what happens with 2
+	inline constexpr uint32_t kMaxMeshCount					= kMaxDrawCount; // TODO acceleration-part-1 ^^ should be less than VkPhysicalDeviceDescriptorIndexingProperties::maxDescriptorSetUpdateAfterBindStorageBuffers
 	inline constexpr uint32_t kGlobalBufferBindingSlot		= 0;
 	inline constexpr uint32_t kGlobalBufferBindCount		= 1;
 	inline constexpr uint32_t kMaterialBufferBindingSlot	= kGlobalBufferBindingSlot + kGlobalBufferBindCount;
@@ -21,7 +22,7 @@ namespace imp
 	inline constexpr uint32_t kDrawDataBufferBindingSlot	= kMaterialBufferBindingSlot + kMaterialBufferBindCount;
 	inline constexpr uint32_t kDefaultMaterialIndex			= 0;
 
-	inline constexpr uint32_t kComputeBindingCount			= 2;
+	inline constexpr uint32_t kComputeBindingCount			= 3;
 
 	struct GlobalData
 	{
@@ -82,12 +83,13 @@ namespace imp
 
 		std::unordered_map<std::string, VulkanShader> m_ShaderMap;
 		VkDescriptorPool m_DescriptorPool;
-		//	not sure if I need triple buffering. Is double buffering enough?
+
 		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_GlobalBuffers;
 		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_MaterialDataBuffers;
 		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_DrawDataBuffers;
 
 		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_DrawCommands;
+		VulkanBuffer m_BoundingVolumes;
 
 		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_DescriptorSets;
 		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_ComputeDescriptorSets;

@@ -151,6 +151,7 @@ namespace imp
 		VulkanBuffer m_IndexBuffer;
 		VulkanBuffer m_MeshBuffer;
 		VulkanBuffer m_DrawBuffer;
+		VulkanBuffer m_BoundingVolumeBuffer;
 		uint32_t m_NumDraws;
 
 		// Rotating these descriptor buffers only works if I change the data each frame.
@@ -161,7 +162,6 @@ namespace imp
 
 	public:
 		std::unordered_map<uint32_t, Comp::IndexedVertexBuffers> m_VertexBuffers;
-		std::unordered_map<uint32_t, SphereBV> m_BoundingVolumes;
 
 		// TODO: remove this section and replace with some API
 

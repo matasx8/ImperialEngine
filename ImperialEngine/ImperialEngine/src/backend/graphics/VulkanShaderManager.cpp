@@ -5,22 +5,35 @@
 namespace imp
 {
 	VulkanShaderManager::VulkanShaderManager()
-		: m_ShaderMap(),
+		:
+		m_ShaderMap(),
 		m_DescriptorPool(),
 		m_GlobalBuffers(),
 		m_MaterialDataBuffers(),
+		m_DrawDataBuffers(),
+		m_DrawCommands(),
+		m_BoundingVolumes(),
 		m_DescriptorSets(),
-		m_DescriptorSetLayout()
+		m_ComputeDescriptorSets(),
+		m_DescriptorSetLayout(),
+		m_ComputeDescriptorSetLayout()
 	{
 	}
 
 	void VulkanShaderManager::Initialize(VkDevice device, VulkanMemory& memory, const EngineGraphicsSettings& settings, const MemoryProps& memProps, VulkanBuffer& drawCommands)
 	{
+		// TODO acceleration-part-1: print how much memory we're using
 		static constexpr uint32_t kGlobalBufferSize = sizeof(GlobalData) * kGlobalBufferBindCount;
 		static constexpr uint32_t kMaterialBufferSize = sizeof(ShaderDrawData) * kMaterialBufferBindCount;
 		static constexpr uint32_t kDrawDataBufferSize = sizeof(ShaderDrawData) * kMaxDrawCount;
 		static constexpr uint32_t kHostDrawCommandBufferSize = sizeof(IndirectDrawCmd) * (kMaxDrawCount + 31);
 		static constexpr uint32_t kDrawCommandBufferSize = sizeof(VkDrawIndexedIndirectCommand) * (kMaxDrawCount + 31);
+		static constexpr uint32_t kBoundingVolumeBufferSize = sizeof(SphereBV) * kMaxMeshCount;
+		static constexpr auto kHostVisisbleCoherentFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
+		uint32_t hostMemUsed = 0;
+		uint32_t deviceMemUsed = 0;
+
 		// Here we create the needed buffers, descriptor sets and etc.
 		// also the default material
 		m_DescriptorPool = CreateDescriptorPool(device);
@@ -29,15 +42,20 @@ namespace imp
 		for (auto i = 0; i < settings.swapchainImageCount; i++)
 		{
 			// TODO: change to device local memory and use transfer queue to update data
-			m_GlobalBuffers[i] = memory.GetBuffer(device, kGlobalBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, memProps);
-			m_MaterialDataBuffers[i] = memory.GetBuffer(device, kMaterialBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, memProps);
-			m_DrawDataBuffers[i] = memory.GetBuffer(device, kDrawDataBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, memProps);
+			m_GlobalBuffers[i] = memory.GetBuffer(device, kGlobalBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, kHostVisisbleCoherentFlags, memProps);
+			m_MaterialDataBuffers[i] = memory.GetBuffer(device, kMaterialBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, kHostVisisbleCoherentFlags, memProps);
+			m_DrawDataBuffers[i] = memory.GetBuffer(device, kDrawDataBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, kHostVisisbleCoherentFlags, memProps);
 
 			// compute data:
-			m_DrawCommands[i] = memory.GetBuffer(device, kHostDrawCommandBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, memProps);
+			m_DrawCommands[i] = memory.GetBuffer(device, kHostDrawCommandBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, kHostVisisbleCoherentFlags, memProps);
 			m_DrawCommands[i].MapWholeBuffer(device);
+
+			hostMemUsed += kGlobalBufferSize + kMaterialBufferSize + kDrawDataBufferSize, kHostDrawCommandBufferSize;
 		}
 
+		// also compute data:
+		m_BoundingVolumes = memory.GetBuffer(device, kBoundingVolumeBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memProps);
+		deviceMemUsed += kBoundingVolumeBufferSize;
 
 		CreateMegaDescriptorSets(device);
 		WriteUpdateDescriptorSets(device, m_DescriptorSets.data(), VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_GlobalBuffers, sizeof(GlobalData), kGlobalBufferBindingSlot, kGlobalBufferBindCount, kEngineSwapchainExclusiveMax - 1);
@@ -45,11 +63,17 @@ namespace imp
 		WriteUpdateDescriptorSets(device, m_DescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawDataBuffers, sizeof(ShaderDrawData), kDrawDataBufferBindingSlot, kMaxDrawCount, kEngineSwapchainExclusiveMax - 1);
 
 		// Compute:
+		// This array hack works but there's lots of redundant calculations. for single buffers
+		// just calculate subbuffers once ant then update them to descriptorsets
 		std::array<VulkanBuffer, 3> dc = { drawCommands, drawCommands, drawCommands };
+		std::array<VulkanBuffer, 3> bv = { m_BoundingVolumes, m_BoundingVolumes, m_BoundingVolumes };
 		WriteUpdateDescriptorSets(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawCommands, kHostDrawCommandBufferSize, 0, 1, kEngineSwapchainExclusiveMax - 1);
 		WriteUpdateDescriptorSets(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, dc, kDrawCommandBufferSize, 1, 1, kEngineSwapchainExclusiveMax - 1);
+		WriteUpdateDescriptorSets(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, bv, kBoundingVolumeBufferSize, 2, 1, kEngineSwapchainExclusiveMax - 1);
 
 		CreateDefaultMaterial(device);
+
+		printf("[Shader Memory] Successfully allocated %2.f MB of host domain memory and %.2f MB of device domain memory\n", hostMemUsed / 1024.0f / 1024.0f, deviceMemUsed / 1024.0f / 1024.0f);
 	}
 
 	VulkanShader VulkanShaderManager::GetShader(const std::string& shaderName) const
@@ -226,14 +250,13 @@ namespace imp
 	{
 		const auto drawCommandStagingBufferBinding = CreateDescriptorBinding(0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT);
 		const auto drawCommandBufferBinding = CreateDescriptorBinding(1, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT);
+		const auto boundingVolumeBinding = CreateDescriptorBinding(2, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT);
 
-		std::array<VkDescriptorSetLayoutBinding, kComputeBindingCount> bindings = { drawCommandStagingBufferBinding, drawCommandBufferBinding };
+		std::array<VkDescriptorSetLayoutBinding, kComputeBindingCount> bindings = { drawCommandStagingBufferBinding, drawCommandBufferBinding, boundingVolumeBinding };
 
-		// I don't think we need these:
-		//const VkDescriptorBindingFlags nonVariableBindingFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT;
-		//const VkDescriptorBindingFlags variableBindingFlags = nonVariableBindingFlags | VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
+		static constexpr VkDescriptorBindingFlags nonVariableBindingFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT;
 
-		std::array<VkDescriptorBindingFlags, kComputeBindingCount> multipleFlags = { };
+		std::array<VkDescriptorBindingFlags, kComputeBindingCount> multipleFlags = { nonVariableBindingFlags, nonVariableBindingFlags, nonVariableBindingFlags };
 
 		VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlags = {};
 		bindingFlags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
@@ -244,7 +267,7 @@ namespace imp
 		VkDescriptorSetLayoutCreateInfo dci;
 		dci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		dci.pNext = &bindingFlags;
-		dci.flags = 0;// VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+		dci.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
 		dci.bindingCount = kComputeBindingCount;
 		dci.pBindings = bindings.data();
 		const auto res = vkCreateDescriptorSetLayout(device, &dci, nullptr, &m_ComputeDescriptorSetLayout);

@@ -21,6 +21,12 @@ struct IndirectDraw
     uint    BVIndex;        // index to binding volume descriptor
 };
 
+struct BoundingVolume
+{
+    vec3 center;
+    float radius;
+};
+
 // "global" data
 layout(set = 0, binding = 0) uniform UboViewProjection
 {
@@ -49,10 +55,10 @@ layout(set = 1, binding = 1) writeonly buffer DrawCommands
 	IndirectDrawCommand drawsDst[];
 };
 
-//layout(set = 1, binding = 2) readonly buffer BoundingVolume
-//{
-//    // BV data
-//} boundingVolumes[]
+layout(set = 1, binding = 2) readonly buffer BoundingVolumes
+{
+    BoundingVolume bv[];
+};
 
 layout(push_constant) uniform ViewFrustum
 {
