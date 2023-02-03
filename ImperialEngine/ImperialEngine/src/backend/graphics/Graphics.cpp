@@ -196,6 +196,7 @@ namespace imp
             idxAllocSize += static_cast<uint32_t>(req.indices.size() * sizeof(uint32_t));
 
             m_VertexBuffers[req.id] = { idxSub, vtxSub };
+            m_BoundingVolumes[req.id] = req.boundingVolume;
         }
 
         const auto usageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;

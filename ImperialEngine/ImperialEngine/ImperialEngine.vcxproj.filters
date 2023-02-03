@@ -132,6 +132,9 @@
     <ClCompile Include="src\backend\graphics\Fence.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Utils\GfxUtilities.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\frontend\Engine.h">
@@ -293,9 +296,11 @@
     <ClInclude Include="src\Utils\SimpleTimer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Utils\GfxUtilities.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\extern\IMGUI\vGizmo.h.bak" />
-    <None Include="Shaders\glsl\drawGen.comp.glsl" />
   </ItemGroup>
 </Project>

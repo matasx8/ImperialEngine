@@ -1,5 +1,6 @@
 #include "AssetImporter.h"
 #include "Utils/Utilities.h"
+#include "Utils/GfxUtilities.h"
 #include "backend/EngineCommandResources.h"
 #include "frontend/Engine.h"
 #include "frontend/Components/Components.h"
@@ -92,14 +93,16 @@ namespace imp
 
 			for (auto& req : reqs)
 			{
-				if (tFirstEntityLoaded)
+				if (!tFirstEntityLoaded)
 				{
 					const auto childEntity = reg.create();
-					reg.emplace<Comp::Mesh>(childEntity, temporaryMeshCounter);
+					reg.emplace<Comp::Mesh>(childEntity, temporaryMeshCounter); // temporary mesh counter will be used to point to mesh id and bounding volume id 
+																				//(because 1:1 ratio for mesh and BV)
 					reg.emplace<Comp::Material>(childEntity, kDefaultMaterialIndex);
 					reg.emplace<Comp::ChildComponent>(childEntity, mainEntity);
 				}
 
+				// this counter can be used to identify the mesh or BV
 				req.id = static_cast<uint32_t>(temporaryMeshCounter);
 				temporaryMeshCounter++;
 			}
@@ -157,6 +160,9 @@ namespace imp
 					req.indices.push_back(face.mIndices[k]);
 				}
 			}
+
+			const auto BV = utils::FindSphereBoundingVolume(req.vertices.data(), req.vertices.size());
+			req.boundingVolume = BV;
 
 			meshList.push_back(req);
 		}

@@ -258,6 +258,7 @@
     <ClCompile Include="src\frontend\Engine.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="src\frontend\UI.cpp" />
+    <ClCompile Include="src\Utils\GfxUtilities.cpp" />
     <ClCompile Include="src\Utils\Utilities.cpp" />
     <ClCompile Include="src\frontend\Window.cpp" />
   </ItemGroup>
@@ -310,6 +311,7 @@
     <ClInclude Include="src\frontend\Components\Components.h" />
     <ClInclude Include="src\frontend\Engine.h" />
     <ClInclude Include="src\frontend\UI.h" />
+    <ClInclude Include="src\Utils\GfxUtilities.h" />
     <ClInclude Include="src\Utils\Pool.h" />
     <ClInclude Include="src\Utils\SimpleTimer.h" />
     <ClInclude Include="src\Utils\Utilities.h" />
@@ -317,7 +319,6 @@
     <ClInclude Include="src\frontend\Window.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\glsl\drawGen.comp.glsl" />
     <None Include="src\extern\IMGUI\vGizmo.h.bak" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -37,6 +37,7 @@ namespace imp
 		bool hasUI;
 	};
 
+	// TODO acceleration-part-1: move these somewhere
 	struct IndirectDrawCmd
 	{
 		// VkDrawIndexedIndirectCommand:
@@ -160,6 +161,7 @@ namespace imp
 
 	public:
 		std::unordered_map<uint32_t, Comp::IndexedVertexBuffers> m_VertexBuffers;
+		std::unordered_map<uint32_t, SphereBV> m_BoundingVolumes;
 
 		// TODO: remove this section and replace with some API
 

@@ -276,7 +276,7 @@ namespace imp
 		}
 	}
 
-	inline void GenerateIndirectDrawCommand(IGPUBuffer& dstBuffer, const Comp::IndexedVertexBuffers& meshData)
+	inline void GenerateIndirectDrawCommand(IGPUBuffer& dstBuffer, const Comp::IndexedVertexBuffers& meshData, uint32_t meshId)
 	{
 		static constexpr uint32_t kNonsenseIndex = 0;
 		IndirectDrawCmd cmd;
@@ -285,7 +285,7 @@ namespace imp
 		cmd.firstIndex = meshData.indices.GetOffset();
 		cmd.vertexOffset = meshData.vertices.GetOffset();
 		cmd.firstInstance = 0;
-		cmd.boundingVolumeIndex = kNonsenseIndex;
+		cmd.boundingVolumeIndex = meshId; // mesh id can be used to find BV
 		dstBuffer.push_back(&cmd, sizeof(IndirectDrawCmd));
 	}
 
@@ -318,7 +318,7 @@ namespace imp
 				// Needed for GPU-driven
 				// TODO nice-to-have: only do what's necessary for either rendering modes
 				const auto& meshData = m_Gfx.GetMeshData(mesh.meshId);
-				GenerateIndirectDrawCommand(drawDataBuffer, meshData);
+				GenerateIndirectDrawCommand(drawDataBuffer, meshData, mesh.meshId);
 
 				// Also update shader draw data. Also contains mesh id, that CPU-driven can use to generate draw commands
 				m_Gfx.m_DrawData.emplace_back(transform.transform, mesh.meshId);
