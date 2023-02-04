@@ -102,11 +102,11 @@ namespace imp
 
         glm::mat4 vp = glm::transpose(m_CameraData.front().Projection * m_CameraData.front().View);
         std::array<glm::vec4, 6> frustum;
-        frustum[0] = vp[3] + vp[0];
-        frustum[1] = vp[3] - vp[0];
-        frustum[2] = vp[3] + vp[1];
-        frustum[3] = vp[3] - vp[1];
-        frustum[4] = vp[3] - vp[2];
+        frustum[0] = glm::normalize(vp[3] + vp[0]);
+        frustum[1] = glm::normalize(vp[3] - vp[0]);
+        frustum[2] = glm::normalize(vp[3] + vp[1]);
+        frustum[3] = glm::normalize(vp[3] - vp[1]);
+        frustum[4] = glm::normalize(vp[3] + vp[2]);
         frustum[5] = glm::vec4(0);
 
 

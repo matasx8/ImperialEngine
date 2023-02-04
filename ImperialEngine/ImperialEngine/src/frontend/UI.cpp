@@ -151,7 +151,7 @@ namespace imp
 					// TODO: figure out how to get near and far value from projection matrix
 					// currently if nearAndFar is not in sync with what the camera is initialized with then
 					// after changing fov or nearfar param it might jump unpleasantly
-					static float nearAndFar[2] = { 5.0f, 100.0f };
+					static float nearAndFar[2] = { 5.0f, 1000.0f };
 					ImGui::Text("Camera FOV:");
 					if (ImGui::DragInt("FOV", &fov, 1.0f, 1, 180)) fovChanged = true;
 					ImGui::Text("Camera Near And Far:");

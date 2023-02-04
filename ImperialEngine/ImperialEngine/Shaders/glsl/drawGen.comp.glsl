@@ -80,11 +80,10 @@ void copy_draw_command(uint idx, int isInsideVF)
 int is_inside_view_frustum(uint idx)
 {
     vec3 center = (drawData[idx].Transform * vec4(bv[drawsSrc[idx].BVIndex].center, 1.0)).xyz;
-    //vec3 center = bv[drawsSrc[idx].BVIndex].center;
     float radius = bv[drawsSrc[idx].BVIndex].radius;
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < 5; i++)
     {
-        if(dot(frustum[i], vec4(center, 1)) < 0)
+        if(dot(frustum[i], vec4(center, 1)) < -radius)
             return 0;
     }
         return 1;
