@@ -46,7 +46,7 @@ namespace imp
 		}
 		else if (renderMode == kEngineRenderModeGPUDriven)
 		{
-			vkCmdDrawIndexedIndirect(cb, gfx.m_DrawBuffer.GetBuffer(), 0, gfx.m_NumDraws, sizeof(VkDrawIndexedIndirectCommand));
+			vkCmdDrawIndexedIndirectCount(cb, gfx.m_DrawBuffer.GetBuffer(), 0, gfx.GetDrawCommandCountBuffer().GetBuffer(), 0, gfx.m_NumDraws, sizeof(VkDrawIndexedIndirectCommand));
 		}
 
 		EndRenderPass(gfx, cmb);

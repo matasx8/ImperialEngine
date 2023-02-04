@@ -98,24 +98,44 @@ namespace imp
         const auto updateDrawsProgram = m_PipelineManager.GetComputePipeline(config);
         const auto dset1 = m_ShaderManager.GetDescriptorSet(m_Swapchain.GetFrameClock());
         const auto dset2 = m_ShaderManager.GetComputeDescriptorSet(m_Swapchain.GetFrameClock());
+
         std::array<VkDescriptorSet, 2> dsets = { dset1, dset2 };
 
         glm::mat4 vp = glm::transpose(m_CameraData.front().Projection * m_CameraData.front().View);
-        std::array<glm::vec4, 6> frustum;
-        frustum[0] = glm::normalize(vp[3] + vp[0]);
-        frustum[1] = glm::normalize(vp[3] - vp[0]);
-        frustum[2] = glm::normalize(vp[3] + vp[1]);
-        frustum[3] = glm::normalize(vp[3] - vp[1]);
-        frustum[4] = glm::normalize(vp[3] + vp[2]);
-        frustum[5] = glm::vec4(0);
+
+        struct Pushs
+        {
+            glm::vec4 frustum[6];
+            uint32_t numDraws;
+        } push;
+        push.frustum[0] = glm::normalize(vp[3] + vp[0]);
+        push.frustum[1] = glm::normalize(vp[3] - vp[0]);
+        push.frustum[2] = glm::normalize(vp[3] + vp[1]);
+        push.frustum[3] = glm::normalize(vp[3] - vp[1]);
+        push.frustum[4] = glm::normalize(vp[3] + vp[2]);
+        push.frustum[5] = glm::vec4(0);
+        push.numDraws = m_NumDraws;
 
 
-        // TODO: make RAII?
         CommandBuffer cb = m_CbManager.AquireCommandBuffer(m_LogicalDevice);
         cb.Begin();
         vkCmdBindPipeline(cb.cmb, VK_PIPELINE_BIND_POINT_COMPUTE, updateDrawsProgram.GetPipeline());
-        vkCmdPushConstants(cb.cmb, updateDrawsProgram.GetPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(frustum), frustum.data());
+        vkCmdPushConstants(cb.cmb, updateDrawsProgram.GetPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(push), &push);
         vkCmdBindDescriptorSets(cb.cmb, VK_PIPELINE_BIND_POINT_COMPUTE, updateDrawsProgram.GetPipelineLayout(), 0, dsets.size(), dsets.data(), 0, nullptr);
+        
+        vkCmdFillBuffer(cb.cmb, m_ShaderManager.GetDrawCommandCountBuffer().GetBuffer(), 0, VK_WHOLE_SIZE, 0);
+
+        VkBufferMemoryBarrier fillMemBar = {};
+        fillMemBar.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+        fillMemBar.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        fillMemBar.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+        fillMemBar.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        fillMemBar.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        fillMemBar.buffer = m_ShaderManager.GetDrawCommandCountBuffer().GetBuffer();
+        fillMemBar.size = VK_WHOLE_SIZE;
+
+        vkCmdPipelineBarrier(cb.cmb, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr,1, &fillMemBar, 0, nullptr);
+        
         vkCmdDispatch(cb.cmb, (m_NumDraws + 31) / 32, 1, 1);
 
         // need to make sure memory write is visible
@@ -126,12 +146,32 @@ namespace imp
         bufferMemBar.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         bufferMemBar.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         bufferMemBar.buffer = m_DrawBuffer.GetBuffer();
-        bufferMemBar.offset = 0;
         bufferMemBar.size = VK_WHOLE_SIZE;
+
+        // another buffer memory barrier DrawDataIndices
+        VkBufferMemoryBarrier bufferMemBar2 = {};
+        bufferMemBar2.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+        bufferMemBar2.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+        bufferMemBar2.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        bufferMemBar2.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        bufferMemBar2.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        bufferMemBar2.buffer = m_ShaderManager.GetDrawDataIndicesBuffer().GetBuffer();
+        bufferMemBar2.size = VK_WHOLE_SIZE;
+
+        VkBufferMemoryBarrier bufferMemBar3 = {};
+        bufferMemBar3.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+        bufferMemBar3.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+        bufferMemBar3.dstAccessMask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+        bufferMemBar3.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        bufferMemBar3.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        bufferMemBar3.buffer = m_ShaderManager.GetDrawDataIndicesBuffer().GetBuffer();
+        bufferMemBar3.size = VK_WHOLE_SIZE;
 
         // flush stages until CS is done
         // suspend until DRAW INDRICET
-        vkCmdPipelineBarrier(cb.cmb, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, 0, 0, nullptr, 1, &bufferMemBar, 0, nullptr);
+        std::array<VkBufferMemoryBarrier, 3> memBars = { bufferMemBar, bufferMemBar2, bufferMemBar3 };
+        // I wonder what happens when you have multiple pipeline stage flag bits like I do here
+        vkCmdPipelineBarrier(cb.cmb, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 0, 0, nullptr, memBars.size(), memBars.data(), 0, nullptr);
         cb.End();
 
         // Ideally would batch this to some transfer / compute queue that happens at the start of the frame.
@@ -415,15 +455,18 @@ namespace imp
         physical_features2.features.samplerAnisotropy = VK_TRUE;
         vkGetPhysicalDeviceFeatures2(m_PhysicalDevice, &physical_features2);
         physical_features2.features.multiDrawIndirect = true;
-        bool bindless_supported = indexing_features.descriptorBindingPartiallyBound && indexing_features.runtimeDescriptorArray;
-        indexing_features.descriptorBindingPartiallyBound = VK_TRUE;
-        indexing_features.runtimeDescriptorArray = VK_TRUE;
-        indexing_features.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
-        indexing_features.descriptorBindingUniformBufferUpdateAfterBind = VK_TRUE;
-        indexing_features.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
-        indexing_features.descriptorBindingVariableDescriptorCount = VK_TRUE;
-        indexing_features.pNext = &drawParamsFeature;
-        physical_features2.pNext = &indexing_features;
+
+        VkPhysicalDeviceVulkan12Features features12 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
+        features12.drawIndirectCount = true;
+        features12.descriptorBindingPartiallyBound = true;
+        features12.runtimeDescriptorArray = true;
+        features12.descriptorBindingUpdateUnusedWhilePending = true;
+        features12.descriptorBindingUniformBufferUpdateAfterBind = true;
+        features12.descriptorBindingStorageBufferUpdateAfterBind = true;
+        features12.descriptorBindingVariableDescriptorCount = true;
+
+        drawParamsFeature.pNext = &features12;
+        physical_features2.pNext = &drawParamsFeature;
         deviceCreateInfo.pNext = &physical_features2;
 
 
@@ -636,6 +679,11 @@ namespace imp
     void Graphics::DrawIndexed(VkCommandBuffer cb, uint32_t indexCount) const
     {
         vkCmdDrawIndexed(cb, indexCount, 1, 0, 0, 0);
+    }
+
+    const VulkanBuffer& Graphics::GetDrawCommandCountBuffer()
+    {
+        return m_ShaderManager.GetDrawCommandCountBuffer();
     }
 
     bool Graphics::CheckExtensionsSupported(std::vector<const char*> extensions)

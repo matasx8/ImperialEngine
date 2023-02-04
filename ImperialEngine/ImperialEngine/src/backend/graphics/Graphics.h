@@ -108,6 +108,8 @@ namespace imp
 		void PushConstants(VkCommandBuffer cb, const void* data, uint32_t size, VkPipelineLayout pipeLayout) const;
 
 		void DrawIndexed(VkCommandBuffer cb, uint32_t indexCount) const;
+
+		const VulkanBuffer& GetDrawCommandCountBuffer();
 		
 		bool CheckExtensionsSupported(std::vector<const char*> extensions);
 

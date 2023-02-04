@@ -28,9 +28,7 @@ struct BoundingVolume
     float radius;
 };
 
-// "global" data
-layout(set = 0, binding = 0) uniform UboViewProjection
-{
+layout(set = 0, binding = 0) uniform UboViewProjection{
 	mat4 PV;
 } uboViewProjection;
 
@@ -39,11 +37,20 @@ layout(set=0, binding = 1) buffer MaterialData
 	vec4 color;
 } materialData[128];
 
-// information for each draw (mostly indexes to other resource descriptors)
-layout (set = 0, binding = 129) buffer DrawData
+// use gl_DrawIDARB to find this draw index into DrawData.
+// This is needed because after culling there isn't a 1:1 ratio to IndirectDrawCommands and DrawData
+layout(set=0, binding = 129) buffer DrawDataIndices
+{
+	uint drawDataIndices[];
+};
+
+layout (set = 0, binding = 130) buffer DrawData
 {
 	mat4 Transform;
-	uint materialIdx;	// index to MaterialData
+	uint materialIdx;
+	uint isEnabled;
+	uint pad;
+	uint pad2;
 } drawData[];
 
 layout(set = 1, binding = 0) readonly buffer Draws
@@ -61,37 +68,51 @@ layout(set = 1, binding = 2) readonly buffer BoundingVolumes
     BoundingVolume bv[];
 };
 
+layout(set = 1, binding = 3) buffer DrawCommandCount
+{
+    uint drawCommandCount;
+};
+
 layout(push_constant) uniform ViewFrustum
 {
     vec4 frustum[6];
-	// Data about the VF.
-    // maybe don't deconstruct in CS since it's harder to debug
+    uint numDraws;
 };
 
-void copy_draw_command(uint idx, int isInsideVF)
+void copy_draw_command(uint idx, uint newIdx)
 {
-    drawsDst[idx].indexCount    = drawsSrc[idx].idc.indexCount;
-    drawsDst[idx].instanceCount = isInsideVF;
-    drawsDst[idx].firstIndex    = drawsSrc[idx].idc.firstIndex;
-    drawsDst[idx].vertexOffset  = drawsSrc[idx].idc.vertexOffset;
-    drawsDst[idx].firstInstance = drawsSrc[idx].idc.firstInstance;
+    drawDataIndices[newIdx] = idx;
+    drawsDst[newIdx].indexCount    = drawsSrc[idx].idc.indexCount;
+    drawsDst[newIdx].instanceCount = drawsSrc[idx].idc.instanceCount;
+    drawsDst[newIdx].firstIndex    = drawsSrc[idx].idc.firstIndex;
+    drawsDst[newIdx].vertexOffset  = drawsSrc[idx].idc.vertexOffset;
+    drawsDst[newIdx].firstInstance = drawsSrc[idx].idc.firstInstance;
 }
 
-int is_inside_view_frustum(uint idx)
+bool is_inside_view_frustum(uint idx)
 {
     vec3 center = (drawData[idx].Transform * vec4(bv[drawsSrc[idx].BVIndex].center, 1.0)).xyz;
     float radius = bv[drawsSrc[idx].BVIndex].radius;
     for (int i = 0; i < 5; i++)
     {
         if(dot(frustum[i], vec4(center, 1)) < -radius)
-            return 0;
+            return false;
     }
-        return 1;
+        return true;
 }
 
 void main()
 {
 	uint drawIdx = gl_WorkGroupID.x * 32 + gl_LocalInvocationID.x;
 
-    copy_draw_command(drawIdx, is_inside_view_frustum(drawIdx));
+    if(drawIdx >= numDraws)
+        return;
+
+    bool isVisible = is_inside_view_frustum(drawIdx);
+
+    if(isVisible)
+    {
+        uint newDrawIndex = atomicAdd(drawCommandCount, 1);
+        copy_draw_command(drawIdx, newDrawIndex);
+    }
 }

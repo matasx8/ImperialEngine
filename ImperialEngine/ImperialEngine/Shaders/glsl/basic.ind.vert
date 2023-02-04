@@ -19,13 +19,21 @@ layout(set=0, binding = 1) buffer MaterialData
 	vec4 color;
 } materialData[128];
 
-layout (set = 0, binding = 129) buffer DrawData{
+// use gl_DrawIDARB to find this draw index into DrawData.
+// This is needed because after culling there isn't a 1:1 ratio to IndirectDrawCommands and DrawData
+layout(set=0, binding = 129) buffer DrawDataIndices
+{
+	uint drawDataIndices[];
+};
+
+layout (set = 0, binding = 130) buffer DrawData
+{
 	mat4 Transform;
 	uint materialIdx;
 	uint isEnabled;
 	uint pad;
 	uint pad2;
-	} drawData[];
+} drawData[];
 	
 layout(push_constant) uniform PushModel{
 	uint idx;
@@ -33,8 +41,8 @@ layout(push_constant) uniform PushModel{
 	
 void main()
 {
-	vec3 lol = vec3(materialData[drawData[gl_DrawIDARB].materialIdx].color);
-	mat4 model = drawData[gl_DrawIDARB].Transform;
+	vec3 lol = vec3(materialData[drawData[drawDataIndices[gl_DrawIDARB]].materialIdx].color);
+	mat4 model = drawData[drawDataIndices[gl_DrawIDARB]].Transform;
     vec3 ecPos      = vec3(model * vec4(pos, 1.0));
     vec3 tnorm      = norm;
     vec3 lightVec   = normalize(lol  - ecPos);

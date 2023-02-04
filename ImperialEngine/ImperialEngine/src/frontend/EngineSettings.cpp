@@ -35,6 +35,6 @@ EngineSettings::EngineSettings(EngineSettingsTemplate settingsTemplate)
 	};
 	gfxSettings.swapchainImageCount = kEngineSwapchainTripleBuffering;
 	// TODO nice-to-have: add dropdown to select presentation mode in ui in runtime
-	gfxSettings.preferredPresentModes = { /*kEnginePresentMailbox,*/ kEnginePresentFifo};
+	gfxSettings.preferredPresentModes = { kEnginePresentMailbox, kEnginePresentFifo};
 	gfxSettings.renderMode = static_cast<EngineRenderMode>(kDefaultEngineRenderMode);
 }
