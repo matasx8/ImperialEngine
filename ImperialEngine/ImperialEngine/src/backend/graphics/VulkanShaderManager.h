@@ -61,7 +61,7 @@ namespace imp
 		VkDescriptorSet GetComputeDescriptorSet(uint32_t idx) const;
 		VkDescriptorSetLayout GetDescriptorSetLayout() const;
 		VkDescriptorSetLayout GetComputeDescriptorSetLayout() const;
-		VulkanBuffer& GetDrawDataBuffer(uint32_t idx) { return m_DrawCommands[idx]; }
+		VulkanBuffer& GetDrawCommandBuffer();
 		VulkanBuffer& GetDrawDataIndicesBuffer();
 		VulkanBuffer& GetBoundingVolumeBuffer();
 		VulkanBuffer& GetDrawCommandCountBuffer();
@@ -94,7 +94,9 @@ namespace imp
 		VulkanBuffer m_DrawDataIndices;
 		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_DrawDataBuffers;
 
-		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_DrawCommands;
+		// compute
+		//std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_DrawCommands;
+		VulkanBuffer m_DrawCommands; // out custom draw commands
 		VulkanBuffer m_BoundingVolumes;
 		VulkanBuffer m_DrawCommandCount;
 

@@ -57,7 +57,8 @@ namespace imp
 		Graphics();
 		void Initialize(const EngineGraphicsSettings& settings, Window* window);
 
-		void DispatchUpdateDrawCommands();
+		void UpdateDrawCommands();
+		void Cull();
 		void StartFrame();
 		void RenderCameras();
 		void RenderImGUI();
@@ -153,12 +154,10 @@ namespace imp
 		VulkanBuffer m_IndexBuffer;
 		VulkanBuffer m_MeshBuffer;
 		VulkanBuffer m_DrawBuffer;
+		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_StagingDrawBuffer;
 		VulkanBuffer m_BoundingVolumeBuffer;
 		uint32_t m_NumDraws;
 
-		// Rotating these descriptor buffers only works if I change the data each frame.
-		// When I get in the hang of CS try to use only 1 Buffer instead of 2-3 and use CS to update relevant data.
-		// This way maybe we could benefit from device-local buffers.
 		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_GlobalBuffers;
 		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_DescriptorSets;
 

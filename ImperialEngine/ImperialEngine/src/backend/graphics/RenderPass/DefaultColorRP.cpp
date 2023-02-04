@@ -31,7 +31,7 @@ namespace imp
 
 		const auto renderMode = gfx.GetGraphicsSettings().renderMode;
 
-		const auto cpuDrawBuffer = gfx.m_ShaderManager.GetDrawDataBuffer(gfx.m_Swapchain.GetFrameClock());
+		//const auto cpuDrawBuffer = gfx.m_ShaderManager.GetDrawDataBuffer(gfx.m_Swapchain.GetFrameClock());
 		if (renderMode == kEngineRenderModeTraditional)
 		{
 			uint32_t drawIndex = 0;

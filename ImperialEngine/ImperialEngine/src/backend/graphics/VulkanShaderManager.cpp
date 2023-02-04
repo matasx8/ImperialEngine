@@ -49,17 +49,14 @@ namespace imp
 			m_MaterialDataBuffers[i] = memory.GetBuffer(device, kMaterialBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, kHostVisisbleCoherentFlags, memProps);
 			m_DrawDataBuffers[i] = memory.GetBuffer(device, kDrawDataBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, kHostVisisbleCoherentFlags, memProps);
 
-			// compute data:
-			m_DrawCommands[i] = memory.GetBuffer(device, kHostDrawCommandBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, kHostVisisbleCoherentFlags, memProps);
-			m_DrawCommands[i].MapWholeBuffer(device);
-
-			hostMemUsed += kGlobalBufferSize + kMaterialBufferSize + kDrawDataBufferSize, kHostDrawCommandBufferSize;
+			hostMemUsed += kGlobalBufferSize + kMaterialBufferSize + kDrawDataBufferSize;
 		}
 
 		// required for gpu driven culling
 		m_DrawDataIndices = memory.GetBuffer(device, kDrawDataIndicesBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memProps);
 
 		// also compute data:
+		m_DrawCommands = memory.GetBuffer(device, kHostDrawCommandBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memProps);
 		m_BoundingVolumes = memory.GetBuffer(device, kBoundingVolumeBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memProps);
 		m_DrawCommandCount = memory.GetBuffer(device, kDrawCommandCountBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memProps);
 		deviceMemUsed += kBoundingVolumeBufferSize + kDrawDataIndicesBufferSize + kDrawCommandCountBufferSize;
@@ -76,10 +73,11 @@ namespace imp
 		// This array hack works but there's lots of redundant calculations. for single buffers
 		// just calculate subbuffers once ant then update them to descriptorsets
 		// TODO acceleration-part-1:
+		std::array<VulkanBuffer, 3> hdc = { m_DrawCommands, m_DrawCommands, m_DrawCommands };
 		std::array<VulkanBuffer, 3> dc = { drawCommands, drawCommands, drawCommands };
 		std::array<VulkanBuffer, 3> bv = { m_BoundingVolumes, m_BoundingVolumes, m_BoundingVolumes };
 		std::array<VulkanBuffer, 3> dcc = { m_DrawCommandCount, m_DrawCommandCount, m_DrawCommandCount };
-		WriteUpdateDescriptorSets(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawCommands, kHostDrawCommandBufferSize, 0, 1, kEngineSwapchainExclusiveMax - 1);
+		WriteUpdateDescriptorSets(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, hdc, kHostDrawCommandBufferSize, 0, 1, kEngineSwapchainExclusiveMax - 1);
 		WriteUpdateDescriptorSets(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, dc, kDrawCommandBufferSize, 1, 1, kEngineSwapchainExclusiveMax - 1);
 		WriteUpdateDescriptorSets(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, bv, kBoundingVolumeBufferSize, 2, 1, kEngineSwapchainExclusiveMax - 1);
 		WriteUpdateDescriptorSets(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, dcc, kDrawCommandCountBufferSize, 3, 1, kEngineSwapchainExclusiveMax - 1);
@@ -110,6 +108,11 @@ namespace imp
 	VkDescriptorSetLayout VulkanShaderManager::GetDescriptorSetLayout() const
 	{
 		return m_DescriptorSetLayout;
+	}
+
+	VulkanBuffer& VulkanShaderManager::GetDrawCommandBuffer()
+	{
+		return m_DrawCommands;
 	}
 
 	VulkanBuffer& VulkanShaderManager::GetDrawDataIndicesBuffer()

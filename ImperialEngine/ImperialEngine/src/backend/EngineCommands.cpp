@@ -63,6 +63,6 @@ namespace imp
 
 	void Engine::Cmd_UpdateDraws(std::shared_ptr<void> rsc)
 	{
-		m_Gfx.DispatchUpdateDrawCommands();
+		m_Gfx.UpdateDrawCommands();
 	}
 }
