@@ -40,7 +40,7 @@ namespace imp
 	{
 		glm::mat4x4 transform;
 		uint32_t materialIndex; // TODO acceleration-part-1: remove unused variables
-		uint32_t isEnabled; // could be used for CS to cull or something like that
+		uint32_t isEnabled;
 		uint32_t padding[2];
 	};
 

@@ -83,8 +83,8 @@ namespace imp
 		if (extension == ".obj")
 		{
 			// create main entity, that the renderable entities will point to
-			const entt::entity mainEntity = m_Engine.m_Entities.create();
 			auto& reg = m_Engine.m_Entities;
+			const entt::entity mainEntity = reg.create();
 			reg.emplace<Comp::Transform>(mainEntity, glm::mat4x4(1.0f));
 
 			static uint32_t temporaryMeshCounter = 0;
@@ -101,6 +101,10 @@ namespace imp
 					reg.emplace<Comp::Material>(childEntity, kDefaultMaterialIndex);
 					reg.emplace<Comp::ChildComponent>(childEntity, mainEntity);
 				}
+
+				// TODO acceleration-part-1: create BV once
+				const auto BV = utils::FindSphereBoundingVolume(req.vertices.data(), req.vertices.size());
+				m_Engine.m_BVs[temporaryMeshCounter] = BV;
 
 				// this counter can be used to identify the mesh or BV
 				req.id = static_cast<uint32_t>(temporaryMeshCounter);

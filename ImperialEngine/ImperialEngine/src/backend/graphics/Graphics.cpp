@@ -210,22 +210,30 @@ namespace imp
     // This happens before UpdateDrawCommands
     void Graphics::StartFrame()
     {
+        // Update the DrawData descriptors with new data. This is necessary since it contains transform data and that can change every frame.
+        // Can optimize this by parallelizing. 
+        // Before optimizing consider if the IGPUBuffer approach + copy operation on transfer queue would be better.
+        // It might be for GPU driven since I think we only use that data on the GPU, but for CPU driven it's not a good idea,
+        // since we read that data on the same frame on the CPU.
+        // TODO nice-to-have: read this above^
         m_ShaderManager.UpdateDrawData(m_LogicalDevice, m_Swapchain.GetFrameClock(), m_DrawData);
     }
 
     static int first = 3;
     void Graphics::RenderCameras()
     {
-        Cull();
+        if(m_Settings.renderMode == kEngineRenderModeGPUDriven)
+            Cull();
+
         for (const auto& camera : m_CameraData)
         {
             if (first > 0)
             {
                 GlobalData data;
-                //data.ViewProjection = glm::translate(camera.Projection * camera.View, glm::vec3(0.0, 0.0, -100.0));
-                data.ViewProjection = camera.Projection * camera.View;
+                data.ViewProjection = glm::translate(camera.Projection * camera.View, glm::vec3(0.0, 0.0, -100.0));
+                //data.ViewProjection = camera.Projection * camera.View;
                 m_ShaderManager.UpdateGlobalData(m_LogicalDevice, m_Swapchain.GetFrameClock(), data);
-                //first--;
+                first--;
             }
 
             auto& renderPasses = m_RenderPassManager.GetRenderPasses(m_LogicalDevice, camera, m_Swapchain);

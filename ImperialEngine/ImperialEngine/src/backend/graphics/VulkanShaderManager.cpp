@@ -159,25 +159,20 @@ namespace imp
 		UpdateDescriptorData(device, m_GlobalBuffers[descriptorSetIdx], sizeof(GlobalData), 0, &data);
 	}
 
-	static int frames = 5;
 	void VulkanShaderManager::UpdateDrawData(VkDevice device, uint32_t descriptorSetIdx, const std::vector<DrawDataSingle> drawData)
 	{
-		if (frames > 0)
+		std::vector<ShaderDrawData> shaderData;
+		for (const auto& draw : drawData)
 		{
-			//frames--;
-			// We're relying that the descriptors are registered
-			std::vector<ShaderDrawData> shaderData;
-			for (const auto& draw : drawData)
-			{
-				ShaderDrawData dat;
-				dat.transform = draw.Transform;
-				dat.materialIndex = kDefaultMaterialIndex;
-				dat.isEnabled = true;
+			ShaderDrawData dat;
+			dat.transform = draw.Transform;
+			dat.materialIndex = kDefaultMaterialIndex;
+			dat.isEnabled = true;
 
-				shaderData.push_back(dat);
-			}
-			UpdateDescriptorData(device, m_DrawDataBuffers[descriptorSetIdx], drawData.size() * sizeof(ShaderDrawData), 0, shaderData.data());
+			// good way to test if emplace back would help since there's a bottleneck here
+			shaderData.push_back(dat);
 		}
+		UpdateDescriptorData(device, m_DrawDataBuffers[descriptorSetIdx], drawData.size() * sizeof(ShaderDrawData), 0, shaderData.data());
 	}
 
 	VkDescriptorPool VulkanShaderManager::CreateDescriptorPool(VkDevice device)

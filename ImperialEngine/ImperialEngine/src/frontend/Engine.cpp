@@ -12,7 +12,7 @@
 namespace imp
 {
 	Engine::Engine()
-		: m_Entities(), m_DrawDataDirty(false), m_Q(nullptr), m_Worker(nullptr), m_SyncPoint(nullptr), m_EngineSettings(), m_Window(), m_UI(), m_Gfx(), m_AssetImporter(*this)
+		: m_Entities(), m_DrawDataDirty(false), m_Q(nullptr), m_Worker(nullptr), m_SyncPoint(nullptr), m_EngineSettings(), m_Window(), m_UI(), m_Gfx(), m_CulledDrawData(), m_BVs(), m_AssetImporter(*this)
 	{
 	}
 
@@ -54,6 +54,10 @@ namespace imp
 		m_Window.Update();
 		UpdateRegistry();
 
+		if (m_EngineSettings.gfxSettings.renderMode == kEngineRenderModeTraditional)
+		{
+			Cull();
+		}
 	}
 
 	void Engine::Render()
@@ -95,8 +99,14 @@ namespace imp
 		m_Timer.StartAll();
 	}
 
+	bool Engine::IsCurrentRenderMode(EngineRenderMode mode) const
+	{
+		return m_EngineSettings.gfxSettings.renderMode == mode;
+	}
+
 	void Engine::SwitchRenderingMode(EngineRenderMode newRenderMode)
 	{
+		m_EngineSettings.gfxSettings.renderMode = newRenderMode;
 		m_Q->add(std::mem_fn(&Engine::Cmd_ChangeRenderMode), std::make_shared<EngineRenderMode>(newRenderMode));
 	}
 
@@ -250,7 +260,6 @@ namespace imp
 
 	void Engine::UpdateRegistry()
 	{
-		MarkDrawDataDirty();
 		UpdateCameras();
 	}
 
@@ -276,15 +285,59 @@ namespace imp
 		}
 	}
 
+	void Engine::Cull()
+	{
+		assert(IsCurrentRenderMode(kEngineRenderModeTraditional));
+		m_CulledDrawData.resize(0);
+
+		const auto cameras = m_Entities.view<Comp::Transform, Comp::Camera>();
+		const auto& cam = cameras.get<Comp::Camera>(cameras.front());
+		const glm::mat4x4 VP = glm::transpose(cam.projection * cam.view);
+
+		glm::vec4 frustum[6];
+		frustum[0] = glm::normalize(VP[3] + VP[0]);
+		frustum[1] = glm::normalize(VP[3] - VP[0]);
+		frustum[2] = glm::normalize(VP[3] + VP[1]);
+		frustum[3] = glm::normalize(VP[3] - VP[1]);
+		frustum[4] = glm::normalize(VP[3] + VP[2]);
+		frustum[5] = glm::vec4(0);
+
+		const auto renderableChildren = m_Entities.view<Comp::ChildComponent, Comp::Mesh, Comp::Material>();
+		const auto transforms = m_Entities.view<Comp::Transform>();
+		for (auto ent : renderableChildren)
+		{
+			const auto& mesh = renderableChildren.get<Comp::Mesh>(ent);
+			const auto& parent = renderableChildren.get<Comp::ChildComponent>(ent).parent;
+			const auto& transform = transforms.get<Comp::Transform>(parent);
+			const auto& BV = m_BVs.at(mesh.meshId);
+
+			glm::vec4 center = transform.transform * glm::vec4(BV.center, 1.0f);
+
+			bool isVisible = true;
+			for (auto i = 0; i < 5; i++)
+			{
+				float dotProd = glm::dot(frustum[i], center);
+				if (dotProd < -BV.radius)
+				{
+					isVisible = false;
+					break;
+				}
+			}
+			
+			if (isVisible)
+			{
+				m_CulledDrawData.emplace_back(transform.transform, mesh.meshId);
+			}
+		}
+	}
+
 	inline void GenerateIndirectDrawCommand(IGPUBuffer& dstBuffer, const Comp::IndexedVertexBuffers& meshData, uint32_t meshId)
 	{
-		static constexpr uint32_t kNonsenseIndex = 0;
-		IndirectDrawCmd cmd;
+		IndirectDrawCmd cmd = {};
 		cmd.indexCount = meshData.indices.GetCount();
 		cmd.instanceCount = 1;
 		cmd.firstIndex = meshData.indices.GetOffset();
 		cmd.vertexOffset = meshData.vertices.GetOffset();
-		cmd.firstInstance = 0;
 		cmd.boundingVolumeIndex = meshId; // mesh id can be used to find BV
 		dstBuffer.push_back(&cmd, sizeof(IndirectDrawCmd));
 	}
@@ -300,7 +353,16 @@ namespace imp
 		m_SyncTime.start();
 		m_Window.UpdateDeltaTime();
 
-		if (IsDrawDataDirty())
+		if (IsCurrentRenderMode(kEngineRenderModeTraditional))
+		{
+			auto& srcDrawData = m_CulledDrawData;
+			auto& dstDrawData = m_Gfx.m_DrawData;
+			dstDrawData.resize(0);
+
+			// We already composed the draw data in Engine::Cull, can just copy it in
+			dstDrawData.insert(dstDrawData.end(), srcDrawData.begin(), srcDrawData.end());
+		}
+		else if (IsDrawDataDirty() && IsCurrentRenderMode(kEngineRenderModeGPUDriven))
 		{
 			IGPUBuffer& drawDataBuffer = m_Gfx.GetDrawDataStagingBuffer();
 			drawDataBuffer.resize(0);

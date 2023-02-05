@@ -29,13 +29,11 @@ namespace imp
 		const auto bigIdxBuffer = gfx.m_IndexBuffer.GetBuffer();
 		vkCmdBindIndexBuffer(cb, bigIdxBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-		const auto renderMode = gfx.GetGraphicsSettings().renderMode;
+		const auto& renderMode = gfx.GetGraphicsSettings().renderMode;
 
-		//const auto cpuDrawBuffer = gfx.m_ShaderManager.GetDrawDataBuffer(gfx.m_Swapchain.GetFrameClock());
 		if (renderMode == kEngineRenderModeTraditional)
 		{
-			uint32_t drawIndex = 0;
-			for (const auto& drawData : gfx.m_DrawData)
+			for (uint32_t drawIndex = 0; const auto& drawData : gfx.m_DrawData)
 			{
 				gfx.PushConstants(cb, &drawIndex, sizeof(uint32_t), pipe.GetPipelineLayout());
 
