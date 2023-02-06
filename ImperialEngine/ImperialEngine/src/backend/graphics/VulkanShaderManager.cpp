@@ -110,6 +110,11 @@ namespace imp
 		return m_DescriptorSetLayout;
 	}
 
+	VulkanBuffer& VulkanShaderManager::GetDrawDataBuffers(uint32_t idx)
+	{
+		return m_DrawDataBuffers[idx];
+	}
+
 	VulkanBuffer& VulkanShaderManager::GetDrawCommandBuffer()
 	{
 		return m_DrawCommands;
@@ -167,9 +172,7 @@ namespace imp
 			ShaderDrawData dat;
 			dat.transform = draw.Transform;
 			dat.materialIndex = kDefaultMaterialIndex;
-			dat.isEnabled = true;
 
-			// good way to test if emplace back would help since there's a bottleneck here
 			shaderData.push_back(dat);
 		}
 		UpdateDescriptorData(device, m_DrawDataBuffers[descriptorSetIdx], drawData.size() * sizeof(ShaderDrawData), 0, shaderData.data());

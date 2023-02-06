@@ -36,12 +36,10 @@ namespace imp
 		glm::vec4 color;
 	};
 
-	struct ShaderDrawData
+	struct alignas(16) ShaderDrawData
 	{
 		glm::mat4x4 transform;
-		uint32_t materialIndex; // TODO acceleration-part-1: remove unused variables
-		uint32_t isEnabled;
-		uint32_t padding[2];
+		uint32_t materialIndex;
 	};
 
 	class VulkanMemory;
@@ -61,6 +59,7 @@ namespace imp
 		VkDescriptorSet GetComputeDescriptorSet(uint32_t idx) const;
 		VkDescriptorSetLayout GetDescriptorSetLayout() const;
 		VkDescriptorSetLayout GetComputeDescriptorSetLayout() const;
+		VulkanBuffer& GetDrawDataBuffers(uint32_t idx);
 		VulkanBuffer& GetDrawCommandBuffer();
 		VulkanBuffer& GetDrawDataIndicesBuffer();
 		VulkanBuffer& GetBoundingVolumeBuffer();

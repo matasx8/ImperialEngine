@@ -21,9 +21,10 @@ namespace imp
 		bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		bufferInfo.size = bufferSize;
 		bufferInfo.usage = bufferUsageFlags;
-		bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE; // means only this queue family can access. Means will have to change if I introduce seperate transfer queue
-		bufferInfo.queueFamilyIndexCount = 0; // ignored when VK_SHARING_MODE_EXCLUSIVE (TODO: maybe don't have to init this memory?)
-		bufferInfo.pQueueFamilyIndices = nullptr;
+		bufferInfo.sharingMode = VK_SHARING_MODE_CONCURRENT;
+		bufferInfo.queueFamilyIndexCount = 2;
+		uint32_t indices[2] = { 0, 1 };
+		bufferInfo.pQueueFamilyIndices = indices;
 		bufferInfo.pNext = nullptr;
 		bufferInfo.flags = 0;
 

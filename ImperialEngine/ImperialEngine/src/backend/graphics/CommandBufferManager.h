@@ -41,6 +41,7 @@ namespace imp
 	struct SubmitSynchPrimitives
 	{
 		Semaphore semaphore;
+		Semaphore semaphore2;
 		Fence fence;
 	};
 
@@ -48,7 +49,7 @@ namespace imp
 	{
 	public:
 		CommandBufferManager(PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool, PrimitivePool<Fence, FenceFactory>& fencePool, SimpleTimer& timer);
-		void Initialize(VkDevice device, QueueFamilyIndices familyIndices, EngineSwapchainImageCount imageCount);
+		void Initialize(VkDevice device, uint32_t familyIndices, EngineSwapchainImageCount imageCount);
 
 		// Submit command buffer to internal command buffer queue. Will keep them until SubmitToQueue is called.
 		void SubmitInternal(CommandBuffer& cb);
@@ -62,6 +63,9 @@ namespace imp
 		std::vector<VkSemaphore>& GetCommandExecSemaphores();
 		const Fence& GetCurrentFence() const;
 
+		void AddQueueDependencies(const std::vector<Semaphore>& semaphores);
+		void AddQueueDependenciesForLater(Semaphore& semaphores);
+
 		void Destroy(VkDevice device);
 	private:
 
@@ -72,6 +76,7 @@ namespace imp
 		std::vector<CommandPool> m_GfxCommandPools;
 		std::vector<CommandBuffer> m_CommandsBuffersToSubmit;
 		std::vector<Semaphore> m_SemaphoresToWaitOnSubmit;
+		std::vector<Semaphore> m_SemaphoresToWaitOnSubmit2;
 		Fence m_CurrentFence;
 
 		PrimitivePool<Semaphore, SemaphoreFactory>& m_SemaphorePool;

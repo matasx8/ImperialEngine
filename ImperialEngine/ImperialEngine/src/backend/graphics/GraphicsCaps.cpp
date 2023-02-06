@@ -24,6 +24,17 @@ bool imp::GraphicsCaps::ValidationLayersSupported()
     return false;
 }
 
+inline int GetDesiredQueue(std::vector<VkQueueFamilyProperties>& fams, VkQueueFlags desiredFlags, VkQueueFlags undesiredFlags)
+{
+    for (uint32_t i = 0; const auto& fam : fams)
+    {
+        if (fam.queueFlags & desiredFlags && (fam.queueFlags & undesiredFlags) == 0)
+            return i;
+            i++;
+    }
+    return -1;
+}
+
 imp::QueueFamilyIndices imp::GraphicsCaps::GetQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
     QueueFamilyIndices indices;
@@ -33,17 +44,28 @@ imp::QueueFamilyIndices imp::GraphicsCaps::GetQueueFamilies(VkPhysicalDevice dev
     std::vector<VkQueueFamilyProperties> queueFamilyList(queueFamilyCount);
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilyList.data());
 
-    int i = 0;
-    // go through each queue family and check if it has at least one of the required types of queue
-    for (const auto& queueFamily : queueFamilyList)
+    for (const auto& fam : queueFamilyList)
     {
-        if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
-            indices.graphicsFamily = i;
+        bool gfx = fam.queueFlags & VK_QUEUE_GRAPHICS_BIT;
+        bool com = fam.queueFlags & VK_QUEUE_COMPUTE_BIT;
+        bool tra = fam.queueFlags & VK_QUEUE_TRANSFER_BIT;
+        bool spa = fam.queueFlags & VK_QUEUE_SPARSE_BINDING_BIT;
+        bool pro = fam.queueFlags & VK_QUEUE_PROTECTED_BIT;
+        bool dec = fam.queueFlags & 0x20;
+        bool enc = fam.queueFlags & 0x40;
+        bool flo = fam.queueFlags & VK_QUEUE_OPTICAL_FLOW_BIT_NV;
+    }
 
+    indices.transferFamily = GetDesiredQueue(queueFamilyList, VK_QUEUE_TRANSFER_BIT, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT);
+    indices.graphicsFamily = GetDesiredQueue(queueFamilyList, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0);
+    
+    // not enough time to remember how to pass lambda to a function, so using this to find presentation queueu
+    for (int i = 0; const auto& queueFamily : queueFamilyList)
+    {
         // check if queue family supports presentation
         VkBool32 presentationSupport = false;
         vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentationSupport);
-        if (queueFamily.queueCount > 0 && presentationSupport)
+        if (presentationSupport)
             indices.presentationFamily = i;
 
         if (indices.IsValid())

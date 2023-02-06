@@ -53,6 +53,7 @@ namespace imp
 		m_Window.UpdateImGUI();
 		m_Window.Update();
 		UpdateRegistry();
+		MarkDrawDataDirty();
 
 		if (m_EngineSettings.gfxSettings.renderMode == kEngineRenderModeTraditional)
 		{
@@ -230,7 +231,7 @@ namespace imp
 		glm::mat4x4 proj = glm::perspective(glm::radians(45.0f), (float)m_Window.GetWidth() / (float)m_Window.GetHeight(), 5.0f, 1000.0f);
 		m_Entities.emplace<Comp::Camera>(camera, proj, glm::mat4x4(), kCamOutColor, true);
 
-		//AddDemoEntity(999999);
+		AddDemoEntity(9999);
 	}
 
 	void Engine::RenderCameras()
@@ -304,8 +305,10 @@ namespace imp
 
 		const auto renderableChildren = m_Entities.view<Comp::ChildComponent, Comp::Mesh, Comp::Material>();
 		const auto transforms = m_Entities.view<Comp::Transform>();
+		uint32_t totalMeshes = 0;
 		for (auto ent : renderableChildren)
 		{
+			totalMeshes++;
 			const auto& mesh = renderableChildren.get<Comp::Mesh>(ent);
 			const auto& parent = renderableChildren.get<Comp::ChildComponent>(ent).parent;
 			const auto& transform = transforms.get<Comp::Transform>(parent);
@@ -329,6 +332,8 @@ namespace imp
 				m_CulledDrawData.emplace_back(transform.transform, mesh.meshId);
 			}
 		}
+
+		//printf("[CPU CULL] Total Renderable Meshes: %u; Renderable Meshes after culling: %llu\n", totalMeshes, m_CulledDrawData.size());
 	}
 
 	inline void GenerateIndirectDrawCommand(IGPUBuffer& dstBuffer, const Comp::IndexedVertexBuffers& meshData, uint32_t meshId)
@@ -362,12 +367,13 @@ namespace imp
 			// We already composed the draw data in Engine::Cull, can just copy it in
 			dstDrawData.insert(dstDrawData.end(), srcDrawData.begin(), srcDrawData.end());
 		}
-		else if (IsDrawDataDirty() && IsCurrentRenderMode(kEngineRenderModeGPUDriven))
+		else if (IsCurrentRenderMode(kEngineRenderModeGPUDriven))
 		{
+			IGPUBuffer& drawCmdBuffer = m_Gfx.GetDrawCommandStagingBuffer();
+			drawCmdBuffer.resize(0);
+
 			IGPUBuffer& drawDataBuffer = m_Gfx.GetDrawDataStagingBuffer();
 			drawDataBuffer.resize(0);
-
-			m_Gfx.m_DrawData.resize(0);
 
 			const auto renderableChildren = m_Entities.view<Comp::ChildComponent, Comp::Mesh, Comp::Material>();
 			const auto transforms = m_Entities.view<Comp::Transform>();
@@ -377,16 +383,26 @@ namespace imp
 				const auto& parent = renderableChildren.get<Comp::ChildComponent>(ent).parent;
 				const auto& transform = transforms.get<Comp::Transform>(parent);
 
-				// Needed for GPU-driven
-				// TODO nice-to-have: only do what's necessary for either rendering modes
-				const auto& meshData = m_Gfx.GetMeshData(mesh.meshId);
-				GenerateIndirectDrawCommand(drawDataBuffer, meshData, mesh.meshId);
+				if (IsDrawDataDirty())
+				{
+					// Needed for GPU-driven
+					// TODO nice-to-have: only do what's necessary for either rendering modes
+					const auto& meshData = m_Gfx.GetMeshData(mesh.meshId);
+					GenerateIndirectDrawCommand(drawCmdBuffer, meshData, mesh.meshId);
+				}
 
 				// Also update shader draw data. Also contains mesh id, that CPU-driven can use to generate draw commands
-				m_Gfx.m_DrawData.emplace_back(transform.transform, mesh.meshId);
+				DrawDataSingle dds;
+				dds.Transform = transform.transform;
+				dds.VertexBufferId = mesh.meshId;
+				drawDataBuffer.push_back(&dds, sizeof(dds));
 			}
-			m_Q->add(std::mem_fn(&Engine::Cmd_UpdateDraws), std::shared_ptr<void>());
-			m_DrawDataDirty = false;
+			if (IsDrawDataDirty())
+			{
+				m_Q->add(std::mem_fn(&Engine::Cmd_UpdateDraws), std::shared_ptr<void>());
+				m_DrawDataDirty = false;
+			}
+			//m_Q->add(std::mem_fn(&Engine::Cmd_DoTransfers), std::shared_ptr<void>());
 		}
 
 		const auto cameras = m_Entities.view<Comp::Transform, Comp::Camera>();

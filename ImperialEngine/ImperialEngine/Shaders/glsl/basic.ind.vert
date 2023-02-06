@@ -30,9 +30,9 @@ layout (set = 0, binding = 130) buffer DrawData
 {
 	mat4 Transform;
 	uint materialIdx;
-	uint isEnabled;
-	uint pad;
-	uint pad2;
+	//uint isEnabled;
+	//uint pad;
+	//uint pad2;
 } drawData[];
 	
 layout(push_constant) uniform PushModel{

@@ -38,9 +38,9 @@ namespace imp
 			return m_MemoryPtr != nullptr; 
 		}
 
-		const void* GetRawMappedBufferPointer() const 
-		{ 
-			return m_MemoryPtr; 
+		void* GetRawMappedBufferPointer()
+		{
+			return m_MemoryPtr;
 		}
 
 		virtual void MapWholeBuffer(VkDevice device) = 0;

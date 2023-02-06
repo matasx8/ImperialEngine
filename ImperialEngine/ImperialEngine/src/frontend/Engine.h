@@ -121,6 +121,7 @@ namespace imp
 		void Cmd_UploadComputePrograms(std::shared_ptr<void> rsc);
 		void Cmd_ChangeRenderMode(std::shared_ptr<void> rsc);
 		void Cmd_UpdateDraws(std::shared_ptr<void> rsc);
+		void Cmd_DoTransfers(std::shared_ptr<void> rsc);
 	};
 }
 

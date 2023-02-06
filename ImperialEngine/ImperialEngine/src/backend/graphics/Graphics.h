@@ -22,7 +22,7 @@ namespace imp
 	class Window;
 	namespace CmdRsc { struct MeshCreationRequest; }
 
-	struct DrawDataSingle
+	struct alignas(16) DrawDataSingle
 	{
 		glm::mat4x4 Transform;
 		uint32_t VertexBufferId;
@@ -57,6 +57,7 @@ namespace imp
 		Graphics();
 		void Initialize(const EngineGraphicsSettings& settings, Window* window);
 
+		void DoTransfers();
 		void UpdateDrawCommands();
 		void Cull();
 		void StartFrame();
@@ -68,8 +69,10 @@ namespace imp
 		void CreateAndUploadMaterials(const std::vector<CmdRsc::MaterialCreationRequest>& materialCreationData);
 		void CreateComputePrograms(const std::vector<CmdRsc::ComputeProgramCreationRequest>& computeProgramRequests);
 
-		// Will return ref to VulkanBuffer used for uploading new draw data.
+		// Will return ref to VulkanBuffer used for uploading new draw commands.
 		// Waits for fence associated with buffer to make sure it's not used by the GPU anymore.
+		IGPUBuffer& GetDrawCommandStagingBuffer();
+		// Will return ref to VulkanBuffer used for uploading new descriptor draw data
 		IGPUBuffer& GetDrawDataStagingBuffer();
 
 		const Comp::IndexedVertexBuffers& GetMeshData(uint32_t index) const;
@@ -125,6 +128,7 @@ namespace imp
 		// These are here for now
 		// should save the indices too
 		VkQueue m_GfxQueue;
+		VkQueue m_TransferQueue;
 		VkQueue m_PresentationQueue;
 
 		Swapchain m_Swapchain;
@@ -132,6 +136,7 @@ namespace imp
 
 		VulkanGarbageCollector m_VulkanGarbageCollector;
 		CommandBufferManager m_CbManager;
+		CommandBufferManager m_TransferCbManager;
 		SurfaceManager m_SurfaceManager;
 		VulkanShaderManager m_ShaderManager;
 		PipelineManager m_PipelineManager;
@@ -155,6 +160,7 @@ namespace imp
 		VulkanBuffer m_MeshBuffer;
 		VulkanBuffer m_DrawBuffer;
 		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_StagingDrawBuffer;
+		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_StagingDrawDataBuffer;
 		VulkanBuffer m_BoundingVolumeBuffer;
 		uint32_t m_NumDraws;
 

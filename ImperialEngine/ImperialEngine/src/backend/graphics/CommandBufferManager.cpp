@@ -7,11 +7,11 @@
 namespace imp
 {
     CommandBufferManager::CommandBufferManager(PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool, PrimitivePool<Fence, FenceFactory>& fencePool, SimpleTimer& timer)
-        : m_BufferingMode(), m_FrameClock(), m_IsNewFrame(true), m_GfxCommandPools(), m_CommandsBuffersToSubmit(), m_SemaphoresToWaitOnSubmit(), m_CurrentFence(), m_SemaphorePool(semaphorePool), m_FencePool(fencePool), m_Timer(timer)
+        : m_BufferingMode(), m_FrameClock(), m_IsNewFrame(true), m_GfxCommandPools(), m_CommandsBuffersToSubmit(), m_SemaphoresToWaitOnSubmit(), m_SemaphoresToWaitOnSubmit2(), m_CurrentFence(), m_SemaphorePool(semaphorePool), m_FencePool(fencePool), m_Timer(timer)
     {
     }
 
-    void CommandBufferManager::Initialize(VkDevice device, QueueFamilyIndices familyIndices, EngineSwapchainImageCount imageCount)
+    void CommandBufferManager::Initialize(VkDevice device, uint32_t familyIndices, EngineSwapchainImageCount imageCount)
     {
         m_BufferingMode = static_cast<uint32_t>(imageCount);
         for (int i = 0; i < imageCount; i++)
@@ -19,7 +19,7 @@ namespace imp
             VkCommandPoolCreateInfo poolInfo;
             poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
             poolInfo.flags = 0; // we're resetting whole pools so no need for reset flag bit.
-            poolInfo.queueFamilyIndex = familyIndices.graphicsFamily;
+            poolInfo.queueFamilyIndex = familyIndices;
             poolInfo.pNext = nullptr;
 
             VkCommandPool pool;
@@ -29,6 +29,8 @@ namespace imp
 
             m_GfxCommandPools.emplace_back(pool);
         }
+
+        m_SemaphoresToWaitOnSubmit2.resize(3);
 
         m_CurrentFence = m_FencePool.Get(device, 0ull);
     }
@@ -58,6 +60,8 @@ namespace imp
         // need to add semaphore to know when we can present
         Semaphore semaphore = m_SemaphorePool.Get(device, currFrame);
         semaphore.UpdateLastUsed(currFrame);
+        Semaphore semaphore2 = m_SemaphorePool.Get(device, currFrame);
+        semaphore2.UpdateLastUsed(currFrame);
 
         // TOOD: along with semaphore we must provide where to wait.
         std::vector<VkPipelineStageFlags> waitStages;
@@ -70,13 +74,22 @@ namespace imp
             semaphores.emplace_back(sem.semaphore);
         }
 
+        if (m_SemaphoresToWaitOnSubmit2[m_FrameClock].semaphore != VK_NULL_HANDLE)
+            semaphores.emplace_back(m_SemaphoresToWaitOnSubmit2[m_FrameClock].semaphore);
+
         VkSubmitInfo submitInfo = {};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         submitInfo.waitSemaphoreCount = static_cast<uint32_t>(semaphores.size());
         submitInfo.pWaitSemaphores = semaphores.data(); // semaphore for swapchain image or other dependency between queue operation
         submitInfo.pWaitDstStageMask = waitStages.data();
-        submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = &semaphore.semaphore;
+        submitInfo.signalSemaphoreCount = submitType == kSubmitSynchForPresent ? 2 : 1;
+        VkSemaphore ssems[2] = { semaphore.semaphore, semaphore2.semaphore };
+        if (submitType == kSubmitSynchForPresent)
+        {
+        submitInfo.pSignalSemaphores = ssems;
+        }
+        else
+            submitInfo.pSignalSemaphores = &semaphore.semaphore;
         submitInfo.commandBufferCount = static_cast<uint32_t>(m_CommandsBuffersToSubmit.size());
         auto ccs = GetCmbs(m_CommandsBuffersToSubmit);
         submitInfo.pCommandBuffers = ccs.data();
@@ -90,11 +103,12 @@ namespace imp
         if (submitType == kSubmitSynchForPresent)
         {
             m_GfxCommandPools[m_FrameClock].ReturnCommandBuffers(m_CommandsBuffersToSubmit, semaphore.semaphore, m_CurrentFence.fence);
+            primitives = { 0, semaphore2, VK_NULL_HANDLE };
         }
         else
         {
             m_GfxCommandPools[m_FrameClock].ReturnCommandBuffers(m_CommandsBuffersToSubmit, VK_NULL_HANDLE, m_CurrentFence.fence);
-            primitives = { semaphore, m_CurrentFence };
+            primitives = { semaphore, 0, m_CurrentFence };
         }
 
         m_CurrentFence = m_FencePool.Get(device, currFrame);
@@ -135,6 +149,16 @@ namespace imp
     const Fence& CommandBufferManager::GetCurrentFence() const
     {
         return m_CurrentFence;
+    }
+
+    void CommandBufferManager::AddQueueDependencies(const std::vector<Semaphore>& semaphores)
+    {
+        m_SemaphoresToWaitOnSubmit.insert(m_SemaphoresToWaitOnSubmit.end(), semaphores.begin(), semaphores.end());
+    }
+
+    void CommandBufferManager::AddQueueDependenciesForLater(Semaphore& semaphores)
+    {
+        m_SemaphoresToWaitOnSubmit2[m_FrameClock] = semaphores;
     }
 
     void CommandBufferManager::Destroy(VkDevice device)
@@ -193,8 +217,8 @@ namespace imp
         if (fences.size())
         {
             timer.start();
-            const auto res = vkWaitForFences(device, static_cast<uint32_t>(fences.size()), fences.data(), VK_TRUE, ~0ull);
-            assert(res == VK_SUCCESS);
+            const auto res = vkWaitForFences(device, static_cast<uint32_t>(fences.size()), fences.data(), VK_TRUE, 9999999);
+            //assert(res == VK_SUCCESS);
             timer.stop();
         }
         for (auto& buff : donePool)
