@@ -48,7 +48,6 @@ namespace imp
         m_MeshBuffer(),
         m_DrawBuffer(),
         m_StagingDrawBuffer(),
-        //m_StagingDrawDataBuffer(),
         m_BoundingVolumeBuffer(),
         m_NumDraws(),
         m_GlobalBuffers(),
@@ -206,12 +205,12 @@ namespace imp
             dcb.MarkUsedInQueue();
         }
 
-        auto& ddb = m_ShaderManager.GetDrawDataBuffers(m_Swapchain.GetFrameClock());
-        const auto bmb_ddb = utils::CreateBufferMemoryBarrier(srcAccess, VK_ACCESS_SHADER_READ_BIT, gf, tf, ddb.GetBuffer());
-        bmbs.push_back(bmb_ddb);
-
-        m_CbManager.AddQueueDependencies(ddb.GetTimeline());
-        ddb.MarkUsedInQueue();
+        //auto& ddb = m_ShaderManager.GetDrawDataBuffers(m_Swapchain.GetFrameClock());
+        //const auto bmb_ddb = utils::CreateBufferMemoryBarrier(srcAccess, VK_ACCESS_SHADER_READ_BIT, gf, tf, ddb.GetBuffer());
+        //bmbs.push_back(bmb_ddb);
+        //
+        //m_CbManager.AddQueueDependencies(ddb.GetTimeline());
+        //ddb.MarkUsedInQueue();
 
         // not sure if src stage is correct..
         // maybe try src as just before compute stage
@@ -279,6 +278,7 @@ namespace imp
                 data.ViewProjection = glm::translate(camera.Projection * camera.View, glm::vec3(0.0, 0.0, -100.0));
                 //data.ViewProjection = camera.Projection * camera.View;
                 m_ShaderManager.UpdateGlobalData(m_LogicalDevice, m_Swapchain.GetFrameClock(), data);
+                m_CbManager.AddQueueDependencies(m_ShaderManager.GetGlobalDataBuffer(m_Swapchain.GetFrameClock()).GetTimeline());
                // first--;
             }
 

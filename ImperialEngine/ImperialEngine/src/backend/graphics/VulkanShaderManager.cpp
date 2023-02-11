@@ -136,6 +136,11 @@ namespace imp
 		return m_DrawCommandCount;
 	}
 
+	VulkanBuffer& VulkanShaderManager::GetGlobalDataBuffer(uint32_t idx)
+	{
+		return m_GlobalBuffers[idx];
+	}
+
 	VkDescriptorSetLayout VulkanShaderManager::GetComputeDescriptorSetLayout() const
 	{
 		return m_ComputeDescriptorSetLayout;
@@ -162,7 +167,9 @@ namespace imp
 
 	void VulkanShaderManager::UpdateGlobalData(VkDevice device, uint32_t descriptorSetIdx, const GlobalData& data)
 	{
-		UpdateDescriptorData(device, m_GlobalBuffers[descriptorSetIdx], sizeof(GlobalData), 0, &data);
+		auto& buf = m_GlobalBuffers[descriptorSetIdx];
+		buf.MakeSureNotUsedOnGPU(device);
+		UpdateDescriptorData(device, buf, sizeof(GlobalData), 0, &data);
 	}
 
 	void VulkanShaderManager::UpdateDrawData(VkDevice device, uint32_t descriptorSetIdx, const std::vector<DrawDataSingle> drawData)

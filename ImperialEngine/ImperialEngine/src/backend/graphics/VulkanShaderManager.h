@@ -59,6 +59,7 @@ namespace imp
 		VkDescriptorSet GetComputeDescriptorSet(uint32_t idx) const;
 		VkDescriptorSetLayout GetDescriptorSetLayout() const;
 		VkDescriptorSetLayout GetComputeDescriptorSetLayout() const;
+		VulkanBuffer& GetGlobalDataBuffer(uint32_t idx);
 		VulkanBuffer& GetDrawDataBuffers(uint32_t idx);
 		VulkanBuffer& GetDrawCommandBuffer();
 		VulkanBuffer& GetDrawDataIndicesBuffer();

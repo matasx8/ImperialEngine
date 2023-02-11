@@ -231,7 +231,7 @@ namespace imp
 		glm::mat4x4 proj = glm::perspective(glm::radians(45.0f), (float)m_Window.GetWidth() / (float)m_Window.GetHeight(), 5.0f, 1000.0f);
 		m_Entities.emplace<Comp::Camera>(camera, proj, glm::mat4x4(), kCamOutColor, true);
 
-		AddDemoEntity(999999);
+		AddDemoEntity(9999);
 	}
 
 	void Engine::RenderCameras()
