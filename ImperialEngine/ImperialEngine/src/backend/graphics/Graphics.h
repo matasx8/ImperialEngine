@@ -57,8 +57,9 @@ namespace imp
 		Graphics();
 		void Initialize(const EngineGraphicsSettings& settings, Window* window);
 
-		void DoTransfers();
+		void DoTransfers(bool releaseAll);
 		void UpdateDrawCommands();
+		void GraphicsQueueStart();
 		void Cull();
 		void StartFrame();
 		void RenderCameras();
@@ -174,6 +175,9 @@ namespace imp
 
 		std::vector<DrawDataSingle> m_DrawData;
 		std::vector<CameraData>		m_CameraData;
+
+		// Temporary workaround to know whether to do transfer in StartFrame or in UpdateDraws
+		bool m_DelayTransferOperation;
 	private:
 
 		friend class RenderPass;

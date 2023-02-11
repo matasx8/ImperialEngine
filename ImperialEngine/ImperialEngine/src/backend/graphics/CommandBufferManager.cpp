@@ -7,7 +7,7 @@
 namespace imp
 {
     CommandBufferManager::CommandBufferManager(PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool, PrimitivePool<Fence, FenceFactory>& fencePool, SimpleTimer& timer)
-        : m_BufferingMode(), m_FrameClock(), m_IsNewFrame(true), m_GfxCommandPools(), m_CommandsBuffersToSubmit(), m_SemaphoresToWaitOnSubmit(), m_SemaphoresToWaitOnSubmit2(), m_CurrentFence(), m_SemaphorePool(semaphorePool), m_FencePool(fencePool), m_Timer(timer)
+        : m_BufferingMode(), m_FrameClock(), m_IsNewFrame(true), m_GfxCommandPools(), m_CommandsBuffersToSubmit(), m_SemaphoresToWaitOnSubmit(), m_CurrentFence(), m_TransferCB(), m_QueueDependencies(), m_SemaphorePool(semaphorePool), m_FencePool(fencePool), m_Timer(timer)
     {
     }
 
@@ -30,7 +30,8 @@ namespace imp
             m_GfxCommandPools.emplace_back(pool);
         }
 
-        m_SemaphoresToWaitOnSubmit2.resize(3);
+        // initial acquire
+        m_TransferCB = AquireCommandBuffer(device);
 
         m_CurrentFence = m_FencePool.Get(device, 0ull);
     }
@@ -56,40 +57,61 @@ namespace imp
 
     SubmitSynchPrimitives CommandBufferManager::SubmitToQueue(VkQueue submitQueue, VkDevice device, SubmitType submitType, uint64_t currFrame)
     {
+        // maxTimelineSemaphoreValueDifference 
         // need to add fence for command buffers to know when we can reset them
         // need to add semaphore to know when we can present
         Semaphore semaphore = m_SemaphorePool.Get(device, currFrame);
         semaphore.UpdateLastUsed(currFrame);
-        Semaphore semaphore2 = m_SemaphorePool.Get(device, currFrame);
-        semaphore2.UpdateLastUsed(currFrame);
 
-        // TOOD: along with semaphore we must provide where to wait.
-        std::vector<VkPipelineStageFlags> waitStages;
-        std::vector<VkSemaphore> semaphores;
-        for (auto& sem : m_SemaphoresToWaitOnSubmit)
+        std::vector<VkSemaphore> waitSemaphores(m_QueueDependencies.size());
+        std::vector<VkPipelineStageFlags> waitStages(m_QueueDependencies.size());
+        std::vector<uint64_t> waitValues(m_QueueDependencies.size());
+        std::vector<VkSemaphore> signalSemaphores(m_QueueDependencies.size());
+        std::vector<uint64_t> signalValues(m_QueueDependencies.size());
+
+        VkTimelineSemaphoreSubmitInfo tssi = {};
+        tssi.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
+
+        for (auto i = 0; const auto & sem : m_QueueDependencies)
         {
-            waitStages.push_back(VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
-            // Recycle used semaphores
-            m_SemaphorePool.Return(sem);
-            semaphores.emplace_back(sem.semaphore);
+            waitValues[i] = sem.lastUsedInQueue;
+            signalValues[i] = sem.lastUsedInQueue + 1ull;
+            waitSemaphores[i] = sem.semaphore;
+            signalSemaphores[i] = sem.semaphore;
+            waitStages[i] = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+            i++;
+
+            uint64_t val;
+            vkGetSemaphoreCounterValue(device, sem.semaphore, &val);
+            int ia = 0;
         }
 
-        if (m_SemaphoresToWaitOnSubmit2[m_FrameClock].semaphore != VK_NULL_HANDLE)
-            semaphores.emplace_back(m_SemaphoresToWaitOnSubmit2[m_FrameClock].semaphore);
+        // binary semaphores
+        for (auto& sem : m_SemaphoresToWaitOnSubmit)
+        {
+            waitStages.push_back(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+            // Recycle used semaphores
+            m_SemaphorePool.Return(sem);
+            waitSemaphores.emplace_back(sem.semaphore);
+            waitValues.push_back(1);
+        }
+
+        signalSemaphores.push_back(semaphore.semaphore);
+        signalValues.push_back(1);
+
+        tssi.waitSemaphoreValueCount = static_cast<uint32_t>(waitValues.size());
+        tssi.signalSemaphoreValueCount = static_cast<uint32_t>(signalValues.size());
+        tssi.pWaitSemaphoreValues = waitValues.data();
+        tssi.pSignalSemaphoreValues = signalValues.data();
 
         VkSubmitInfo submitInfo = {};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.waitSemaphoreCount = static_cast<uint32_t>(semaphores.size());
-        submitInfo.pWaitSemaphores = semaphores.data(); // semaphore for swapchain image or other dependency between queue operation
+        submitInfo.pNext = m_QueueDependencies.size() ? &tssi : nullptr;
+        submitInfo.waitSemaphoreCount = static_cast<uint32_t>(waitSemaphores.size());
+        submitInfo.pWaitSemaphores = waitSemaphores.data();
         submitInfo.pWaitDstStageMask = waitStages.data();
-        submitInfo.signalSemaphoreCount = submitType == kSubmitSynchForPresent ? 2 : 1;
-        VkSemaphore ssems[2] = { semaphore.semaphore, semaphore2.semaphore };
-        if (submitType == kSubmitSynchForPresent)
-        {
-        submitInfo.pSignalSemaphores = ssems;
-        }
-        else
-            submitInfo.pSignalSemaphores = &semaphore.semaphore;
+        submitInfo.signalSemaphoreCount = static_cast<uint32_t>(signalSemaphores.size());
+        submitInfo.pSignalSemaphores = signalSemaphores.data();
         submitInfo.commandBufferCount = static_cast<uint32_t>(m_CommandsBuffersToSubmit.size());
         auto ccs = GetCmbs(m_CommandsBuffersToSubmit);
         submitInfo.pCommandBuffers = ccs.data();
@@ -97,18 +119,20 @@ namespace imp
 
         VkResult result = vkQueueSubmit(submitQueue, 1, &submitInfo, m_CurrentFence.fence);
         if (result != VK_SUCCESS)
+        {
+            printf("Failed result was: %llu\n", result);
             throw std::runtime_error("Failed to submit Command Buffer to Queue!");
+        }
 
         SubmitSynchPrimitives primitives = { VK_NULL_HANDLE, VK_NULL_HANDLE };
         if (submitType == kSubmitSynchForPresent)
         {
             m_GfxCommandPools[m_FrameClock].ReturnCommandBuffers(m_CommandsBuffersToSubmit, semaphore.semaphore, m_CurrentFence.fence);
-            primitives = { 0, semaphore2, VK_NULL_HANDLE };
         }
         else
         {
             m_GfxCommandPools[m_FrameClock].ReturnCommandBuffers(m_CommandsBuffersToSubmit, VK_NULL_HANDLE, m_CurrentFence.fence);
-            primitives = { semaphore, 0, m_CurrentFence };
+            primitives = { semaphore, m_CurrentFence };
         }
 
         m_CurrentFence = m_FencePool.Get(device, currFrame);
@@ -124,6 +148,8 @@ namespace imp
         m_FrameClock++;
         m_FrameClock %= m_BufferingMode;
         m_IsNewFrame = true;
+
+        m_QueueDependencies.resize(0);
     }
 
     std::vector<CommandBuffer> CommandBufferManager::AquireCommandBuffers(VkDevice device, uint32_t count)
@@ -151,14 +177,72 @@ namespace imp
         return m_CurrentFence;
     }
 
-    void CommandBufferManager::AddQueueDependencies(const std::vector<Semaphore>& semaphores)
+    void imp::CommandBufferManager::ReturnCommandBufferToPool(CommandBuffer cb, VkSemaphore sem, VkFence fence)
     {
-        m_SemaphoresToWaitOnSubmit.insert(m_SemaphoresToWaitOnSubmit.end(), semaphores.begin(), semaphores.end());
+        std::vector<CommandBuffer> cbs = { cb };
+        m_GfxCommandPools[m_FrameClock].ReturnCommandBuffers(cbs, sem, fence);
     }
 
-    void CommandBufferManager::AddQueueDependenciesForLater(Semaphore& semaphores)
+    CommandBuffer& CommandBufferManager::GetCurrentCB(VkDevice device)
     {
-        m_SemaphoresToWaitOnSubmit2[m_FrameClock] = semaphores;
+        if (m_TransferCB.GetCurrentStage() == kCBStageDone)
+        {
+            m_TransferCB = AquireCommandBuffer(device);
+            m_TransferCB.Begin();
+        }
+        else if (m_TransferCB.GetCurrentStage() == kCBStageNew)
+            m_TransferCB.Begin();
+        return m_TransferCB;
+    }
+
+    void CommandBufferManager::SubmitToTransferQueue(VkQueue transferQueue, VkDevice device, uint64_t currFrame)
+    {
+        std::vector<VkSemaphore> waitSemaphores(m_QueueDependencies.size());
+        std::vector<VkPipelineStageFlags> waitStages(m_QueueDependencies.size());
+        std::vector<uint64_t> waitValues(m_QueueDependencies.size());
+        std::vector<uint64_t> signalValues(m_QueueDependencies.size());
+
+        VkTimelineSemaphoreSubmitInfo tssi = {};
+        tssi.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
+        tssi.waitSemaphoreValueCount = static_cast<uint32_t>(waitValues.size());
+        tssi.pWaitSemaphoreValues = waitValues.data();
+        tssi.signalSemaphoreValueCount = static_cast<uint32_t>(signalValues.size());
+        tssi.pSignalSemaphoreValues = signalValues.data();
+
+        for (auto i = 0; const auto& sem : m_QueueDependencies)
+        {
+            waitValues[i] = sem.lastUsedInQueue;
+            signalValues[i] = sem.lastUsedInQueue + 1ull;
+            waitSemaphores[i] = sem.semaphore;
+            waitStages[i] = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+            i++;
+        }
+
+        VkSubmitInfo submitInfo = {};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.pNext = &tssi;
+        submitInfo.waitSemaphoreCount = static_cast<uint32_t>(waitSemaphores.size());
+        submitInfo.pWaitSemaphores = waitSemaphores.data();
+        submitInfo.pWaitDstStageMask = waitStages.data();
+        submitInfo.signalSemaphoreCount = static_cast<uint32_t>(waitSemaphores.size());
+        submitInfo.pSignalSemaphores = waitSemaphores.data();
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &m_TransferCB.cmb;
+
+        VkResult result = vkQueueSubmit(transferQueue, 1, &submitInfo, m_CurrentFence.fence);
+        if (result != VK_SUCCESS)
+        {
+            printf("Failed result was: %i\n", result);
+            throw std::runtime_error("Failed to submit Command Buffer to Queue!");
+        }
+
+        m_CurrentFence = m_FencePool.Get(device, currFrame);
+        m_CurrentFence.UpdateLastUsed(currFrame);
+    }
+
+    void CommandBufferManager::AddQueueDependencies(const TimelineSemaphore& semahpore)
+    {
+        m_QueueDependencies.push_back(semahpore);
     }
 
     void CommandBufferManager::Destroy(VkDevice device)
@@ -218,11 +302,14 @@ namespace imp
         {
             timer.start();
             const auto res = vkWaitForFences(device, static_cast<uint32_t>(fences.size()), fences.data(), VK_TRUE, 9999999);
-            //assert(res == VK_SUCCESS);
+            assert(res == VK_SUCCESS);
             timer.stop();
         }
         for (auto& buff : donePool)
+        {
+            buff.ResetStageToNew();
             readyPool.push(buff);
+        }
 
         auto res = vkResetCommandPool(device, pool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
         assert(res == VK_SUCCESS);

@@ -2,8 +2,6 @@
 #include <cassert>
 #include <stdio.h>
 
-// So far we only have one type of begin info, 
-// so let's not create one each time this function is called
 inline constexpr VkCommandBufferBeginInfo kBeginInfo = 
 { 
 	VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, 
@@ -13,23 +11,39 @@ inline constexpr VkCommandBufferBeginInfo kBeginInfo =
 };
 
 imp::CommandBuffer::CommandBuffer()
-	: cmb()
+	: cmb(), m_CurrentStage(kCBStageNew)
 {
 }
 
 imp::CommandBuffer::CommandBuffer(VkCommandBuffer cb)
-	: cmb(cb)
+	: cmb(cb), m_CurrentStage(kCBStageNew)
 {
 }
 
 void imp::CommandBuffer::Begin()
 {
-	auto res = vkBeginCommandBuffer(cmb, &kBeginInfo);
+	const auto res = vkBeginCommandBuffer(cmb, &kBeginInfo);
 	assert(res == VK_SUCCESS);
+
+	assert(m_CurrentStage == kCBStageNew);
+	m_CurrentStage = kCBStageActive;
+}
+
+imp::CommandBufferStage imp::CommandBuffer::GetCurrentStage() const
+{
+	return static_cast<CommandBufferStage>(m_CurrentStage);
 }
 
 void imp::CommandBuffer::End()
 {
-	auto res = vkEndCommandBuffer(cmb);
+	const auto res = vkEndCommandBuffer(cmb);
 	assert(res == VK_SUCCESS);
+
+	assert(m_CurrentStage == kCBStageActive);
+	m_CurrentStage = kCBStageDone;
+}
+
+void imp::CommandBuffer::ResetStageToNew()
+{
+	m_CurrentStage = kCBStageNew;
 }

@@ -41,7 +41,6 @@ namespace imp
 	struct SubmitSynchPrimitives
 	{
 		Semaphore semaphore;
-		Semaphore semaphore2;
 		Fence fence;
 	};
 
@@ -57,14 +56,20 @@ namespace imp
 
 		// Submit accumulated command buffers to VkQueue
 		SubmitSynchPrimitives SubmitToQueue(VkQueue submitQueue, VkDevice device, SubmitType submitType, uint64_t currFrame);
+
 		void SignalFrameEnded();
 		std::vector<CommandBuffer> AquireCommandBuffers(VkDevice device, uint32_t count);
 		CommandBuffer AquireCommandBuffer(VkDevice device);
 		std::vector<VkSemaphore>& GetCommandExecSemaphores();
 		const Fence& GetCurrentFence() const;
 
-		void AddQueueDependencies(const std::vector<Semaphore>& semaphores);
-		void AddQueueDependenciesForLater(Semaphore& semaphores);
+		void ReturnCommandBufferToPool(CommandBuffer cb, VkSemaphore sem, VkFence fence);
+
+		// Transfer:
+		// will get the cb for this frame, and begin it if needed
+		CommandBuffer& GetCurrentCB(VkDevice device);
+		void SubmitToTransferQueue(VkQueue transferQueue, VkDevice device, uint64_t currFrame);
+		void AddQueueDependencies(const TimelineSemaphore& semahpore);
 
 		void Destroy(VkDevice device);
 	private:
@@ -76,8 +81,11 @@ namespace imp
 		std::vector<CommandPool> m_GfxCommandPools;
 		std::vector<CommandBuffer> m_CommandsBuffersToSubmit;
 		std::vector<Semaphore> m_SemaphoresToWaitOnSubmit;
-		std::vector<Semaphore> m_SemaphoresToWaitOnSubmit2;
 		Fence m_CurrentFence;
+
+		// Transfer:
+		CommandBuffer m_TransferCB; // long lasting
+		std::vector<TimelineSemaphore> m_QueueDependencies;
 
 		PrimitivePool<Semaphore, SemaphoreFactory>& m_SemaphorePool;
 		PrimitivePool<Fence, FenceFactory>& m_FencePool;

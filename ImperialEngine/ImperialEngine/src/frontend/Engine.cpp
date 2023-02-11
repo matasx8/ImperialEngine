@@ -231,7 +231,7 @@ namespace imp
 		glm::mat4x4 proj = glm::perspective(glm::radians(45.0f), (float)m_Window.GetWidth() / (float)m_Window.GetHeight(), 5.0f, 1000.0f);
 		m_Entities.emplace<Comp::Camera>(camera, proj, glm::mat4x4(), kCamOutColor, true);
 
-		AddDemoEntity(9999);
+		AddDemoEntity(999999);
 	}
 
 	void Engine::RenderCameras()
@@ -369,6 +369,7 @@ namespace imp
 		}
 		else if (IsCurrentRenderMode(kEngineRenderModeGPUDriven))
 		{
+			// This can stall because it may wait on timeline semaphore
 			IGPUBuffer& drawCmdBuffer = m_Gfx.GetDrawCommandStagingBuffer();
 			drawCmdBuffer.resize(0);
 
@@ -395,14 +396,16 @@ namespace imp
 				DrawDataSingle dds;
 				dds.Transform = transform.transform;
 				dds.VertexBufferId = mesh.meshId;
+				// This seems to be quite slow, might be faster if I'd templatize the VulkanBuffer container
 				drawDataBuffer.push_back(&dds, sizeof(dds));
 			}
 			if (IsDrawDataDirty())
 			{
+				// Mark delay so we do transfers in UpdateDraws and not in StartFrame
+				m_Gfx.m_DelayTransferOperation = true;
 				m_Q->add(std::mem_fn(&Engine::Cmd_UpdateDraws), std::shared_ptr<void>());
 				m_DrawDataDirty = false;
 			}
-			//m_Q->add(std::mem_fn(&Engine::Cmd_DoTransfers), std::shared_ptr<void>());
 		}
 
 		const auto cameras = m_Entities.view<Comp::Transform, Comp::Camera>();

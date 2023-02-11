@@ -12,7 +12,7 @@ namespace imp
 	{
 	public:
 		VulkanBuffer();
-		VulkanBuffer(uint32_t size, VkBuffer buffer, VkDeviceMemory mem);
+		VulkanBuffer(uint32_t size, VkBuffer buffer, VkDeviceMemory mem, VkSemaphore timelineSemaphore);
 
 		uint32_t GetSize() const;
 		VkBuffer GetBuffer() const;

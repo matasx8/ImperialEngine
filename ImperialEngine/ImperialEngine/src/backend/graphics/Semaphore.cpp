@@ -19,8 +19,9 @@ namespace imp
 		return Create(device);
 	}
 
-	Semaphore::Semaphore() : semaphore(VK_NULL_HANDLE) {};
-	Semaphore::Semaphore(VkSemaphore sem) : semaphore(sem) {};
+	Semaphore::Semaphore() : semaphore(VK_NULL_HANDLE), lastUsedInQueue() {};
+	Semaphore::Semaphore(VkSemaphore sem) : semaphore(sem), lastUsedInQueue() {};
+	Semaphore::Semaphore(VkSemaphore sem, uint64_t lastUsedInQueue) : semaphore(sem), lastUsedInQueue(lastUsedInQueue) {};
 
 	void Semaphore::Destroy(VkDevice device)
 	{

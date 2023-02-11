@@ -53,5 +53,31 @@ namespace imp
 			//float maxDist = glm::distance(maxX, minX);
 			//glm::vec3 center = (maxX + minX) * 0.5f;
 			//if()
+
+		void InsertBufferBarrier(CommandBuffer& cb, VkPipelineStageFlags srcFlags, VkPipelineStageFlags dstFlags, const VkBufferMemoryBarrier* bmbs, uint32_t bmbCount)
+		{
+			assert(bmbs);
+			vkCmdPipelineBarrier(cb.cmb, srcFlags, dstFlags, 0, 0, 0, bmbCount, bmbs, 0, 0);
+		}
+
+		VkBufferMemoryBarrier CreateBufferMemoryBarrier(VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkBuffer buffer, VkDeviceSize offset, VkDeviceSize size)
+		{
+			return CreateBufferMemoryBarrier(srcAccessMask, dstAccessMask, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, buffer, offset, size);
+		}
+
+		VkBufferMemoryBarrier CreateBufferMemoryBarrier(VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, uint32_t srcQFIndex, uint32_t dstQFIndex, VkBuffer buffer, VkDeviceSize offset, VkDeviceSize size)
+		{
+			VkBufferMemoryBarrier bmb;
+			bmb.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+			bmb.pNext = nullptr;
+			bmb.srcAccessMask = srcAccessMask;
+			bmb.dstAccessMask = dstAccessMask;
+			bmb.srcQueueFamilyIndex = srcQFIndex;
+			bmb.dstQueueFamilyIndex = dstQFIndex;
+			bmb.buffer = buffer;
+			bmb.offset = offset;
+			bmb.size = size;
+			return bmb;
+		}
 	}
 }

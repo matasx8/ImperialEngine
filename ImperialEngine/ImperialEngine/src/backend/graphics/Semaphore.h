@@ -1,4 +1,5 @@
 #pragma once
+//#include <vulkan_core.h>
 #include "backend/VulkanResource.h"
 
 namespace imp
@@ -7,9 +8,11 @@ namespace imp
 	{
 		Semaphore();
 		Semaphore(VkSemaphore sem);
+		Semaphore(VkSemaphore sem, uint64_t lastUsedInQueue);
 		void Destroy(VkDevice device) override;
 
 		VkSemaphore semaphore;
+		uint64_t lastUsedInQueue;
 	};
 	
 	struct SemaphoreFactory

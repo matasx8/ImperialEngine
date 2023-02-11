@@ -11,9 +11,11 @@ namespace imp
 	{
 	}
 
-	VulkanBuffer::VulkanBuffer(uint32_t size, VkBuffer buffer, VkDeviceMemory mem)
+	VulkanBuffer::VulkanBuffer(uint32_t size, VkBuffer buffer, VkDeviceMemory mem, VkSemaphore timelineSemaphore)
 		: m_Buffer(buffer), m_Memory(mem), m_Size(size), m_WriteOffset(), m_TempOffset(), m_Fence()
 	{
+		m_TimelineSemaphore = timelineSemaphore;
+		m_UsedInTimeline = 0;
 	}
 
 	uint32_t VulkanBuffer::GetSize() const

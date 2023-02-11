@@ -4,6 +4,7 @@
 #include "backend/VulkanBuffer.h"
 #include "frontend/Components/Components.h"
 #include "frontend/Window.h"
+#include "Utils/GfxUtilities.h"
 #include <vector>
 #include <stdexcept>
 #include <set>
@@ -55,6 +56,7 @@ namespace imp
         m_VertexBuffers(),
         m_DrawData(),
         m_CameraData(),
+        m_DelayTransferOperation(),
         renderpassgui()
     {
     }
@@ -84,11 +86,34 @@ namespace imp
         CreateImGUI();
     }
 
-    void Graphics::DoTransfers()
+    void Graphics::DoTransfers(bool releaseAll)
     {
-        auto synchs = m_TransferCbManager.SubmitToQueue(m_TransferQueue, m_LogicalDevice, kSubmitDontCare, m_CurrentFrame);
-        std::vector<Semaphore> dependency = { synchs.semaphore };
-        m_CbManager.AddQueueDependencies(dependency);
+        // release resources
+        std::vector<VkBufferMemoryBarrier> bmbs;
+        VkAccessFlags dstAccess = 0; // dstAccess is ignored for Q ownership transfers
+        uint32_t tf = m_GfxCaps.GetQueueFamilies().transferFamily;
+        uint32_t gf = m_GfxCaps.GetQueueFamilies().graphicsFamily;
+        
+        auto& ddb = m_ShaderManager.GetDrawDataBuffers(m_Swapchain.GetFrameClock());
+        const auto bmb_ddb = utils::CreateBufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT, dstAccess, tf, gf, ddb.GetBuffer());
+        bmbs.push_back(bmb_ddb);
+
+        if (releaseAll) // also need to release draw command buffer that might not get updated every time
+        {
+            auto& dcb = m_ShaderManager.GetDrawCommandBuffer();
+            const auto bmb_dcb = utils::CreateBufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT, dstAccess, tf, gf, dcb.GetBuffer());
+            bmbs.push_back(bmb_dcb);
+        }
+
+        auto& cb = m_TransferCbManager.GetCurrentCB(m_LogicalDevice);
+        utils::InsertBufferBarrier(cb, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, bmbs.data(), bmbs.size());
+        
+        cb.End();
+        m_TransferCbManager.ReturnCommandBufferToPool(cb, 0, m_TransferCbManager.GetCurrentFence().fence);
+
+        // Resources used in a Queue should be marked with a semaphore
+        // So when next queue uses these resources it will take its semaphore and wait on it.
+        m_TransferCbManager.SubmitToTransferQueue(m_TransferQueue, m_LogicalDevice, m_CurrentFrame);
     }
 
     // TODO ST-BUG:
@@ -100,31 +125,34 @@ namespace imp
     {
         // Update the new global draw count
         auto& staging = m_StagingDrawBuffer[m_Swapchain.GetFrameClock()];
+        auto& dst = m_ShaderManager.GetDrawCommandBuffer();
+
+        // give instructions for CB to wait on previous dst semaphore
+        m_TransferCbManager.AddQueueDependencies(staging.GetTimeline());
+        m_TransferCbManager.AddQueueDependencies(dst.GetTimeline());
+
+        // first time used in tranfer queue, mark it
+        staging.MarkUsedInQueue();
+        dst.MarkUsedInQueue();
+
+        // no need to aquire ownership since we don't care about contents
+
         m_NumDraws = staging.size();
-        
-        CommandBuffer cb = m_CbManager.AquireCommandBuffer(m_LogicalDevice);
-        cb.Begin();
+
+        CommandBuffer& cb = m_TransferCbManager.GetCurrentCB(m_LogicalDevice);
 
         VkBufferCopy copy = {};
         copy.size = m_NumDraws * sizeof(IndirectDrawCmd);
 
-        vkCmdCopyBuffer(cb.cmb, staging.GetBuffer(), m_ShaderManager.GetDrawCommandBuffer().GetBuffer(), 1, &copy);
+        vkCmdCopyBuffer(cb.cmb, staging.GetBuffer(), dst.GetBuffer(), 1, &copy);
 
-        // this might not be needed because on cull we place the same barrier
-        // memory barrier might be needed, but can batch later
-        VkBufferMemoryBarrier fillMemBar = {};
-        fillMemBar.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-        fillMemBar.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-        fillMemBar.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-        fillMemBar.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        fillMemBar.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        fillMemBar.buffer = m_ShaderManager.GetDrawCommandBuffer().GetBuffer();
-        fillMemBar.size = VK_WHOLE_SIZE;
+        assert(m_DelayTransferOperation);
+        DoTransfers(true);
+    }
 
-        //vkCmdPipelineBarrier(cb.cmb, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 1, &fillMemBar, 0, nullptr);
-
-        cb.End();
-        m_CbManager.SubmitInternal(cb);
+    void Graphics::GraphicsQueueStart()
+    {
+ 
     }
 
     void Graphics::Cull()
@@ -159,9 +187,41 @@ namespace imp
 
         CommandBuffer cb = m_CbManager.AquireCommandBuffer(m_LogicalDevice);
         cb.Begin();
+
+        std::vector<VkBufferMemoryBarrier> bmbs;
+        VkAccessFlags srcAccess = 0; // srcAccess is ignored for Q ownership transfers (when aquiring)
+        uint32_t tf = m_GfxCaps.GetQueueFamilies().transferFamily;
+        uint32_t gf = m_GfxCaps.GetQueueFamilies().graphicsFamily;
+
+        // aquiring DrawCommandBuffer from Transfer Queue
+        if (m_DelayTransferOperation)
+        {
+            m_DelayTransferOperation = false;
+
+            auto& dcb = m_ShaderManager.GetDrawCommandBuffer();
+            const auto bmb_dcb = utils::CreateBufferMemoryBarrier(srcAccess, VK_ACCESS_SHADER_READ_BIT, gf, tf, dcb.GetBuffer());
+            bmbs.push_back(bmb_dcb);
+
+            m_CbManager.AddQueueDependencies(dcb.GetTimeline());
+            dcb.MarkUsedInQueue();
+        }
+
+        auto& ddb = m_ShaderManager.GetDrawDataBuffers(m_Swapchain.GetFrameClock());
+        const auto bmb_ddb = utils::CreateBufferMemoryBarrier(srcAccess, VK_ACCESS_SHADER_READ_BIT, gf, tf, ddb.GetBuffer());
+        bmbs.push_back(bmb_ddb);
+
+        m_CbManager.AddQueueDependencies(ddb.GetTimeline());
+        ddb.MarkUsedInQueue();
+
+        // not sure if src stage is correct..
+        // maybe try src as just before compute stage
+        utils::InsertBufferBarrier(cb, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, bmbs.data(), static_cast<uint32_t>(bmbs.size()));
+
         vkCmdBindPipeline(cb.cmb, VK_PIPELINE_BIND_POINT_COMPUTE, updateDrawsProgram.GetPipeline());
         vkCmdPushConstants(cb.cmb, updateDrawsProgram.GetPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(push), &push);
         vkCmdBindDescriptorSets(cb.cmb, VK_PIPELINE_BIND_POINT_COMPUTE, updateDrawsProgram.GetPipelineLayout(), 0, dsets.size(), dsets.data(), 0, nullptr);
+        
+        // need barrier here?
 
         vkCmdFillBuffer(cb.cmb, m_ShaderManager.GetDrawCommandCountBuffer().GetBuffer(), 0, VK_WHOLE_SIZE, 0);
 
@@ -178,7 +238,7 @@ namespace imp
 
         vkCmdDispatch(cb.cmb, (m_NumDraws + 31) / 32, 1, 1);
 
-        // need to make sure memory write is visible
+        // make sure?
         VkBufferMemoryBarrier bufferMemBar = {};
         bufferMemBar.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
         bufferMemBar.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
@@ -188,7 +248,7 @@ namespace imp
         bufferMemBar.buffer = m_DrawBuffer.GetBuffer();
         bufferMemBar.size = VK_WHOLE_SIZE;
 
-        // another buffer memory barrier DrawDataIndices
+        // make sure new draw data indices written by this CS is visible to basic.ind.vert
         VkBufferMemoryBarrier bufferMemBar2 = {};
         bufferMemBar2.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
         bufferMemBar2.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
@@ -198,68 +258,58 @@ namespace imp
         bufferMemBar2.buffer = m_ShaderManager.GetDrawDataIndicesBuffer().GetBuffer();
         bufferMemBar2.size = VK_WHOLE_SIZE;
 
+        // make sure new draw command count is visible to vkCmdDrawIndirectIndexedCount
         VkBufferMemoryBarrier bufferMemBar3 = {};
         bufferMemBar3.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
         bufferMemBar3.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
         bufferMemBar3.dstAccessMask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
         bufferMemBar3.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         bufferMemBar3.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        bufferMemBar3.buffer = m_ShaderManager.GetDrawDataIndicesBuffer().GetBuffer();
+        bufferMemBar3.buffer = m_ShaderManager.GetDrawCommandCountBuffer().GetBuffer();
         bufferMemBar3.size = VK_WHOLE_SIZE;
 
-        // flush stages until CS is done
-        // suspend until DRAW INDRICET
         std::array<VkBufferMemoryBarrier, 3> memBars = { bufferMemBar, bufferMemBar2, bufferMemBar3 };
         // I wonder what happens when you have multiple pipeline stage flag bits like I do here
         vkCmdPipelineBarrier(cb.cmb, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 0, 0, nullptr, memBars.size(), memBars.data(), 0, nullptr);
         cb.End();
 
-        // Ideally would batch this to some transfer / compute queue that happens at the start of the frame.
-        // But for now just submit to avoid having too many submit to queue commands
         m_CbManager.SubmitInternal(cb);
     }
 
     // This happens before UpdateDrawCommands
     void Graphics::StartFrame()
     {
-        // Update the DrawData descriptors with new data. This is necessary since it contains transform data and that can change every frame.
-        // Can optimize this by parallelizing. 
-        // Before optimizing consider if the IGPUBuffer approach + copy operation on transfer queue would be better.
-        // It might be for GPU driven since I think we only use that data on the GPU, but for CPU driven it's not a good idea,
-        // since we read that data on the same frame on the CPU.
-        // TODO nice-to-have: read this above^
         const auto index = m_Swapchain.GetFrameClock();
         switch (m_Settings.renderMode)
         {
         case kEngineRenderModeTraditional:
+            // this contains a race condition
             m_ShaderManager.UpdateDrawData(m_LogicalDevice, index, m_DrawData);
             break;
         case kEngineRenderModeGPUDriven:
+            // should have been already waited on in engine sync, can just get it
             auto& staging = m_StagingDrawDataBuffer[index];
+            auto& dst = m_ShaderManager.GetDrawDataBuffers(index);
 
-            CommandBuffer cb = m_TransferCbManager.AquireCommandBuffer(m_LogicalDevice);
-            cb.Begin();
+            CommandBuffer& cb = m_TransferCbManager.GetCurrentCB(m_LogicalDevice);
+
+            // give instructions for CB to wait on previous dst semaphore
+            m_TransferCbManager.AddQueueDependencies(staging.GetTimeline());
+            m_TransferCbManager.AddQueueDependencies(dst.GetTimeline());
+
+            // first time using in tranfer queue, mark it
+            staging.MarkUsedInQueue();
+            dst.MarkUsedInQueue();
+
+            // no need to aquire ownership (of dst) since I don't care about the previous contents.
 
             VkBufferCopy copy = {};
             copy.size = staging.size() * sizeof(DrawDataSingle);
 
-            vkCmdCopyBuffer(cb.cmb, staging.GetBuffer(), m_ShaderManager.GetDrawDataBuffers(index).GetBuffer(), 1, &copy);
+            vkCmdCopyBuffer(cb.cmb, staging.GetBuffer(), dst.GetBuffer(), 1, &copy);
 
-            VkBufferMemoryBarrier fillMemBar = {};
-            fillMemBar.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-            fillMemBar.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-            fillMemBar.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-            fillMemBar.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            fillMemBar.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            fillMemBar.buffer = m_ShaderManager.GetDrawCommandCountBuffer().GetBuffer();
-            fillMemBar.size = VK_WHOLE_SIZE;
-
-            //vkCmdPipelineBarrier(cb.cmb, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 1, &fillMemBar, 0, nullptr);
-
-            cb.End();
-            m_TransferCbManager.SubmitInternal(cb);
-            staging.GiveFence(m_TransferCbManager.GetCurrentFence());
-            DoTransfers();
+            if(!m_DelayTransferOperation)
+                DoTransfers(false);
             break;
         }
     }
@@ -278,7 +328,7 @@ namespace imp
                 data.ViewProjection = glm::translate(camera.Projection * camera.View, glm::vec3(0.0, 0.0, -100.0));
                 //data.ViewProjection = camera.Projection * camera.View;
                 m_ShaderManager.UpdateGlobalData(m_LogicalDevice, m_Swapchain.GetFrameClock(), data);
-                first--;
+               // first--;
             }
 
             auto& renderPasses = m_RenderPassManager.GetRenderPasses(m_LogicalDevice, camera, m_Swapchain);
@@ -300,9 +350,9 @@ namespace imp
 
     void Graphics::EndFrame()
     {
+        // Add all potential dependencies
+
         auto synchs = m_CbManager.SubmitToQueue(m_GfxQueue, m_LogicalDevice, kSubmitSynchForPresent, m_CurrentFrame);
-        //std::vector<Semaphore> deps = { synchs.semaphore2 };
-        m_TransferCbManager.AddQueueDependenciesForLater(synchs.semaphore2);
 
         m_Swapchain.Present(m_PresentationQueue, m_CbManager.GetCommandExecSemaphores());
         m_CbManager.SignalFrameEnded();
@@ -316,7 +366,7 @@ namespace imp
     void Graphics::CreateAndUploadMeshes(const std::vector<CmdRsc::MeshCreationRequest>& meshCreationData)
     {
         const uint32_t numCbs = 1;
-        auto cbs = m_TransferCbManager.AquireCommandBuffers(m_LogicalDevice, numCbs);
+        auto cbs = m_CbManager.AquireCommandBuffers(m_LogicalDevice, numCbs);
         auto& cb = cbs[0];
 
         cb.Begin();
@@ -363,10 +413,10 @@ namespace imp
 
         cb.End();
 
-        m_TransferCbManager.SubmitInternal(cb);
-        //auto synchs = m_CbManager.SubmitToQueue(m_GfxQueue, m_LogicalDevice, kSubmitDontCare, m_CurrentFrame);
-        //m_VertexBuffer.GiveSemaphore(synchs.semaphore.semaphore);
-        //m_IndexBuffer.GiveSemaphore(synchs.semaphore.semaphore);
+        m_CbManager.SubmitInternal(cb);
+        auto synchs = m_CbManager.SubmitToQueue(m_GfxQueue, m_LogicalDevice, kSubmitDontCare, m_CurrentFrame);
+        m_VertexBuffer.GiveSemaphore(synchs.semaphore.semaphore);
+        m_IndexBuffer.GiveSemaphore(synchs.semaphore.semaphore);
     }
 
     void Graphics::CreateAndUploadMaterials(const std::vector<CmdRsc::MaterialCreationRequest>& materialCreationData)
@@ -384,26 +434,16 @@ namespace imp
     // until have scartch mem, i can keep this
     IGPUBuffer& Graphics::GetDrawCommandStagingBuffer()
     {
-        // TODO nepamirsk pridet fence
         auto& drawDataBuffer = m_StagingDrawBuffer[m_Swapchain.GetFrameClock()];
-
-        // Dont wait on fence that might've been reset already, since cb manager controls those fences.
-        // potential design flaw to consider fixing later
-        if(m_CurrentFrame - drawDataBuffer.GetLastUsed() < m_Settings.swapchainImageCount)
-            drawDataBuffer.WaitUntilNotUsedByGPU(m_LogicalDevice, m_FencePool);
+        drawDataBuffer.MakeSureNotUsedOnGPU(m_LogicalDevice);
 
         return drawDataBuffer;
     }
 
     IGPUBuffer& Graphics::GetDrawDataStagingBuffer()
     {
-        // TODO nepamirsk pridet fence
         auto& drawDataBuffer = m_StagingDrawDataBuffer[m_Swapchain.GetFrameClock()];
-
-        // Dont wait on fence that might've been reset already, since cb manager controls those fences.
-        // potential design flaw to consider fixing later
-        if (m_CurrentFrame - drawDataBuffer.GetLastUsed() < m_Settings.swapchainImageCount)
-            drawDataBuffer.WaitUntilNotUsedByGPU(m_LogicalDevice, m_FencePool);
+        drawDataBuffer.MakeSureNotUsedOnGPU(m_LogicalDevice);
 
         return drawDataBuffer;
     }
@@ -561,6 +601,7 @@ namespace imp
         features12.descriptorBindingUniformBufferUpdateAfterBind = true;
         features12.descriptorBindingStorageBufferUpdateAfterBind = true;
         features12.descriptorBindingVariableDescriptorCount = true;
+        features12.timelineSemaphore = true;
 
         drawParamsFeature.pNext = &features12;
         physical_features2.pNext = &drawParamsFeature;

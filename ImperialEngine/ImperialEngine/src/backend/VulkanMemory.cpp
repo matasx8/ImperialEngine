@@ -21,10 +21,9 @@ namespace imp
 		bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		bufferInfo.size = bufferSize;
 		bufferInfo.usage = bufferUsageFlags;
-		bufferInfo.sharingMode = VK_SHARING_MODE_CONCURRENT;
-		bufferInfo.queueFamilyIndexCount = 2;
-		uint32_t indices[2] = { 0, 1 };
-		bufferInfo.pQueueFamilyIndices = indices;
+		bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		bufferInfo.queueFamilyIndexCount = 0;
+		bufferInfo.pQueueFamilyIndices = nullptr;
 		bufferInfo.pNext = nullptr;
 		bufferInfo.flags = 0;
 
@@ -37,7 +36,21 @@ namespace imp
 		res = vkBindBufferMemory(device, buffer, mem, 0);
 		assert(res == VK_SUCCESS);
 
-		VulkanBuffer buff(bufferSize, buffer, mem);
+		VkSemaphoreTypeCreateInfo timelineCreateInfo;
+		timelineCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
+		timelineCreateInfo.pNext = NULL;
+		timelineCreateInfo.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
+		timelineCreateInfo.initialValue = 0ull;
+
+		VkSemaphoreCreateInfo createInfo;
+		createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+		createInfo.pNext = &timelineCreateInfo;
+		createInfo.flags = 0;
+
+		VkSemaphore timelineSemaphore;
+		vkCreateSemaphore(device, &createInfo, NULL, &timelineSemaphore);
+
+		VulkanBuffer buff(bufferSize, buffer, mem, timelineSemaphore);
 		return buff;
 	}
 
