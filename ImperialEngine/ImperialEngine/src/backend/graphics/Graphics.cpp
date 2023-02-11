@@ -234,7 +234,7 @@ namespace imp
         vkCmdDispatch(cb.cmb, (m_NumDraws + 31) / 32, 1, 1);
 
         std::array<VkBufferMemoryBarrier, 3> memBars;
-        // make sure?
+        // make sure CS has populated draw buffer
         memBars[0] = utils::CreateBufferMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_INDIRECT_COMMAND_READ_BIT, m_DrawBuffer.GetBuffer());
         // make sure new draw data indices written by this CS is visible to basic.ind.vert
         memBars[1] = utils::CreateBufferMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, m_ShaderManager.GetDrawDataIndicesBuffer().GetBuffer());
@@ -563,10 +563,11 @@ namespace imp
         features12.descriptorBindingVariableDescriptorCount = true;
         features12.timelineSemaphore = true;
 
-        features12.pNext = &dci;
+       // f//eatures12.pNext = &dci;
         drawParamsFeature.pNext = &features12;
         physical_features2.pNext = &drawParamsFeature;
-        deviceCreateInfo.pNext = &physical_features2;
+        dci.pNext = &physical_features2;
+        deviceCreateInfo.pNext = &dci;
 
 
         VkResult result = vkCreateDevice(m_PhysicalDevice, &deviceCreateInfo, nullptr, &m_LogicalDevice);
