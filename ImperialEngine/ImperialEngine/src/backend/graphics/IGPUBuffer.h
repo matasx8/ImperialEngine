@@ -9,21 +9,20 @@ namespace imp
 	class IGPUBuffer
 	{
 	public:
-		IGPUBuffer() : m_NumElements(), m_MemoryPtr() {}
+		IGPUBuffer() : m_NumElements(), m_MemoryPtr(), m_WritePointer() {}
 
 		void resize(size_t size)
 		{
 			m_NumElements = size;
+			m_WritePointer = static_cast<char*>(m_MemoryPtr);
 		}
 
 		void push_back(const void* data, size_t size)
 		{
 			assert(data);
 			assert(size);
-			const auto offset = m_NumElements * size;
-			char* tempPtr = reinterpret_cast<char*>(m_MemoryPtr);
-			tempPtr += offset;
-			std::memcpy(tempPtr, data, size);
+			std::memcpy(m_WritePointer, data, size);
+			m_WritePointer += size;
 			m_NumElements++;
 		}
 
@@ -48,5 +47,6 @@ namespace imp
 	protected:
 		size_t m_NumElements;
 		void* m_MemoryPtr;
+		char* m_WritePointer;
 	};
 }

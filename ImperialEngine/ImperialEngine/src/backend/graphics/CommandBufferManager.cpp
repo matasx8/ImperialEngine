@@ -80,10 +80,6 @@ namespace imp
             signalSemaphores[i] = sem.semaphore;
             waitStages[i] = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
             i++;
-
-            uint64_t val;
-            vkGetSemaphoreCounterValue(device, sem.semaphore, &val);
-            int ia = 0;
         }
 
         // binary semaphores
