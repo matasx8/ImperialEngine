@@ -48,6 +48,7 @@ namespace imp
 			m_GlobalBuffers[i] = memory.GetBuffer(device, kGlobalBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, kHostVisisbleCoherentFlags, memProps);
 			m_MaterialDataBuffers[i] = memory.GetBuffer(device, kMaterialBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, kHostVisisbleCoherentFlags, memProps);
 			m_DrawDataBuffers[i] = memory.GetBuffer(device, kDrawDataBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, kHostVisisbleCoherentFlags, memProps);
+			m_DrawDataBuffers[i].MapWholeBuffer(device);
 
 			hostMemUsed += kGlobalBufferSize + kMaterialBufferSize + kDrawDataBufferSize;
 		}

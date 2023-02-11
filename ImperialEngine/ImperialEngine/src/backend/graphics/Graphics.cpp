@@ -48,7 +48,7 @@ namespace imp
         m_MeshBuffer(),
         m_DrawBuffer(),
         m_StagingDrawBuffer(),
-        m_StagingDrawDataBuffer(),
+        //m_StagingDrawDataBuffer(),
         m_BoundingVolumeBuffer(),
         m_NumDraws(),
         m_GlobalBuffers(),
@@ -221,58 +221,28 @@ namespace imp
         vkCmdPushConstants(cb.cmb, updateDrawsProgram.GetPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(push), &push);
         vkCmdBindDescriptorSets(cb.cmb, VK_PIPELINE_BIND_POINT_COMPUTE, updateDrawsProgram.GetPipelineLayout(), 0, dsets.size(), dsets.data(), 0, nullptr);
         
-        // need barrier here?
+        const auto fillMemBar = utils::CreateBufferMemoryBarrier(VK_ACCESS_INDIRECT_COMMAND_READ_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, m_ShaderManager.GetDrawCommandCountBuffer().GetBuffer());
+        utils::InsertBufferBarrier(cb, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, &fillMemBar, 1);
 
         vkCmdFillBuffer(cb.cmb, m_ShaderManager.GetDrawCommandCountBuffer().GetBuffer(), 0, VK_WHOLE_SIZE, 0);
 
-        VkBufferMemoryBarrier fillMemBar = {};
-        fillMemBar.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-        fillMemBar.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-        fillMemBar.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-        fillMemBar.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        fillMemBar.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        fillMemBar.buffer = m_ShaderManager.GetDrawCommandCountBuffer().GetBuffer();
-        fillMemBar.size = VK_WHOLE_SIZE;
-
-        vkCmdPipelineBarrier(cb.cmb, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 1, &fillMemBar, 0, nullptr);
+        const auto fillMemBar2 = utils::CreateBufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT, m_ShaderManager.GetDrawCommandCountBuffer().GetBuffer());
+        utils::InsertBufferBarrier(cb, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, &fillMemBar2, 1);
 
         vkCmdDispatch(cb.cmb, (m_NumDraws + 31) / 32, 1, 1);
 
+        std::array<VkBufferMemoryBarrier, 3> memBars;
         // make sure?
-        VkBufferMemoryBarrier bufferMemBar = {};
-        bufferMemBar.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-        bufferMemBar.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-        bufferMemBar.dstAccessMask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
-        bufferMemBar.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        bufferMemBar.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        bufferMemBar.buffer = m_DrawBuffer.GetBuffer();
-        bufferMemBar.size = VK_WHOLE_SIZE;
-
+        memBars[0] = utils::CreateBufferMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_INDIRECT_COMMAND_READ_BIT, m_DrawBuffer.GetBuffer());
         // make sure new draw data indices written by this CS is visible to basic.ind.vert
-        VkBufferMemoryBarrier bufferMemBar2 = {};
-        bufferMemBar2.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-        bufferMemBar2.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-        bufferMemBar2.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-        bufferMemBar2.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        bufferMemBar2.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        bufferMemBar2.buffer = m_ShaderManager.GetDrawDataIndicesBuffer().GetBuffer();
-        bufferMemBar2.size = VK_WHOLE_SIZE;
-
+        memBars[1] = utils::CreateBufferMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, m_ShaderManager.GetDrawDataIndicesBuffer().GetBuffer());
         // make sure new draw command count is visible to vkCmdDrawIndirectIndexedCount
-        VkBufferMemoryBarrier bufferMemBar3 = {};
-        bufferMemBar3.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-        bufferMemBar3.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-        bufferMemBar3.dstAccessMask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
-        bufferMemBar3.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        bufferMemBar3.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        bufferMemBar3.buffer = m_ShaderManager.GetDrawCommandCountBuffer().GetBuffer();
-        bufferMemBar3.size = VK_WHOLE_SIZE;
-
-        std::array<VkBufferMemoryBarrier, 3> memBars = { bufferMemBar, bufferMemBar2, bufferMemBar3 };
+        memBars[2] = utils::CreateBufferMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_INDIRECT_COMMAND_READ_BIT, m_ShaderManager.GetDrawCommandCountBuffer().GetBuffer());
+        
         // I wonder what happens when you have multiple pipeline stage flag bits like I do here
-        vkCmdPipelineBarrier(cb.cmb, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 0, 0, nullptr, memBars.size(), memBars.data(), 0, nullptr);
+        utils::InsertBufferBarrier(cb, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, memBars.data(), static_cast<uint32_t>(memBars.size()));
+        
         cb.End();
-
         m_CbManager.SubmitInternal(cb);
     }
 
@@ -288,28 +258,9 @@ namespace imp
             break;
         case kEngineRenderModeGPUDriven:
             // should have been already waited on in engine sync, can just get it
-            auto& staging = m_StagingDrawDataBuffer[index];
             auto& dst = m_ShaderManager.GetDrawDataBuffers(index);
-
-            CommandBuffer& cb = m_TransferCbManager.GetCurrentCB(m_LogicalDevice);
-
-            // give instructions for CB to wait on previous dst semaphore
-            m_TransferCbManager.AddQueueDependencies(staging.GetTimeline());
             m_TransferCbManager.AddQueueDependencies(dst.GetTimeline());
-
-            // first time using in tranfer queue, mark it
-            staging.MarkUsedInQueue();
             dst.MarkUsedInQueue();
-
-            // no need to aquire ownership (of dst) since I don't care about the previous contents.
-
-            VkBufferCopy copy = {};
-            copy.size = staging.size() * sizeof(DrawDataSingle);
-
-            vkCmdCopyBuffer(cb.cmb, staging.GetBuffer(), dst.GetBuffer(), 1, &copy);
-
-            if(!m_DelayTransferOperation)
-                DoTransfers(false);
             break;
         }
     }
@@ -440,9 +391,10 @@ namespace imp
         return drawDataBuffer;
     }
 
-    IGPUBuffer& Graphics::GetDrawDataStagingBuffer()
+    IGPUBuffer& Graphics::GetDrawDataBuffer()
     {
-        auto& drawDataBuffer = m_StagingDrawDataBuffer[m_Swapchain.GetFrameClock()];
+        auto& drawDataBuffer = m_ShaderManager.GetDrawDataBuffers(m_Swapchain.GetFrameClock());
+        //auto& drawDataBuffer = m_StagingDrawDataBuffer[m_Swapchain.GetFrameClock()];
         drawDataBuffer.MakeSureNotUsedOnGPU(m_LogicalDevice);
 
         return drawDataBuffer;
@@ -739,7 +691,7 @@ namespace imp
         static constexpr VkDeviceSize allocSize = 4 * 1024 * 1024;
         static constexpr VkDeviceSize drawAllocSize = (kMaxDrawCount + 31) * sizeof(VkDrawIndexedIndirectCommand);
         static constexpr VkDeviceSize stagingDrawSize = sizeof(IndirectDrawCmd) * (kMaxDrawCount + 31);
-        static constexpr VkDeviceSize stagingDrawDataSize = sizeof(DrawDataSingle) * kMaxDrawCount;
+        //static constexpr VkDeviceSize stagingDrawDataSize = sizeof(DrawDataSingle) * kMaxDrawCount;
 
         m_VertexBuffer          = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
         m_IndexBuffer           = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
@@ -750,11 +702,11 @@ namespace imp
         {
             m_StagingDrawBuffer[i] = m_MemoryManager.GetBuffer(m_LogicalDevice, stagingDrawSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_DeviceMemoryProps);
             m_StagingDrawBuffer[i].MapWholeBuffer(m_LogicalDevice);
-            m_StagingDrawDataBuffer[i] = m_MemoryManager.GetBuffer(m_LogicalDevice, stagingDrawDataSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_DeviceMemoryProps);
-            m_StagingDrawDataBuffer[i].MapWholeBuffer(m_LogicalDevice);
+            //m_StagingDrawDataBuffer[i] = m_MemoryManager.GetBuffer(m_LogicalDevice, stagingDrawDataSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_DeviceMemoryProps);
+            //m_StagingDrawDataBuffer[i].MapWholeBuffer(m_LogicalDevice);
         }
 
-        printf("[Gfx Memory] Successfully allocated %2.f MB of host domain memory and %.2f MB of device domain memory\n", (stagingDrawSize + stagingDrawDataSize) * m_Settings.swapchainImageCount / 1024.0f / 1024.0f, (allocSize * 3 + drawAllocSize) / 1024.0f / 1024.0f);
+        printf("[Gfx Memory] Successfully allocated %2.f MB of host domain memory and %.2f MB of device domain memory\n", (stagingDrawSize) * m_Settings.swapchainImageCount / 1024.0f / 1024.0f, (allocSize * 3 + drawAllocSize) / 1024.0f / 1024.0f);
     }
 
     VulkanBuffer Graphics::UploadVulkanBuffer(VkBufferUsageFlags usageFlags, VkBufferUsageFlags dstUsageFlags, VkMemoryPropertyFlags memoryFlags, VkMemoryPropertyFlags dstMemoryFlags, const CommandBuffer& cb, uint32_t allocSize, const void* dataToUpload)

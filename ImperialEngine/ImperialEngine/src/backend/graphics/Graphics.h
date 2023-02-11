@@ -74,7 +74,7 @@ namespace imp
 		// Waits for fence associated with buffer to make sure it's not used by the GPU anymore.
 		IGPUBuffer& GetDrawCommandStagingBuffer();
 		// Will return ref to VulkanBuffer used for uploading new descriptor draw data
-		IGPUBuffer& GetDrawDataStagingBuffer();
+		IGPUBuffer& GetDrawDataBuffer();
 
 		const Comp::IndexedVertexBuffers& GetMeshData(uint32_t index) const;
 
@@ -161,7 +161,7 @@ namespace imp
 		VulkanBuffer m_MeshBuffer;
 		VulkanBuffer m_DrawBuffer;
 		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_StagingDrawBuffer;
-		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_StagingDrawDataBuffer;
+		//std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_StagingDrawDataBuffer;
 		VulkanBuffer m_BoundingVolumeBuffer;
 		uint32_t m_NumDraws;
 

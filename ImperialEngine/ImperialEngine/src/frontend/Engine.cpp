@@ -231,7 +231,7 @@ namespace imp
 		glm::mat4x4 proj = glm::perspective(glm::radians(45.0f), (float)m_Window.GetWidth() / (float)m_Window.GetHeight(), 5.0f, 1000.0f);
 		m_Entities.emplace<Comp::Camera>(camera, proj, glm::mat4x4(), kCamOutColor, true);
 
-		AddDemoEntity(999999);
+		//AddDemoEntity(99999);
 	}
 
 	void Engine::RenderCameras()
@@ -373,7 +373,7 @@ namespace imp
 			IGPUBuffer& drawCmdBuffer = m_Gfx.GetDrawCommandStagingBuffer();
 			drawCmdBuffer.resize(0);
 
-			IGPUBuffer& drawDataBuffer = m_Gfx.GetDrawDataStagingBuffer();
+			IGPUBuffer& drawDataBuffer = m_Gfx.GetDrawDataBuffer();
 			drawDataBuffer.resize(0);
 
 			const auto renderableChildren = m_Entities.view<Comp::ChildComponent, Comp::Mesh, Comp::Material>();
