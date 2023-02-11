@@ -93,9 +93,9 @@ namespace imp
         uint32_t tf = m_GfxCaps.GetQueueFamilies().transferFamily;
         uint32_t gf = m_GfxCaps.GetQueueFamilies().graphicsFamily;
         
-        auto& ddb = m_ShaderManager.GetDrawDataBuffers(m_Swapchain.GetFrameClock());
-        const auto bmb_ddb = utils::CreateBufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT, dstAccess, tf, gf, ddb.GetBuffer());
-        bmbs.push_back(bmb_ddb);
+        //auto& ddb = m_ShaderManager.GetDrawDataBuffers(m_Swapchain.GetFrameClock());
+        //const auto bmb_ddb = utils::CreateBufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT, dstAccess, tf, gf, ddb.GetBuffer());
+        //bmbs.push_back(bmb_ddb);
 
         if (releaseAll) // also need to release draw command buffer that might not get updated every time
         {
@@ -192,17 +192,18 @@ namespace imp
         uint32_t tf = m_GfxCaps.GetQueueFamilies().transferFamily;
         uint32_t gf = m_GfxCaps.GetQueueFamilies().graphicsFamily;
 
+        auto& dcb = m_ShaderManager.GetDrawCommandBuffer();
+        m_CbManager.AddQueueDependencies(dcb.GetTimeline());
+        dcb.MarkUsedInQueue();
         // aquiring DrawCommandBuffer from Transfer Queue
         if (m_DelayTransferOperation)
         {
             m_DelayTransferOperation = false;
 
-            auto& dcb = m_ShaderManager.GetDrawCommandBuffer();
             const auto bmb_dcb = utils::CreateBufferMemoryBarrier(srcAccess, VK_ACCESS_SHADER_READ_BIT, gf, tf, dcb.GetBuffer());
             bmbs.push_back(bmb_dcb);
 
-            m_CbManager.AddQueueDependencies(dcb.GetTimeline());
-            dcb.MarkUsedInQueue();
+            utils::InsertBufferBarrier(cb, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, bmbs.data(), static_cast<uint32_t>(bmbs.size()));
         }
 
         //auto& ddb = m_ShaderManager.GetDrawDataBuffers(m_Swapchain.GetFrameClock());
@@ -214,7 +215,6 @@ namespace imp
 
         // not sure if src stage is correct..
         // maybe try src as just before compute stage
-        utils::InsertBufferBarrier(cb, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, bmbs.data(), static_cast<uint32_t>(bmbs.size()));
 
         vkCmdBindPipeline(cb.cmb, VK_PIPELINE_BIND_POINT_COMPUTE, updateDrawsProgram.GetPipeline());
         vkCmdPushConstants(cb.cmb, updateDrawsProgram.GetPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(push), &push);
@@ -253,13 +253,17 @@ namespace imp
         {
         case kEngineRenderModeTraditional:
             // this contains a race condition
+            m_CbManager.AquireCommandBuffer(m_LogicalDevice);
             m_ShaderManager.UpdateDrawData(m_LogicalDevice, index, m_DrawData);
             break;
         case kEngineRenderModeGPUDriven:
             // should have been already waited on in engine sync, can just get it
-            auto& dst = m_ShaderManager.GetDrawDataBuffers(index);
-            m_TransferCbManager.AddQueueDependencies(dst.GetTimeline());
-            dst.MarkUsedInQueue();
+            if (m_DelayTransferOperation)
+            {
+                auto& dst = m_ShaderManager.GetDrawDataBuffers(index);
+                m_TransferCbManager.AddQueueDependencies(dst.GetTimeline());
+                dst.MarkUsedInQueue();
+            }
             break;
         }
     }
@@ -279,7 +283,8 @@ namespace imp
                 //data.ViewProjection = camera.Projection * camera.View;
                 m_ShaderManager.UpdateGlobalData(m_LogicalDevice, m_Swapchain.GetFrameClock(), data);
                 m_CbManager.AddQueueDependencies(m_ShaderManager.GetGlobalDataBuffer(m_Swapchain.GetFrameClock()).GetTimeline());
-               // first--;
+                m_ShaderManager.GetGlobalDataBuffer(m_Swapchain.GetFrameClock()).MarkUsedInQueue();
+                first--;
             }
 
             auto& renderPasses = m_RenderPassManager.GetRenderPasses(m_LogicalDevice, camera, m_Swapchain);
