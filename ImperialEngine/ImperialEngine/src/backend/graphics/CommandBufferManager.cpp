@@ -116,8 +116,7 @@ namespace imp
         VkResult result = vkQueueSubmit(submitQueue, 1, &submitInfo, m_CurrentFence.fence);
         if (result != VK_SUCCESS)
         {
-            printf("Failed result was: %llu\n", result);
-            throw std::runtime_error("Failed to submit Command Buffer to Queue!");
+            printf("Failed result was: %i\n", result);
         }
 
         SubmitSynchPrimitives primitives = { VK_NULL_HANDLE, VK_NULL_HANDLE };
@@ -229,7 +228,6 @@ namespace imp
         if (result != VK_SUCCESS)
         {
             printf("Failed result was: %i\n", result);
-            throw std::runtime_error("Failed to submit Command Buffer to Queue!");
         }
 
         m_CurrentFence = m_FencePool.Get(device, currFrame);

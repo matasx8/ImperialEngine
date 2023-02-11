@@ -17,6 +17,8 @@
 #include <extern/ENTT/entt.hpp>
 #include <barrier>
 
+#include "extern/AFTERMATH/NsightAftermathGpuCrashTracker.h"
+
 namespace imp
 {
 	class Window;
@@ -167,6 +169,8 @@ namespace imp
 
 		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_GlobalBuffers;
 		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_DescriptorSets;
+
+		GpuCrashTracker m_AfterMathTracker;
 
 	public:
 		std::unordered_map<uint32_t, Comp::IndexedVertexBuffers> m_VertexBuffers;

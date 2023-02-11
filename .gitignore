@@ -421,3 +421,4 @@ FodyWeavers.xsd
 
 # custom
 *.ini
+Crashes/

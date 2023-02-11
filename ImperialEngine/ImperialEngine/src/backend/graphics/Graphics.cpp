@@ -52,6 +52,7 @@ namespace imp
         m_NumDraws(),
         m_GlobalBuffers(),
         m_DescriptorSets(),
+        m_AfterMathTracker(),
         m_VertexBuffers(),
         m_DrawData(),
         m_CameraData(),
@@ -62,6 +63,8 @@ namespace imp
 
     void Graphics::Initialize(const EngineGraphicsSettings& settings, Window* window)
     {
+        m_AfterMathTracker.Initialize();
+
         m_Settings = settings;
         CreateInstance();
         CreateVkWindow(window);
@@ -560,6 +563,7 @@ namespace imp
         features12.descriptorBindingVariableDescriptorCount = true;
         features12.timelineSemaphore = true;
 
+        features12.pNext = &dci;
         drawParamsFeature.pNext = &features12;
         physical_features2.pNext = &drawParamsFeature;
         deviceCreateInfo.pNext = &physical_features2;
