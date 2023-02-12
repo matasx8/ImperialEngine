@@ -64,24 +64,15 @@ namespace imp
 
 		CreateMegaDescriptorSets(device);
 
-		std::array<VulkanBuffer, 3> ddi = { m_DrawDataIndices, m_DrawDataIndices, m_DrawDataIndices };
 		WriteUpdateDescriptorSets(device, m_DescriptorSets.data(), VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_GlobalBuffers, sizeof(GlobalData), kGlobalBufferBindingSlot, kGlobalBufferBindCount, kEngineSwapchainExclusiveMax - 1);
 		WriteUpdateDescriptorSets(device, m_DescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MaterialDataBuffers, sizeof(MaterialData), kMaterialBufferBindingSlot, kMaterialBufferBindingSlot, kEngineSwapchainExclusiveMax - 1);
-		WriteUpdateDescriptorSets(device, m_DescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, ddi, kDrawDataIndicesBufferSize, kDrawDataIndicesBindingSlot, kDrawDataIndicesBindCount, kEngineSwapchainExclusiveMax - 1);
+		WriteUpdateDescriptorSetsSingleBuffer(device, m_DescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawDataIndices, kDrawDataIndicesBufferSize, kDrawDataIndicesBindingSlot, kDrawDataIndicesBindCount, kEngineSwapchainExclusiveMax - 1);
 		WriteUpdateDescriptorSets(device, m_DescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawDataBuffers, sizeof(ShaderDrawData), kDrawDataBufferBindingSlot, kMaxDrawCount, kEngineSwapchainExclusiveMax - 1);
 
-		// Compute:
-		// This array hack works but there's lots of redundant calculations. for single buffers
-		// just calculate subbuffers once ant then update them to descriptorsets
-		// TODO acceleration-part-1:
-		std::array<VulkanBuffer, 3> hdc = { m_DrawCommands, m_DrawCommands, m_DrawCommands };
-		std::array<VulkanBuffer, 3> dc = { drawCommands, drawCommands, drawCommands };
-		std::array<VulkanBuffer, 3> bv = { m_BoundingVolumes, m_BoundingVolumes, m_BoundingVolumes };
-		std::array<VulkanBuffer, 3> dcc = { m_DrawCommandCount, m_DrawCommandCount, m_DrawCommandCount };
-		WriteUpdateDescriptorSets(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, hdc, kHostDrawCommandBufferSize, 0, 1, kEngineSwapchainExclusiveMax - 1);
-		WriteUpdateDescriptorSets(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, dc, kDrawCommandBufferSize, 1, 1, kEngineSwapchainExclusiveMax - 1);
-		WriteUpdateDescriptorSets(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, bv, kBoundingVolumeBufferSize, 2, 1, kEngineSwapchainExclusiveMax - 1);
-		WriteUpdateDescriptorSets(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, dcc, kDrawCommandCountBufferSize, 3, 1, kEngineSwapchainExclusiveMax - 1);
+		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawCommands, kHostDrawCommandBufferSize, 0, 1, kEngineSwapchainExclusiveMax - 1);
+		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, drawCommands, kDrawCommandBufferSize, 1, 1, kEngineSwapchainExclusiveMax - 1);
+		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_BoundingVolumes, kBoundingVolumeBufferSize, 2, 1, kEngineSwapchainExclusiveMax - 1);
+		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawCommandCount, kDrawCommandCountBufferSize, 3, 1, kEngineSwapchainExclusiveMax - 1);
 
 		CreateDefaultMaterial(device);
 
@@ -357,6 +348,33 @@ namespace imp
 
 			vkUpdateDescriptorSets(device, 1, &drawWrite, 0, nullptr);
 		}
+	}
+
+	void VulkanShaderManager::WriteUpdateDescriptorSetsSingleBuffer(VkDevice device, VkDescriptorSet* dSets, VkDescriptorType type, VulkanBuffer& buffer, size_t descriptorDataSize, uint32_t bindSlot, uint32_t descriptorCount, uint32_t dSetCount)
+	{
+		std::vector<VkDescriptorBufferInfo> bis(descriptorCount);
+		std::vector<VkWriteDescriptorSet> writes(dSetCount);
+		for (auto i = 0; i < descriptorCount; i++)
+			bis[i] = buffer.RegisterSubBuffer(descriptorDataSize);
+
+		for (auto i = 0; i < dSetCount; i++)
+		{
+			const uint32_t index = bis.front().offset / descriptorDataSize;
+
+			// so far we support only same data size
+			assert(bis.front().offset % descriptorDataSize == 0);
+
+			VkWriteDescriptorSet drawWrite = {};
+			drawWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			drawWrite.dstSet = dSets[i];
+			drawWrite.dstBinding = bindSlot;
+			drawWrite.dstArrayElement = index;
+			drawWrite.descriptorType = type;
+			drawWrite.descriptorCount = descriptorCount;
+			drawWrite.pBufferInfo = bis.data();
+			writes[i] = drawWrite;
+		}
+		vkUpdateDescriptorSets(device, dSetCount, writes.data(), 0, nullptr);
 	}
 
 	void VulkanShaderManager::UpdateDescriptorData(VkDevice device, VulkanBuffer& buffer, size_t size, uint32_t offset, const void* data)
