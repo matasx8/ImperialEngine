@@ -64,8 +64,8 @@ void imp::RenderPass::Create(VkDevice device, const RenderPassDesc& desc)
 	dependency.dstSubpass = 0;
 	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 	dependency.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+	dependency.dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+	dependency.dstAccessMask = 0;
 
 
 	VkRenderPassCreateInfo renderPassCreateInfo = {};
@@ -190,6 +190,7 @@ void imp::RenderPass::BeginRenderPass(Graphics& gfx, CommandBuffer cmb)
 		m_Framebuffer = gfx.m_SurfaceManager.CreateFramebuffer(*this, surfaces, gfx.m_LogicalDevice);
 	}
 	m_Framebuffer.UpdateLastUsed(gfx.m_CurrentFrame);
+	UpdateLastUsed(gfx.m_CurrentFrame);
 	
 	// render pass should hold info for clears
 	// TODO: make the clear dynamic

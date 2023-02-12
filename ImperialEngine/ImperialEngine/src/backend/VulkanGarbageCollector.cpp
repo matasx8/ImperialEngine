@@ -7,7 +7,7 @@ imp::VulkanGarbageCollector::VulkanGarbageCollector()
 
 void imp::VulkanGarbageCollector::Initialize(uint64_t safeFrames)
 {
-	m_SafeFrames = safeFrames;
+	m_SafeFrames = safeFrames + 5;
 }
 
 void imp::VulkanGarbageCollector::AddGarbageResource(std::shared_ptr<VulkanResource> res)

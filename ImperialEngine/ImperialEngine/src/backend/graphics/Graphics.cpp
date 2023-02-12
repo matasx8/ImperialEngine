@@ -63,7 +63,7 @@ namespace imp
 
     void Graphics::Initialize(const EngineGraphicsSettings& settings, Window* window)
     {
-        m_AfterMathTracker.Initialize();
+        //m_AfterMathTracker.Initialize();
 
         m_Settings = settings;
         CreateInstance();
@@ -229,7 +229,15 @@ namespace imp
         vkCmdFillBuffer(cb.cmb, m_ShaderManager.GetDrawCommandCountBuffer().GetBuffer(), 0, VK_WHOLE_SIZE, 0);
 
         const auto fillMemBar2 = utils::CreateBufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT, m_ShaderManager.GetDrawCommandCountBuffer().GetBuffer());
-        utils::InsertBufferBarrier(cb, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, &fillMemBar2, 1);
+        
+        std::array<VkBufferMemoryBarrier, 3> memBars2;
+        // make sure CS has populated draw buffer
+        memBars2[0] = utils::CreateBufferMemoryBarrier(VK_ACCESS_INDIRECT_COMMAND_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, m_DrawBuffer.GetBuffer());
+        // make sure new draw data indices written by this CS is visible to basic.ind.vert
+        memBars2[1] = utils::CreateBufferMemoryBarrier(VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, m_ShaderManager.GetDrawDataIndicesBuffer().GetBuffer());
+        // make sure new draw command count is visible to vkCmdDrawIndirectIndexedCount
+        memBars2[2] = utils::CreateBufferMemoryBarrier(VK_ACCESS_INDIRECT_COMMAND_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, m_ShaderManager.GetDrawCommandCountBuffer().GetBuffer());
+        utils::InsertBufferBarrier(cb, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, memBars2.data(), memBars2.size());
 
         vkCmdDispatch(cb.cmb, (m_NumDraws + 31) / 32, 1, 1);
 
@@ -261,12 +269,9 @@ namespace imp
             break;
         case kEngineRenderModeGPUDriven:
             // should have been already waited on in engine sync, can just get it
-            if (m_DelayTransferOperation)
-            {
-                auto& dst = m_ShaderManager.GetDrawDataBuffers(index);
-                m_TransferCbManager.AddQueueDependencies(dst.GetTimeline());
-                dst.MarkUsedInQueue();
-            }
+            auto& dst = m_ShaderManager.GetDrawDataBuffers(index);
+            m_TransferCbManager.AddQueueDependencies(dst.GetTimeline());
+            dst.MarkUsedInQueue();
             break;
         }
     }
@@ -402,7 +407,6 @@ namespace imp
     IGPUBuffer& Graphics::GetDrawDataBuffer()
     {
         auto& drawDataBuffer = m_ShaderManager.GetDrawDataBuffers(m_Swapchain.GetFrameClock());
-        //auto& drawDataBuffer = m_StagingDrawDataBuffer[m_Swapchain.GetFrameClock()];
         drawDataBuffer.MakeSureNotUsedOnGPU(m_LogicalDevice);
 
         return drawDataBuffer;
@@ -567,7 +571,8 @@ namespace imp
         drawParamsFeature.pNext = &features12;
         physical_features2.pNext = &drawParamsFeature;
         dci.pNext = &physical_features2;
-        deviceCreateInfo.pNext = &dci;
+        //deviceCreateInfo.pNext = &dci;
+        deviceCreateInfo.pNext = &physical_features2;;
 
 
         VkResult result = vkCreateDevice(m_PhysicalDevice, &deviceCreateInfo, nullptr, &m_LogicalDevice);

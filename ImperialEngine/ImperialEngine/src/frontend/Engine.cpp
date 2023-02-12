@@ -53,7 +53,8 @@ namespace imp
 		m_Window.UpdateImGUI();
 		m_Window.Update();
 		UpdateRegistry();
-	    //MarkDrawDataDirty();
+	    MarkDrawDataDirty();
+		//AddDemoEntity(1000);
 
 		if (m_EngineSettings.gfxSettings.renderMode == kEngineRenderModeTraditional)
 		{
@@ -413,10 +414,11 @@ namespace imp
 		for (auto ent : cameras)
 		{
 			const auto& transform = cameras.get<Comp::Transform>(ent);
-			const auto& cam = cameras.get<Comp::Camera>(ent);
+			auto& cam = cameras.get<Comp::Camera>(ent);
 
 			static constexpr uint32_t cameraID = 0; // TODO: add this to camera comp
 			m_Gfx.m_CameraData.emplace_back(cam.projection, cam.view, cam.camOutputType, cameraID, cam.dirty);
+			cam.dirty = false;
 		}
 		m_SyncTime.stop();
 
