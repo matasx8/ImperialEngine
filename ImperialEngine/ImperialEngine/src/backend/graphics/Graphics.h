@@ -19,6 +19,8 @@
 
 #include "extern/AFTERMATH/NsightAftermathGpuCrashTracker.h"
 
+#define LOG_TIMINGS 1
+
 namespace imp
 {
 	class Window;

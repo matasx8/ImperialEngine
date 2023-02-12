@@ -5,6 +5,7 @@
 #include "frontend/Components/Components.h"
 #include "frontend/Window.h"
 #include "Utils/GfxUtilities.h"
+#include "Utils/Finalizer.h"
 #include <vector>
 #include <stdexcept>
 #include <set>
@@ -12,6 +13,8 @@
 #include <extern/IMGUI/backends/imgui_impl_vulkan.h>
 #include <numeric>
 #include <GLM/gtx/transform.hpp>
+
+#define USE_AFTERMATH 0
 
 namespace imp
 {
@@ -63,7 +66,9 @@ namespace imp
 
     void Graphics::Initialize(const EngineGraphicsSettings& settings, Window* window)
     {
-        //m_AfterMathTracker.Initialize();
+#if USE_AFTERMATH
+        m_AfterMathTracker.Initialize();
+#endif
 
         m_Settings = settings;
         CreateInstance();
@@ -95,10 +100,6 @@ namespace imp
         VkAccessFlags dstAccess = 0; // dstAccess is ignored for Q ownership transfers
         uint32_t tf = m_GfxCaps.GetQueueFamilies().transferFamily;
         uint32_t gf = m_GfxCaps.GetQueueFamilies().graphicsFamily;
-        
-        //auto& ddb = m_ShaderManager.GetDrawDataBuffers(m_Swapchain.GetFrameClock());
-        //const auto bmb_ddb = utils::CreateBufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT, dstAccess, tf, gf, ddb.GetBuffer());
-        //bmbs.push_back(bmb_ddb);
 
         if (releaseAll) // also need to release draw command buffer that might not get updated every time
         {
@@ -150,11 +151,6 @@ namespace imp
 
         assert(m_DelayTransferOperation);
         DoTransfers(true);
-    }
-
-    void Graphics::GraphicsQueueStart()
-    {
- 
     }
 
     void Graphics::Cull()
@@ -209,13 +205,6 @@ namespace imp
             utils::InsertBufferBarrier(cb, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, bmbs.data(), static_cast<uint32_t>(bmbs.size()));
         }
 
-        //auto& ddb = m_ShaderManager.GetDrawDataBuffers(m_Swapchain.GetFrameClock());
-        //const auto bmb_ddb = utils::CreateBufferMemoryBarrier(srcAccess, VK_ACCESS_SHADER_READ_BIT, gf, tf, ddb.GetBuffer());
-        //bmbs.push_back(bmb_ddb);
-        //
-        //m_CbManager.AddQueueDependencies(ddb.GetTimeline());
-        //ddb.MarkUsedInQueue();
-
         // not sure if src stage is correct..
         // maybe try src as just before compute stage
 
@@ -259,18 +248,19 @@ namespace imp
     // This happens before UpdateDrawCommands
     void Graphics::StartFrame()
     {
+        AUTO_TIMER("[StartFrame]: ");
         const auto index = m_Swapchain.GetFrameClock();
         switch (m_Settings.renderMode)
         {
         case kEngineRenderModeTraditional:
             // this contains a race condition
-            m_CbManager.AquireCommandBuffer(m_LogicalDevice);
+            //m_CbManager.AquireCommandBuffer(m_LogicalDevice);
             m_ShaderManager.UpdateDrawData(m_LogicalDevice, index, m_DrawData);
             break;
         case kEngineRenderModeGPUDriven:
             // should have been already waited on in engine sync, can just get it
             auto& dst = m_ShaderManager.GetDrawDataBuffers(index);
-            m_TransferCbManager.AddQueueDependencies(dst.GetTimeline());
+            m_CbManager.AddQueueDependencies(dst.GetTimeline());
             dst.MarkUsedInQueue();
             break;
         }
@@ -279,6 +269,7 @@ namespace imp
     static int first = 3;
     void Graphics::RenderCameras()
     {
+        AUTO_TIMER("[RenderCameras]: ");
         if(m_Settings.renderMode == kEngineRenderModeGPUDriven)
             Cull();
 
@@ -292,7 +283,8 @@ namespace imp
                 m_ShaderManager.UpdateGlobalData(m_LogicalDevice, m_Swapchain.GetFrameClock(), data);
                 m_CbManager.AddQueueDependencies(m_ShaderManager.GetGlobalDataBuffer(m_Swapchain.GetFrameClock()).GetTimeline());
                 m_ShaderManager.GetGlobalDataBuffer(m_Swapchain.GetFrameClock()).MarkUsedInQueue();
-                first--;
+                //first--;
+
             }
 
             auto& renderPasses = m_RenderPassManager.GetRenderPasses(m_LogicalDevice, camera, m_Swapchain);
@@ -307,6 +299,7 @@ namespace imp
 
     void Graphics::RenderImGUI()
     {
+        AUTO_TIMER("[RenderImGUI]: ");
         renderpassgui->Execute(*this, m_CameraData[0]);
         auto surfaces = renderpassgui->GiveSurfaces();
         m_SurfaceManager.ReturnSurfaces(surfaces, m_Swapchain);
@@ -314,8 +307,7 @@ namespace imp
 
     void Graphics::EndFrame()
     {
-        // Add all potential dependencies
-
+        AUTO_TIMER("[EndFrame]: ");
         auto synchs = m_CbManager.SubmitToQueue(m_GfxQueue, m_LogicalDevice, kSubmitSynchForPresent, m_CurrentFrame);
 
         m_Swapchain.Present(m_PresentationQueue, m_CbManager.GetCommandExecSemaphores());
@@ -424,6 +416,7 @@ namespace imp
 
     void Graphics::Destroy()
     {
+        AUTO_TIMER("[Destroy]: ");
         vkDeviceWaitIdle(m_LogicalDevice);
 
         // prototyping stuff ---
@@ -567,12 +560,14 @@ namespace imp
         features12.descriptorBindingVariableDescriptorCount = true;
         features12.timelineSemaphore = true;
 
-       // f//eatures12.pNext = &dci;
         drawParamsFeature.pNext = &features12;
         physical_features2.pNext = &drawParamsFeature;
         dci.pNext = &physical_features2;
-        //deviceCreateInfo.pNext = &dci;
-        deviceCreateInfo.pNext = &physical_features2;;
+#if USE_AFTERMATH
+        deviceCreateInfo.pNext = &dci;
+#else
+        deviceCreateInfo.pNext = &physical_features2;
+#endif
 
 
         VkResult result = vkCreateDevice(m_PhysicalDevice, &deviceCreateInfo, nullptr, &m_LogicalDevice);

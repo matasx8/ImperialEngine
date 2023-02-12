@@ -33,6 +33,7 @@ namespace imp
 
 		if (renderMode == kEngineRenderModeTraditional)
 		{
+			AUTO_TIMER("[CPU DRAWS]: ");
 			uint32_t drawIndex = 0;
 			for (const auto& drawData : gfx.m_DrawData)
 			{
@@ -42,7 +43,6 @@ namespace imp
 				vkCmdDrawIndexed(cb, mesh.indices.GetCount(), 1, mesh.indices.GetOffset(), mesh.vertices.GetOffset(), 0);
 				drawIndex++;
 			}
-			printf("[CPU DRAW] Total Meshes Rendered: %u\n", drawIndex);
 		}
 		else if (renderMode == kEngineRenderModeGPUDriven)
 		{

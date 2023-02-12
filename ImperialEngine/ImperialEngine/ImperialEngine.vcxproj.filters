@@ -314,6 +314,9 @@
     <ClInclude Include="src\extern\AFTERMATH\NsightAftermathShaderDatabase.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Utils\Finalizer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\extern\IMGUI\vGizmo.h.bak" />

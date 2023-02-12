@@ -183,7 +183,9 @@ namespace imp
 
 			shaderData.push_back(dat);
 		}
-		UpdateDescriptorData(device, m_DrawDataBuffers[descriptorSetIdx], drawData.size() * sizeof(ShaderDrawData), 0, shaderData.data());
+
+		void* dataMap = m_DrawDataBuffers[descriptorSetIdx].GetRawMappedBufferPointer();
+		memcpy(dataMap, shaderData.data(), drawData.size() * sizeof(ShaderDrawData));
 	}
 
 	VkDescriptorPool VulkanShaderManager::CreateDescriptorPool(VkDevice device)

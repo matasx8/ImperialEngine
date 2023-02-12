@@ -319,6 +319,7 @@
     <ClInclude Include="src\frontend\Components\Components.h" />
     <ClInclude Include="src\frontend\Engine.h" />
     <ClInclude Include="src\frontend\UI.h" />
+    <ClInclude Include="src\Utils\Finalizer.h" />
     <ClInclude Include="src\Utils\GfxUtilities.h" />
     <ClInclude Include="src\Utils\Pool.h" />
     <ClInclude Include="src\Utils\SimpleTimer.h" />
