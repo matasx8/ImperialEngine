@@ -115,6 +115,8 @@ namespace imp
 					auto& transform = cameras.get<Comp::Transform>(ent);
 					auto& cam = cameras.get<Comp::Camera>(ent);
 					auto& pos = transform.GetPosition();
+					if (cam.preview)
+						continue;
 
 					ImGui::Text("Select Rendering Mode:");
 					static int renderItemSelected = static_cast<int>(kDefaultEngineRenderMode);
@@ -176,7 +178,7 @@ namespace imp
 					auto& transform = cameras.get<Comp::Transform>(ent);
 					auto& cam = cameras.get<Comp::Camera>(ent);
 					if (!cam.preview)
-						break;
+						continue;
 					auto& pos = transform.GetPosition();
 
 					static bool usePreviewCam = false;
@@ -185,21 +187,13 @@ namespace imp
 						cam.isRenderCamera = usePreviewCam;
 					}
 
-					ImGui::Text("Select Camera Output [not implemeted yet]:");
-					static int itemSelected = 0;
-					if (ImGui::Combo("C/O", &itemSelected, "Color Framebuffer\0Depth Framebuffer\0"))
-					{
-						cam.camOutputType = static_cast<uint32_t>(itemSelected) + 1u;
-						cam.dirty = true;
-					}
-
 					ImGui::Text("Camera Position:");
-					ImGui::DragFloat3("POS", reinterpret_cast<float*>(&pos), 0.1f, -99999999999999.0f, 99999999999999.0f);
+					ImGui::DragFloat3("PPOS", reinterpret_cast<float*>(&pos), 0.1f, -99999999999999.0f, 99999999999999.0f);
 
 					ImGui::Text("Camera Orientation");
 					auto quat = glm::toQuat(transform.transform);
 					glm::mat4 rot;
-					if (ImGui::gizmo3D("##gizmo2", quat, (ImGui::GetFrameHeightWithSpacing() - ImGui::GetStyle().ItemSpacing.x) * 24.0f, 0x0200))
+					if (ImGui::gizmo3D("##gizmo3", quat, (ImGui::GetFrameHeightWithSpacing() - ImGui::GetStyle().ItemSpacing.x) * 24.0f, 0x0200))
 					{
 						rot = glm::toMat4(quat);
 						const glm::vec3 poss = transform.GetPosition();
@@ -215,9 +209,9 @@ namespace imp
 					// after changing fov or nearfar param it might jump unpleasantly
 					static float nearAndFar[2] = { 5.0f, 1000.0f };
 					ImGui::Text("Camera FOV:");
-					if (ImGui::DragInt("FOV", &fov, 1.0f, 1, 180)) fovChanged = true;
+					if (ImGui::DragInt("FOV2", &fov, 1.0f, 1, 180)) fovChanged = true;
 					ImGui::Text("Camera Near And Far:");
-					if (ImGui::DragFloat2("N/F", nearAndFar, 0.5f, 0.01f, 10000.0f)) nearFarChanged = true;
+					if (ImGui::DragFloat2("N/F2", nearAndFar, 0.5f, 0.01f, 10000.0f)) nearFarChanged = true;
 
 					if (nearFarChanged || fovChanged)
 					{
