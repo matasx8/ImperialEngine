@@ -38,7 +38,8 @@ namespace imp
 		uint32_t camOutputType;
 		uint32_t cameraID;
 		bool dirty;
-		bool hasUI;
+		bool preview;
+		bool isRenderCamera;
 	};
 
 	// TODO acceleration-part-1: move these somewhere
@@ -180,7 +181,8 @@ namespace imp
 		// TODO: remove this section and replace with some API
 
 		std::vector<DrawDataSingle> m_DrawData;
-		std::vector<CameraData>		m_CameraData;
+		CameraData m_MainCamera;
+		CameraData m_PreviewCamera;
 
 		// Temporary workaround to know whether to do transfer in StartFrame or in UpdateDraws
 		bool m_DelayTransferOperation;

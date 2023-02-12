@@ -224,15 +224,19 @@ namespace imp
 	void Engine::LoadDefaultStuff()
 	{			
 		const auto camera = m_Entities.create();
+		const auto previewCamera = m_Entities.create();
 		const auto identity = glm::mat4x4(1.0f);
 
 		static constexpr float defaultCameraYRotationRad = 0;
 		const auto defaultCameraTransform = glm::rotate(glm::translate(identity, glm::vec3(0.0f, 0.0f, 15.0f)), defaultCameraYRotationRad, glm::vec3(0.0f, 1.0f, 0.0f));
 		m_Entities.emplace<Comp::Transform>(camera, defaultCameraTransform);
 		glm::mat4x4 proj = glm::perspective(glm::radians(45.0f), (float)m_Window.GetWidth() / (float)m_Window.GetHeight(), 5.0f, 1000.0f);
-		m_Entities.emplace<Comp::Camera>(camera, proj, glm::mat4x4(), kCamOutColor, true);
+		m_Entities.emplace<Comp::Camera>(camera, proj, glm::mat4x4(), kCamOutColor, true, false, true);
 
-		AddDemoEntity(999999);
+		m_Entities.emplace<Comp::Transform>(previewCamera, glm::translate(defaultCameraTransform, glm::vec3(0.0f, 0.0f, 100.0f)));
+		m_Entities.emplace<Comp::Camera>(previewCamera, proj, glm::mat4x4(), kCamOutColor, true, true, false);
+
+		AddDemoEntity(9999);
 	}
 
 	void Engine::RenderCameras()
@@ -411,14 +415,18 @@ namespace imp
 		}
 
 		const auto cameras = m_Entities.view<Comp::Transform, Comp::Camera>();
-		m_Gfx.m_CameraData.resize(0);
 		for (auto ent : cameras)
 		{
 			const auto& transform = cameras.get<Comp::Transform>(ent);
 			auto& cam = cameras.get<Comp::Camera>(ent);
 
-			static constexpr uint32_t cameraID = 0; // TODO: add this to camera comp
-			m_Gfx.m_CameraData.emplace_back(cam.projection, cam.view, cam.camOutputType, cameraID, cam.dirty);
+			// Supporting only 1 camera and 1 "fake offset" camera
+			static constexpr uint32_t cameraID = 0;
+			if (cam.preview)
+				m_Gfx.m_PreviewCamera = { cam.projection, cam.view, cam.camOutputType, cameraID, cam.dirty, cam.preview, cam.isRenderCamera };
+			else
+				m_Gfx.m_MainCamera = { cam.projection, cam.view, cam.camOutputType, cameraID, cam.dirty, cam.preview, cam.isRenderCamera };
+
 			cam.dirty = false;
 		}
 		m_SyncTime.stop();

@@ -58,7 +58,8 @@ namespace imp
         m_AfterMathTracker(),
         m_VertexBuffers(),
         m_DrawData(),
-        m_CameraData(),
+        m_MainCamera(),
+        m_PreviewCamera(),
         m_DelayTransferOperation(),
         renderpassgui()
     {
@@ -167,7 +168,7 @@ namespace imp
 
         std::array<VkDescriptorSet, 2> dsets = { dset1, dset2 };
 
-        glm::mat4 vp = glm::transpose(m_CameraData.front().Projection * m_CameraData.front().View);
+        glm::mat4 vp = glm::transpose(m_MainCamera.Projection * m_MainCamera.View);
 
         struct Pushs
         {
@@ -273,34 +274,28 @@ namespace imp
         if(m_Settings.renderMode == kEngineRenderModeGPUDriven)
             Cull();
 
-        for (const auto& camera : m_CameraData)
+
+        const auto& camera = m_PreviewCamera.isRenderCamera ? m_PreviewCamera : m_MainCamera;
+
+        GlobalData data;
+        data.ViewProjection = camera.Projection * camera.View;
+        m_ShaderManager.UpdateGlobalData(m_LogicalDevice, m_Swapchain.GetFrameClock(), data);
+        m_CbManager.AddQueueDependencies(m_ShaderManager.GetGlobalDataBuffer(m_Swapchain.GetFrameClock()).GetTimeline());
+        m_ShaderManager.GetGlobalDataBuffer(m_Swapchain.GetFrameClock()).MarkUsedInQueue();
+
+        auto& renderPasses = m_RenderPassManager.GetRenderPasses(m_LogicalDevice, camera, m_Swapchain);
+        for (auto& rp : renderPasses)
         {
-            if (first > 0)
-            {
-                GlobalData data;
-                data.ViewProjection = glm::translate(camera.Projection * camera.View, glm::vec3(0.0, 0.0, -100.0));
-                //data.ViewProjection = camera.Projection * camera.View;
-                m_ShaderManager.UpdateGlobalData(m_LogicalDevice, m_Swapchain.GetFrameClock(), data);
-                m_CbManager.AddQueueDependencies(m_ShaderManager.GetGlobalDataBuffer(m_Swapchain.GetFrameClock()).GetTimeline());
-                m_ShaderManager.GetGlobalDataBuffer(m_Swapchain.GetFrameClock()).MarkUsedInQueue();
-                //first--;
-
-            }
-
-            auto& renderPasses = m_RenderPassManager.GetRenderPasses(m_LogicalDevice, camera, m_Swapchain);
-            for (auto& rp : renderPasses)
-            {
-                rp->Execute(*this, camera);
-                auto surfaces = rp->GiveSurfaces();
-                m_SurfaceManager.ReturnSurfaces(surfaces, m_Swapchain);
-            }
+            rp->Execute(*this, camera);
+            auto surfaces = rp->GiveSurfaces();
+            m_SurfaceManager.ReturnSurfaces(surfaces, m_Swapchain);
         }
     }
 
     void Graphics::RenderImGUI()
     {
         AUTO_TIMER("[RenderImGUI]: ");
-        renderpassgui->Execute(*this, m_CameraData[0]);
+        renderpassgui->Execute(*this, m_MainCamera);
         auto surfaces = renderpassgui->GiveSurfaces();
         m_SurfaceManager.ReturnSurfaces(surfaces, m_Swapchain);
     }
