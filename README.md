@@ -9,6 +9,8 @@ Vulkan real-time rendering engine named after my cat Marcus Aurelius
 * Dear ImGUI
 * Bindless Rendering
 * GPU-driven Rendering
+* View Frustum Culling
+* Async Transfer Queue
 
 ## How to Build and Run
 * Must have VS22, Vulkan SDK, C++ 20
