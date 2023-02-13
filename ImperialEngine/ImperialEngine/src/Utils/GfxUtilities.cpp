@@ -51,7 +51,6 @@ namespace imp
 			return plane / glm::length(glm::vec3(plane));
 		}
 
-		// Ritter's efficient algorithm for near-optimal sphere BV creation
 		BoundingVolumeSphere FindSphereBoundingVolume(const Vertex* vertices, size_t numVertices)
 		{
 			glm::vec3 minX = vertices->pos;

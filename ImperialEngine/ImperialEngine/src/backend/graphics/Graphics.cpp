@@ -195,7 +195,7 @@ namespace imp
         {
             m_DelayTransferOperation = false;
 
-            const auto bmb_dcb = utils::CreateBufferMemoryBarrier(srcAccess, VK_ACCESS_SHADER_READ_BIT, gf, tf, dcb.GetBuffer());
+            const auto bmb_dcb = utils::CreateBufferMemoryBarrier(srcAccess, VK_ACCESS_SHADER_READ_BIT, tf, gf, dcb.GetBuffer());
             bmbs.push_back(bmb_dcb);
 
             utils::InsertBufferBarrier(cb, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, bmbs.data(), static_cast<uint32_t>(bmbs.size()));
