@@ -1,5 +1,6 @@
 #version 450
 #extension GL_EXT_nonuniform_qualifier : require
+#extension GL_GOOGLE_include_directive: require
 
 layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
 
@@ -28,27 +29,7 @@ struct BoundingVolume
     float diameter;
 };
 
-layout(set = 0, binding = 0) uniform UboViewProjection{
-	mat4 PV;
-} uboViewProjection;
-
-layout(set=0, binding = 1) buffer MaterialData
-{
-	vec4 color;
-} materialData[128];
-
-// use gl_DrawIDARB to find this draw index into DrawData.
-// This is needed because after culling there isn't a 1:1 ratio to IndirectDrawCommands and DrawData
-layout(set=0, binding = 129) buffer DrawDataIndices
-{
-	uint drawDataIndices[];
-};
-
-layout (set = 0, binding = 130) buffer DrawData
-{
-	mat4 Transform;
-	uint materialIdx;
-} drawData[];
+#include "DescriptorSet0.h"
 
 layout(set = 1, binding = 0) readonly buffer Draws
 {

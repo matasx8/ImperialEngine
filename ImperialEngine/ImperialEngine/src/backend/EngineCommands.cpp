@@ -65,9 +65,4 @@ namespace imp
 	{
 		m_Gfx.UpdateDrawCommands();
 	}
-
-	void Engine::Cmd_DoTransfers(std::shared_ptr<void> rsc)
-	{
-		//m_Gfx.DoTransfers();
-	}
 }
