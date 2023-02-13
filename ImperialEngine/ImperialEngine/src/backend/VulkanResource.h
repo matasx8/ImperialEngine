@@ -3,6 +3,8 @@
 
 namespace imp
 {
+	class CommandBuffer;
+
 	struct CountedResource
 	{
 		CountedResource() : m_FrameLastUsed() {};
@@ -21,6 +23,13 @@ namespace imp
 	protected:
 		uint64_t m_FrameLastUsed;
 	};
+
+	struct TimelineSemaphore
+	{
+		VkSemaphore semaphore;
+		uint64_t lastUsedInQueue;
+	};
+
 	class VulkanResource : public CountedResource
 	{
 	public:
@@ -31,10 +40,20 @@ namespace imp
 		VkSemaphore StealSemaphore();
 		void GiveSemaphore(VkSemaphore& sem);
 
+		// timeline
+		void MarkUsedInQueue();
+		TimelineSemaphore GetTimeline() const;
+		void MakeSureNotUsedOnGPU(VkDevice device);
+
 		virtual void Destroy(VkDevice device);
 		virtual ~VulkanResource() {};
 
 	protected:
 		VkSemaphore m_Semaphore;
+		VkSemaphore m_TimelineSemaphore;
+
+		// Incremented by Queue that used this resource
+		// Next Queue operation to use this should wait on this value
+		uint64_t m_UsedInTimeline;
 	};
 }

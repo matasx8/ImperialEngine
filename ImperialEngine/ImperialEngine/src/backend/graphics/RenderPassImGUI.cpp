@@ -19,7 +19,7 @@ void imp::RenderPassImGUI::Execute(Graphics& gfx, const CameraData& cam)
 
 	// we only want this
 	ImDrawData* draw_data = ImGui::GetDrawData();
-	ImGui_ImplVulkan_RenderDrawData(draw_data, cmb.cmb);
+	ImGui_ImplVulkan_RenderDrawData(draw_data, gfx.m_VulkanGarbageCollector, gfx.m_CurrentFrame, cmb.cmb);
 	EndRenderPass(gfx, cmb);
 	cmb.End();
 	gfx.m_CbManager.SubmitInternal(cmb, {});

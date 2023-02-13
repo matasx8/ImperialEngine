@@ -115,6 +115,8 @@ namespace imp
 					auto& transform = cameras.get<Comp::Transform>(ent);
 					auto& cam = cameras.get<Comp::Camera>(ent);
 					auto& pos = transform.GetPosition();
+					if (cam.preview)
+						continue;
 
 					ImGui::Text("Select Rendering Mode:");
 					static int renderItemSelected = static_cast<int>(kDefaultEngineRenderMode);
@@ -151,7 +153,7 @@ namespace imp
 					// TODO: figure out how to get near and far value from projection matrix
 					// currently if nearAndFar is not in sync with what the camera is initialized with then
 					// after changing fov or nearfar param it might jump unpleasantly
-					static float nearAndFar[2] = { 5.0f, 100.0f };
+					static float nearAndFar[2] = { 5.0f, 1000.0f };
 					ImGui::Text("Camera FOV:");
 					if (ImGui::DragInt("FOV", &fov, 1.0f, 1, 180)) fovChanged = true;
 					ImGui::Text("Camera Near And Far:");
@@ -164,6 +166,57 @@ namespace imp
 						cam.projection = glm::perspective(glm::radians((float)fov), aspect, nearAndFar[0], nearAndFar[1]);
 					}
 					
+				}
+
+				ImGui::EndTabItem();
+			}
+			if (ImGui::BeginTabItem("Preview Camera"))
+			{
+				const auto cameras = reg.view<Comp::Transform, Comp::Camera>();
+				for (auto ent : cameras)
+				{
+					auto& transform = cameras.get<Comp::Transform>(ent);
+					auto& cam = cameras.get<Comp::Camera>(ent);
+					if (!cam.preview)
+						continue;
+					auto& pos = transform.GetPosition();
+
+					static bool usePreviewCam = false;
+					if (ImGui::Checkbox("Use Preview Camera", &usePreviewCam))
+					{
+						cam.isRenderCamera = usePreviewCam;
+					}
+
+					ImGui::Text("Camera Position:");
+					ImGui::DragFloat3("PPOS", reinterpret_cast<float*>(&pos), 0.1f, -99999999999999.0f, 99999999999999.0f);
+
+					ImGui::Text("Camera Orientation");
+					auto quat = glm::toQuat(transform.transform);
+					glm::mat4 rot;
+					if (ImGui::gizmo3D("##gizmo3", quat, (ImGui::GetFrameHeightWithSpacing() - ImGui::GetStyle().ItemSpacing.x) * 24.0f, 0x0200))
+					{
+						rot = glm::toMat4(quat);
+						const glm::vec3 poss = transform.GetPosition();
+						transform.transform = glm::translate(glm::mat4x4(1.0f), poss);
+						transform.transform *= rot;
+					}
+
+					bool fovChanged = false, nearFarChanged = false;
+					int fov = 2.0f * glm::atan(1.0f / cam.projection[1][1]) * 180.0f / glm::pi<float>();
+
+					static float nearAndFar[2] = { 5.0f, 1000.0f };
+					ImGui::Text("Camera FOV:");
+					if (ImGui::DragInt("FOV2", &fov, 1.0f, 1, 180)) fovChanged = true;
+					ImGui::Text("Camera Near And Far:");
+					if (ImGui::DragFloat2("N/F2", nearAndFar, 0.5f, 0.01f, 10000.0f)) nearFarChanged = true;
+
+					if (nearFarChanged || fovChanged)
+					{
+						const float aspect = cam.projection[1][1] / cam.projection[0][0];
+
+						cam.projection = glm::perspective(glm::radians((float)fov), aspect, nearAndFar[0], nearAndFar[1]);
+					}
+
 				}
 
 				ImGui::EndTabItem();

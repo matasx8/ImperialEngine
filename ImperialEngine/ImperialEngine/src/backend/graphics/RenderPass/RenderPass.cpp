@@ -190,6 +190,7 @@ void imp::RenderPass::BeginRenderPass(Graphics& gfx, CommandBuffer cmb)
 		m_Framebuffer = gfx.m_SurfaceManager.CreateFramebuffer(*this, surfaces, gfx.m_LogicalDevice);
 	}
 	m_Framebuffer.UpdateLastUsed(gfx.m_CurrentFrame);
+	UpdateLastUsed(gfx.m_CurrentFrame);
 	
 	// render pass should hold info for clears
 	// TODO: make the clear dynamic

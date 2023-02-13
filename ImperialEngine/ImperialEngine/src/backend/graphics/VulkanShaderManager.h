@@ -1,6 +1,6 @@
 #pragma once
 #include "Utils/NonCopyable.h"
-#include "backend/EngineCommandResources.h"
+#include "backend/VariousTypeDefinitions.h"
 #include "backend/graphics/VulkanShader.h"
 #include "backend/VulkanBuffer.h"
 #include "frontend/EngineSettings.h"
@@ -8,20 +8,24 @@
 #include <extern/GLM/vec4.hpp>
 #include <unordered_map>
 #include <string>
+#include <array>
 
 namespace imp
 {
-	inline constexpr uint32_t kBindingCount					= 3;
+	inline constexpr uint32_t kBindingCount					= 4;
 	inline constexpr uint32_t kMaxMaterialCount				= 128;
-	inline constexpr uint32_t kMaxDrawCount					= 1'000'000; //Should be upper bound, lets see what happens with 2
+	inline constexpr uint32_t kMaxDrawCount					= 1'048'576; //Should be upper bound, lets see what happens with 2
+	inline constexpr uint32_t kMaxMeshCount					= kMaxDrawCount;
 	inline constexpr uint32_t kGlobalBufferBindingSlot		= 0;
 	inline constexpr uint32_t kGlobalBufferBindCount		= 1;
 	inline constexpr uint32_t kMaterialBufferBindingSlot	= kGlobalBufferBindingSlot + kGlobalBufferBindCount;
 	inline constexpr uint32_t kMaterialBufferBindCount		= kMaxMaterialCount;
-	inline constexpr uint32_t kDrawDataBufferBindingSlot	= kMaterialBufferBindingSlot + kMaterialBufferBindCount;
+	inline constexpr uint32_t kDrawDataIndicesBindingSlot	= kMaterialBufferBindingSlot + kMaterialBufferBindCount;
+	inline constexpr uint32_t kDrawDataIndicesBindCount		= 1;
+	inline constexpr uint32_t kDrawDataBufferBindingSlot	= kDrawDataIndicesBindingSlot + kDrawDataIndicesBindCount;
 	inline constexpr uint32_t kDefaultMaterialIndex			= 0;
 
-	inline constexpr uint32_t kComputeBindingCount			= 2;
+	inline constexpr uint32_t kComputeBindingCount			= 4;
 
 	struct GlobalData
 	{
@@ -33,12 +37,10 @@ namespace imp
 		glm::vec4 color;
 	};
 
-	struct ShaderDrawData
+	struct alignas(16) ShaderDrawData
 	{
 		glm::mat4x4 transform;
 		uint32_t materialIndex;
-		uint32_t isEnabled; // could be used for CS to cull or something like that
-		uint32_t padding[2];
 	};
 
 	class VulkanMemory;
@@ -58,10 +60,15 @@ namespace imp
 		VkDescriptorSet GetComputeDescriptorSet(uint32_t idx) const;
 		VkDescriptorSetLayout GetDescriptorSetLayout() const;
 		VkDescriptorSetLayout GetComputeDescriptorSetLayout() const;
-		VulkanBuffer& GetDrawDataBuffer(uint32_t idx) { return m_DrawCommands[idx]; }
+		VulkanBuffer& GetGlobalDataBuffer(uint32_t idx);
+		VulkanBuffer& GetDrawDataBuffers(uint32_t idx);
+		VulkanBuffer& GetDrawCommandBuffer();
+		VulkanBuffer& GetDrawDataIndicesBuffer();
+		VulkanBuffer& GetBoundingVolumeBuffer();
+		VulkanBuffer& GetDrawCommandCountBuffer();
 
-		void CreateVulkanShaderSet(VkDevice device, const CmdRsc::MaterialCreationRequest& req);
-		void CreateComputePrograms(VkDevice device, PipelineManager& pipeManager, const CmdRsc::ComputeProgramCreationRequest& req);
+		void CreateVulkanShaderSet(VkDevice device, const MaterialCreationRequest& req);
+		void CreateComputePrograms(VkDevice device, PipelineManager& pipeManager, const ComputeProgramCreationRequest& req);
 		void UpdateGlobalData(VkDevice device, uint32_t descriptorSetIdx, const GlobalData& data);
 		void UpdateDrawData(VkDevice device, uint32_t descriptorSetIdx, const std::vector<DrawDataSingle> drawData);
 
@@ -74,7 +81,8 @@ namespace imp
 		void CreateComputeDescriptorSetLayout(VkDevice device);
 		VkDescriptorSetLayoutBinding CreateDescriptorBinding(uint32_t binding, uint32_t descriptorCount, VkDescriptorType type, VkShaderStageFlags stageFlags);
 
-		void WriteUpdateDescriptorSets(VkDevice device, VkDescriptorSet* dSets, VkDescriptorType type, auto& buffers, size_t descriptorDataSize, uint32_t bindSlot, uint32_t descriptorCount, uint32_t dSetCount);
+		void WriteUpdateDescriptorSets(VkDevice device, VkDescriptorSet* dSets, VkDescriptorType type, std::array<VulkanBuffer, 3>& buffers, size_t descriptorDataSize, uint32_t bindSlot, uint32_t descriptorCount, uint32_t dSetCount);
+		void WriteUpdateDescriptorSetsSingleBuffer(VkDevice device, VkDescriptorSet* dSets, VkDescriptorType type, VulkanBuffer& buffer, size_t descriptorDataSize, uint32_t bindSlot, uint32_t descriptorCount, uint32_t dSetCount);
 		void UpdateDescriptorData(VkDevice device, VulkanBuffer& buffer, size_t size, uint32_t offset, const void* data);
 
 		void CreateDefaultMaterial(VkDevice device);
@@ -82,12 +90,17 @@ namespace imp
 
 		std::unordered_map<std::string, VulkanShader> m_ShaderMap;
 		VkDescriptorPool m_DescriptorPool;
-		//	not sure if I need triple buffering. Is double buffering enough?
+
 		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_GlobalBuffers;
 		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_MaterialDataBuffers;
+		VulkanBuffer m_DrawDataIndices;
 		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_DrawDataBuffers;
 
-		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_DrawCommands;
+		// compute
+		//std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_DrawCommands;
+		VulkanBuffer m_DrawCommands; // out custom draw commands
+		VulkanBuffer m_BoundingVolumes;
+		VulkanBuffer m_DrawCommandCount;
 
 		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_DescriptorSets;
 		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_ComputeDescriptorSets;

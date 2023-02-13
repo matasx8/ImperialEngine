@@ -28,6 +28,8 @@ namespace imp
 		void SyncRenderThread();
 		void SyncGameThread();
 
+		bool IsCurrentRenderMode(EngineRenderMode mode) const;
+
 		const Timings& GetFrameTimings() { return m_OldTimer; }
 		const Timings& GetGfxFrameTimings() { return m_Gfx.GetFrameTimings(); }
 		const SimpleTimer& GetSyncTimings() { return m_OldSyncTime; }
@@ -66,6 +68,8 @@ namespace imp
 		void UpdateRegistry();
 		void UpdateCameras();
 
+		void Cull();
+
 		void EngineThreadSyncFunc()  noexcept;
 
 		// entity stuff
@@ -95,6 +99,9 @@ namespace imp
 
 		// graphics stuff
 		Graphics m_Gfx;
+		// Used as a "staging" buffer for CPU VF culling
+		std::vector<DrawDataSingle> m_CulledDrawData;
+		std::unordered_map<uint32_t, BoundingVolumeSphere> m_BVs;
 
 		// asset stuff
 		friend class AssetImporter;
@@ -114,6 +121,7 @@ namespace imp
 		void Cmd_UploadComputePrograms(std::shared_ptr<void> rsc);
 		void Cmd_ChangeRenderMode(std::shared_ptr<void> rsc);
 		void Cmd_UpdateDraws(std::shared_ptr<void> rsc);
+		void Cmd_DoTransfers(std::shared_ptr<void> rsc);
 	};
 }
 

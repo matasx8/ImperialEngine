@@ -19,7 +19,8 @@ def CompileDir(directory):
                 fn = names[:pos]
                 ft = names[pos + 1:]
                 renamed = directory + "\\spir-v\\" + fn + "." + ft + ".spv"
-                args = COMPILER_PATH + " -V" + " -o" + " " + renamed + " " + directory + "\\glsl\\" + names
+                args = COMPILER_PATH + " -V --target-env vulkan1.2" + " -o" + " " + renamed + " " + directory + "\\glsl\\" + names
+                #print(args)
                 os.system(args)
 
 

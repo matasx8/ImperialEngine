@@ -27,6 +27,8 @@ namespace Comp
 		glm::mat4x4 view;
 		uint32_t camOutputType;
 		bool dirty;
+		bool preview;
+		bool isRenderCamera;
 	};
 
 	struct Material

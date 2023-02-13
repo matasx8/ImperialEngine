@@ -8,6 +8,7 @@
 #include "backend/graphics/Semaphore.h"
 #include "backend/graphics/Swapchain.h"
 #include "backend/graphics/VkDebug.h"
+#include "backend/VariousTypeDefinitions.h"
 #include "backend/VulkanGarbageCollector.h"
 #include "backend/VulkanMemory.h"
 #include "backend/VkWindow.h"
@@ -17,26 +18,12 @@
 #include <extern/ENTT/entt.hpp>
 #include <barrier>
 
+#include "extern/AFTERMATH/NsightAftermathGpuCrashTracker.h"
+
 namespace imp
 {
 	class Window;
 	namespace CmdRsc { struct MeshCreationRequest; }
-
-	struct DrawDataSingle
-	{
-		glm::mat4x4 Transform;
-		uint32_t VertexBufferId;
-	};
-	struct CameraData
-	{
-		glm::mat4x4 Projection;
-		glm::mat4x4 View;
-		uint32_t camOutputType;
-		uint32_t cameraID;
-		bool dirty;
-		bool hasUI;
-	};
-
 
 	class Graphics : NonCopyable
 	{
@@ -44,19 +31,24 @@ namespace imp
 		Graphics();
 		void Initialize(const EngineGraphicsSettings& settings, Window* window);
 
-		void DispatchUpdateDrawCommands();
+		void DoTransfers(bool releaseAll);
+		void UpdateDrawCommands();
+		void GraphicsQueueStart();
+		void Cull();
 		void StartFrame();
 		void RenderCameras();
 		void RenderImGUI();
 		void EndFrame();
 
-		void CreateAndUploadMeshes(const std::vector<CmdRsc::MeshCreationRequest>& meshCreationData);
-		void CreateAndUploadMaterials(const std::vector<CmdRsc::MaterialCreationRequest>& materialCreationData);
-		void CreateComputePrograms(const std::vector<CmdRsc::ComputeProgramCreationRequest>& computeProgramRequests);
+		void CreateAndUploadMeshes(const std::vector<MeshCreationRequest>& meshCreationData);
+		void CreateAndUploadMaterials(const std::vector<MaterialCreationRequest>& materialCreationData);
+		void CreateComputePrograms(const std::vector<ComputeProgramCreationRequest>& computeProgramRequests);
 
-		// Will return ref to VulkanBuffer used for uploading new draw data.
+		// Will return ref to VulkanBuffer used for uploading new draw commands.
 		// Waits for fence associated with buffer to make sure it's not used by the GPU anymore.
-		IGPUBuffer& GetDrawDataStagingBuffer();
+		IGPUBuffer& GetDrawCommandStagingBuffer();
+		// Will return ref to VulkanBuffer used for uploading new descriptor draw data
+		IGPUBuffer& GetDrawDataBuffer();
 
 		const Comp::IndexedVertexBuffers& GetMeshData(uint32_t index) const;
 
@@ -95,6 +87,8 @@ namespace imp
 		void PushConstants(VkCommandBuffer cb, const void* data, uint32_t size, VkPipelineLayout pipeLayout) const;
 
 		void DrawIndexed(VkCommandBuffer cb, uint32_t indexCount) const;
+
+		const VulkanBuffer& GetDrawCommandCountBuffer();
 		
 		bool CheckExtensionsSupported(std::vector<const char*> extensions);
 
@@ -109,6 +103,7 @@ namespace imp
 		// These are here for now
 		// should save the indices too
 		VkQueue m_GfxQueue;
+		VkQueue m_TransferQueue;
 		VkQueue m_PresentationQueue;
 
 		Swapchain m_Swapchain;
@@ -116,6 +111,7 @@ namespace imp
 
 		VulkanGarbageCollector m_VulkanGarbageCollector;
 		CommandBufferManager m_CbManager;
+		CommandBufferManager m_TransferCbManager;
 		SurfaceManager m_SurfaceManager;
 		VulkanShaderManager m_ShaderManager;
 		PipelineManager m_PipelineManager;
@@ -138,13 +134,15 @@ namespace imp
 		VulkanBuffer m_IndexBuffer;
 		VulkanBuffer m_MeshBuffer;
 		VulkanBuffer m_DrawBuffer;
+		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_StagingDrawBuffer;
+		//std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_StagingDrawDataBuffer;
+		VulkanBuffer m_BoundingVolumeBuffer;
 		uint32_t m_NumDraws;
 
-		// Rotating these descriptor buffers only works if I change the data each frame.
-		// When I get in the hang of CS try to use only 1 Buffer instead of 2-3 and use CS to update relevant data.
-		// This way maybe we could benefit from device-local buffers.
 		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_GlobalBuffers;
 		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_DescriptorSets;
+
+		GpuCrashTracker m_AfterMathTracker;
 
 	public:
 		std::unordered_map<uint32_t, Comp::IndexedVertexBuffers> m_VertexBuffers;
@@ -152,7 +150,11 @@ namespace imp
 		// TODO: remove this section and replace with some API
 
 		std::vector<DrawDataSingle> m_DrawData;
-		std::vector<CameraData>		m_CameraData;
+		CameraData m_MainCamera;
+		CameraData m_PreviewCamera;
+
+		// Temporary workaround to know whether to do transfer in StartFrame or in UpdateDraws
+		bool m_DelayTransferOperation;
 	private:
 
 		friend class RenderPass;

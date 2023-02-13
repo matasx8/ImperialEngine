@@ -11,11 +11,12 @@ namespace imp
 	{
 		int graphicsFamily = -1;
 		int presentationFamily = -1;
+		int transferFamily = -1;
 
 		// check if queue families are valid
 		bool IsValid()
 		{
-			return graphicsFamily >= 0 && presentationFamily >= 0;
+			return graphicsFamily >= 0 && presentationFamily >= 0 && transferFamily >= 0;
 		}
 	};
 
@@ -31,13 +32,6 @@ namespace imp
 		VkPhysicalDeviceMemoryProperties memoryProperties;
 
 		uint32_t FindMemoryTypeIndex(uint32_t allowedTypes, VkMemoryPropertyFlags flags) const;
-	};
-
-	struct Vertex// TODO: better memory alignment?
-	{
-		glm::vec3 pos;
-		glm::vec2 tex; // tex coords (u, v)
-		glm::vec3 norm;
 	};
 
 	class GraphicsCaps

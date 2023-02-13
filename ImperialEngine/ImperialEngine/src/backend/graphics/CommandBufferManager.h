@@ -48,7 +48,7 @@ namespace imp
 	{
 	public:
 		CommandBufferManager(PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool, PrimitivePool<Fence, FenceFactory>& fencePool, SimpleTimer& timer);
-		void Initialize(VkDevice device, QueueFamilyIndices familyIndices, EngineSwapchainImageCount imageCount);
+		void Initialize(VkDevice device, uint32_t familyIndices, EngineSwapchainImageCount imageCount);
 
 		// Submit command buffer to internal command buffer queue. Will keep them until SubmitToQueue is called.
 		void SubmitInternal(CommandBuffer& cb);
@@ -56,11 +56,20 @@ namespace imp
 
 		// Submit accumulated command buffers to VkQueue
 		SubmitSynchPrimitives SubmitToQueue(VkQueue submitQueue, VkDevice device, SubmitType submitType, uint64_t currFrame);
+
 		void SignalFrameEnded();
 		std::vector<CommandBuffer> AquireCommandBuffers(VkDevice device, uint32_t count);
 		CommandBuffer AquireCommandBuffer(VkDevice device);
 		std::vector<VkSemaphore>& GetCommandExecSemaphores();
 		const Fence& GetCurrentFence() const;
+
+		void ReturnCommandBufferToPool(CommandBuffer cb, VkSemaphore sem, VkFence fence);
+
+		// Transfer:
+		// will get the cb for this frame, and begin it if needed
+		CommandBuffer& GetCurrentCB(VkDevice device);
+		void SubmitToTransferQueue(VkQueue transferQueue, VkDevice device, uint64_t currFrame);
+		void AddQueueDependencies(const TimelineSemaphore& semahpore);
 
 		void Destroy(VkDevice device);
 	private:
@@ -73,6 +82,10 @@ namespace imp
 		std::vector<CommandBuffer> m_CommandsBuffersToSubmit;
 		std::vector<Semaphore> m_SemaphoresToWaitOnSubmit;
 		Fence m_CurrentFence;
+
+		// Transfer:
+		CommandBuffer m_TransferCB; // long lasting
+		std::vector<TimelineSemaphore> m_QueueDependencies;
 
 		PrimitivePool<Semaphore, SemaphoreFactory>& m_SemaphorePool;
 		PrimitivePool<Fence, FenceFactory>& m_FencePool;

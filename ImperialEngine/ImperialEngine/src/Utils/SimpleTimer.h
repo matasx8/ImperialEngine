@@ -3,7 +3,12 @@
 
 namespace imp
 {
-
+#define LOG_TIMINGS 0
+#if LOG_TIMINGS
+#define AUTO_TIMER(message) SimpleAutoTimer timer(message); 
+#else
+#define AUTO_TIMER(message)
+#endif
 	class SimpleTimer
 	{
         typedef std::int_fast64_t i64;
@@ -28,6 +33,25 @@ namespace imp
         std::chrono::duration<double> elapsed_time = std::chrono::duration<double>::zero();
 
 	};
+
+    class SimpleAutoTimer
+    {
+    public:
+        SimpleAutoTimer(const char* msg) : m_Timer(), m_Msg(msg)
+        {
+            m_Timer.start();
+        }
+
+        ~SimpleAutoTimer()
+        {
+            m_Timer.stop();
+            printf("%s%lli\n", m_Msg, m_Timer.ms());
+        }
+
+    private:
+        SimpleTimer m_Timer;
+        const char* m_Msg;
+    };
 
     struct Timings
     {
