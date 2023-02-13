@@ -25,7 +25,7 @@ struct IndirectDraw
 struct BoundingVolume
 {
     vec3 center;
-    float radius;
+    float diameter;
 };
 
 layout(set = 0, binding = 0) uniform UboViewProjection{
@@ -91,7 +91,7 @@ bool is_inside_view_frustum(uint idx)
     vec4 mCenter = vec4(bv[drawsSrc[idx].BVIndex].center, 1.0); // BV center in Model space
     vec4 wCenter = drawData[idx].Transform * mCenter;           // BV center in World space
 
-    float radius = bv[drawsSrc[idx].BVIndex].radius;
+    float diameter = bv[drawsSrc[idx].BVIndex].diameter;
 
     for (int i = 0; i < 6; i++)
     {
@@ -101,8 +101,8 @@ bool is_inside_view_frustum(uint idx)
         float signedDistance = dot(frustum[i], wCenter);
 
         // Negative result already lets us know that point is in negative half space of plane
-        // If it's less than 0 + (-radius) then BV is outside VF
-        if(signedDistance < -radius)
+        // If it's less than 0 + (-diameter) then BV is outside VF
+        if(signedDistance < -diameter)
             return false;
     }
     return true;

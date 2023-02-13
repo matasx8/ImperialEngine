@@ -321,7 +321,7 @@ namespace imp
 			for (auto i = 0; i < 6; i++)
 			{
 				float dotProd = glm::dot(frustumPlanes[i], wCenter);
-				if (dotProd < -BV.radius)
+				if (dotProd < -BV.diameter)
 				{
 					isVisible = false;
 					break;

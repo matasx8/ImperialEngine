@@ -10,7 +10,7 @@ namespace imp
 	struct BoundingVolumeSphere
 	{
 		glm::vec3 center;
-		float radius;
+		float diameter;
 	};
 
 	namespace CmdRsc
