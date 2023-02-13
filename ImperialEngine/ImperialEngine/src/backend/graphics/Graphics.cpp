@@ -175,14 +175,13 @@ namespace imp
             glm::vec4 frustum[6];
             uint32_t numDraws;
         } push;
-        push.frustum[0] = glm::normalize(vp[3] + vp[0]);
-        push.frustum[1] = glm::normalize(vp[3] - vp[0]);
-        push.frustum[2] = glm::normalize(vp[3] + vp[1]);
-        push.frustum[3] = glm::normalize(vp[3] - vp[1]);
-        push.frustum[4] = glm::normalize(vp[3] + vp[2]);
-        push.frustum[5] = glm::vec4(0);
+        push.frustum[0] = utils::NormalizePlane(vp[3] + vp[0]);
+        push.frustum[1] = utils::NormalizePlane(vp[3] - vp[0]);
+        push.frustum[2] = utils::NormalizePlane(vp[3] + vp[1]);
+        push.frustum[3] = utils::NormalizePlane(vp[3] - vp[1]);
+        push.frustum[4] = utils::NormalizePlane(vp[3] + vp[2]);
+        push.frustum[5] = utils::NormalizePlane(vp[3] - vp[2]);
         push.numDraws = m_NumDraws;
-
 
         CommandBuffer cb = m_CbManager.AquireCommandBuffer(m_LogicalDevice);
         cb.Begin();

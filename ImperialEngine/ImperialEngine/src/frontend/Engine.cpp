@@ -2,6 +2,7 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "Engine.h"
 #include "backend/EngineCommandResources.h"
+#include "Utils/GfxUtilities.h"
 #include <barrier>
 #include <extern/IMGUI/imgui.h>
 #include "Components/Components.h"
@@ -297,16 +298,16 @@ namespace imp
 		m_CulledDrawData.resize(0);
 
 		const auto cameras = m_Entities.view<Comp::Transform, Comp::Camera>();
-		const auto& cam = cameras.get<Comp::Camera>(cameras.front());
+		const auto& cam = cameras.get<Comp::Camera>(cameras.back());
 		const glm::mat4x4 VP = glm::transpose(cam.projection * cam.view);
 
 		glm::vec4 frustum[6];
-		frustum[0] = glm::normalize(VP[3] + VP[0]);
-		frustum[1] = glm::normalize(VP[3] - VP[0]);
-		frustum[2] = glm::normalize(VP[3] + VP[1]);
-		frustum[3] = glm::normalize(VP[3] - VP[1]);
-		frustum[4] = glm::normalize(VP[3] + VP[2]);
-		frustum[5] = glm::vec4(0);
+		frustum[0] = utils::NormalizePlane((VP[3] + VP[0]));
+		frustum[1] = utils::NormalizePlane((VP[3] - VP[0]));
+		frustum[2] = utils::NormalizePlane((VP[3] + VP[1]));
+		frustum[3] = utils::NormalizePlane((VP[3] - VP[1]));
+		frustum[4] = utils::NormalizePlane((VP[3] + VP[2]));
+		frustum[5] = utils::NormalizePlane((VP[3] - VP[2]));
 
 		const auto renderableChildren = m_Entities.view<Comp::ChildComponent, Comp::Mesh, Comp::Material>();
 		const auto transforms = m_Entities.view<Comp::Transform>();
@@ -319,12 +320,13 @@ namespace imp
 			const auto& transform = transforms.get<Comp::Transform>(parent);
 			const auto& BV = m_BVs.at(mesh.meshId);
 
-			glm::vec4 center = transform.transform * glm::vec4(BV.center, 1.0f);
+			glm::vec4 mCenter = glm::vec4(BV.center, 1.0f);
+			glm::vec4 wCenter = transform.transform * glm::vec4(BV.center, 1.0f);
 
 			bool isVisible = true;
-			for (auto i = 0; i < 5; i++)
+			for (auto i = 0; i < 6; i++)
 			{
-				float dotProd = glm::dot(frustum[i], center);
+				float dotProd = glm::dot(frustum[i], wCenter);
 				if (dotProd < -BV.radius)
 				{
 					isVisible = false;

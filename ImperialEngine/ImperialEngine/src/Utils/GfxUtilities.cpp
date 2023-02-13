@@ -4,6 +4,11 @@ namespace imp
 {
 	namespace utils
 	{
+		glm::vec4 NormalizePlane(const glm::vec4& plane)
+		{
+			return plane / glm::length(glm::vec3(plane));
+		}
+
 		// Ritter's efficient algorithm for near-optimal sphere BV creation
 		BoundingVolumeSphere FindSphereBoundingVolume(const Vertex* vertices, size_t numVertices)
 		{

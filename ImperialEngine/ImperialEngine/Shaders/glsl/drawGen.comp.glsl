@@ -88,11 +88,14 @@ void copy_draw_command(uint idx, uint newIdx)
 
 bool is_inside_view_frustum(uint idx)
 {
-    vec3 center = (drawData[idx].Transform * vec4(bv[drawsSrc[idx].BVIndex].center, 1.0)).xyz;
+    vec4 mCenter = vec4(bv[drawsSrc[idx].BVIndex].center, 1.0); // BV center in Model space
+    vec4 wCenter = drawData[idx].Transform * mCenter;           // BV center in World space
+
     float radius = bv[drawsSrc[idx].BVIndex].radius;
-    for (int i = 0; i < 5; i++)
+
+    for (int i = 0; i < 6; i++)
     {
-        if(dot(frustum[i], vec4(center, 1)) < -radius)
+        if(dot(frustum[i], wCenter) < -radius)
             return false;
     }
         return true;
