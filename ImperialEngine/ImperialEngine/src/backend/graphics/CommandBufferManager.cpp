@@ -31,7 +31,7 @@ namespace imp
         }
 
         // initial acquire
-        m_TransferCB = AquireCommandBuffer(device);
+        m_TransferCB.InitializeEmpty();
 
         m_CurrentFence = m_FencePool.Get(device, 0ull);
     }

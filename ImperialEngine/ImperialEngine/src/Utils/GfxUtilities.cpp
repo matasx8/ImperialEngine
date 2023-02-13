@@ -1,9 +1,51 @@
 #include "GfxUtilities.h"
+#include <GLM/gtc/matrix_access.hpp>
 
 namespace imp
 {
 	namespace utils
 	{
+		// Clip Space approach for extracting planes
+		std::array<glm::vec4, 6> FindViewFrustumPlanes(const glm::mat4x4& A)
+		{
+			// Let's say p = (x,y,z,1) is in model space
+			// Can transform it to Clip Space (in homogenous coordinates) by using an MVP matrix.
+			// Performing perspective division gives us NDC
+
+			// In Vulkan NDC the VF is an AAB centered in origin and bounded by these planes:
+			// left plane x = -1
+			// right plane x = 1
+			// top plane y = 1
+			// bottom plane y = -1
+			// near plane z = 0
+			// far plane z = 1
+
+			// That means p that is in NDC is inside the VF if:
+			// -1 < px < 1
+			// -1 < py < 1
+			//  0 < pz < 1
+
+			// Same point p in homogenous clip space is inside VF if:
+			// -pw < px < pw
+			// -pw < py < pw
+			// -pw < pz < pw
+
+			// We can get px, py, pz, pw:
+			// A * p
+
+			// In our case here A is View and Projection
+			// And when doing culling we'll have Model * p
+
+			std::array<glm::vec4, 6> frustum;
+			frustum[0] = utils::NormalizePlane(glm::row(A, 3) + glm::row(A, 0)); // pw + px
+			frustum[1] = utils::NormalizePlane(glm::row(A, 3) - glm::row(A, 0)); // pw - px
+			frustum[2] = utils::NormalizePlane(glm::row(A, 3) + glm::row(A, 1)); // pw + py
+			frustum[3] = utils::NormalizePlane(glm::row(A, 3) - glm::row(A, 1)); // pw - py
+			frustum[4] = utils::NormalizePlane(glm::row(A, 3) + glm::row(A, 2)); // pw + pz
+			frustum[5] = utils::NormalizePlane(glm::row(A, 3) - glm::row(A, 2)); // pw - pz
+			return frustum;
+		}
+
 		glm::vec4 NormalizePlane(const glm::vec4& plane)
 		{
 			return plane / glm::length(glm::vec3(plane));

@@ -95,10 +95,17 @@ bool is_inside_view_frustum(uint idx)
 
     for (int i = 0; i < 6; i++)
     {
-        if(dot(frustum[i], wCenter) < -radius)
+        // Compute signed distance of center of BV from plane.
+        // Plane equation: Ax + By + Cy + d = 0
+        // Inserting our point into equation gives us the signed distance for wCenter
+        float signedDistance = dot(frustum[i], wCenter);
+
+        // Negative result already lets us know that point is in negative half space of plane
+        // If it's less than 0 + (-radius) then BV is outside VF
+        if(signedDistance < -radius)
             return false;
     }
-        return true;
+    return true;
 }
 
 void main()

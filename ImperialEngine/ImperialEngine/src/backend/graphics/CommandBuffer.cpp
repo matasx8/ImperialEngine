@@ -47,3 +47,10 @@ void imp::CommandBuffer::ResetStageToNew()
 {
 	m_CurrentStage = kCBStageNew;
 }
+
+void imp::CommandBuffer::InitializeEmpty()
+{
+	// since we might not use TransferCBs every frame it's useful to set the stage to "done"
+	// so when we try to get a new cb for the first time - we actually aquire a cb and it ends up back into its own pool
+	m_CurrentStage = kCBStageDone;
+}

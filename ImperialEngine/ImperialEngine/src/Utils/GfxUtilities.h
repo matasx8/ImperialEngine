@@ -6,6 +6,7 @@ namespace imp
 {
 	namespace utils
 	{
+		std::array<glm::vec4, 6> FindViewFrustumPlanes(const glm::mat4x4& A);
 		glm::vec4 NormalizePlane(const glm::vec4& plane);
 		BoundingVolumeSphere FindSphereBoundingVolume(const Vertex* vertices, size_t numVertices);
 		void InsertBufferBarrier(CommandBuffer& cb, VkPipelineStageFlags srcFlags, VkPipelineStageFlags dstFlags, const VkBufferMemoryBarrier* bmbs, uint32_t bmbCount);

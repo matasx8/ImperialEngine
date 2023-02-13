@@ -20,6 +20,7 @@ namespace imp
 		CommandBufferStage GetCurrentStage() const;
 		void End();
 		void ResetStageToNew();
+		void InitializeEmpty();
 
 		VkCommandBuffer cmb;
 	private:

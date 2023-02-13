@@ -168,19 +168,15 @@ namespace imp
 
         std::array<VkDescriptorSet, 2> dsets = { dset1, dset2 };
 
-        glm::mat4 vp = glm::transpose(m_MainCamera.Projection * m_MainCamera.View);
+        glm::mat4 vp = m_MainCamera.Projection * m_MainCamera.View;
+        const auto frustumPlanes = utils::FindViewFrustumPlanes(vp);
 
         struct Pushs
         {
             glm::vec4 frustum[6];
             uint32_t numDraws;
         } push;
-        push.frustum[0] = utils::NormalizePlane(vp[3] + vp[0]);
-        push.frustum[1] = utils::NormalizePlane(vp[3] - vp[0]);
-        push.frustum[2] = utils::NormalizePlane(vp[3] + vp[1]);
-        push.frustum[3] = utils::NormalizePlane(vp[3] - vp[1]);
-        push.frustum[4] = utils::NormalizePlane(vp[3] + vp[2]);
-        push.frustum[5] = utils::NormalizePlane(vp[3] - vp[2]);
+        std::memcpy(push.frustum, frustumPlanes.data(), sizeof(frustumPlanes));
         push.numDraws = m_NumDraws;
 
         CommandBuffer cb = m_CbManager.AquireCommandBuffer(m_LogicalDevice);
@@ -228,7 +224,7 @@ namespace imp
         memBars2[2] = utils::CreateBufferMemoryBarrier(VK_ACCESS_INDIRECT_COMMAND_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, m_ShaderManager.GetDrawCommandCountBuffer().GetBuffer());
         utils::InsertBufferBarrier(cb, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, memBars2.data(), memBars2.size());
 
-        vkCmdDispatch(cb.cmb, (m_NumDraws + 31) / 32, 1, 1);
+        vkCmdDispatch(cb.cmb, dispatchCount, 1, 1);
 
         std::array<VkBufferMemoryBarrier, 3> memBars;
         // make sure CS has populated draw buffer

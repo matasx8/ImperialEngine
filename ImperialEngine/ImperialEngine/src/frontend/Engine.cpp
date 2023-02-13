@@ -299,15 +299,9 @@ namespace imp
 
 		const auto cameras = m_Entities.view<Comp::Transform, Comp::Camera>();
 		const auto& cam = cameras.get<Comp::Camera>(cameras.back());
-		const glm::mat4x4 VP = glm::transpose(cam.projection * cam.view);
+		const glm::mat4x4 VP = cam.projection * cam.view;
 
-		glm::vec4 frustum[6];
-		frustum[0] = utils::NormalizePlane((VP[3] + VP[0]));
-		frustum[1] = utils::NormalizePlane((VP[3] - VP[0]));
-		frustum[2] = utils::NormalizePlane((VP[3] + VP[1]));
-		frustum[3] = utils::NormalizePlane((VP[3] - VP[1]));
-		frustum[4] = utils::NormalizePlane((VP[3] + VP[2]));
-		frustum[5] = utils::NormalizePlane((VP[3] - VP[2]));
+		const auto frustumPlanes = utils::FindViewFrustumPlanes(VP);
 
 		const auto renderableChildren = m_Entities.view<Comp::ChildComponent, Comp::Mesh, Comp::Material>();
 		const auto transforms = m_Entities.view<Comp::Transform>();
@@ -326,7 +320,7 @@ namespace imp
 			bool isVisible = true;
 			for (auto i = 0; i < 6; i++)
 			{
-				float dotProd = glm::dot(frustum[i], wCenter);
+				float dotProd = glm::dot(frustumPlanes[i], wCenter);
 				if (dotProd < -BV.radius)
 				{
 					isVisible = false;

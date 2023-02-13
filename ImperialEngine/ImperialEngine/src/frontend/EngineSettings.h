@@ -43,7 +43,7 @@ enum EngineRenderMode : uint32_t
 	kEngineRenderModeCount
 };
 
-inline constexpr uint32_t kDefaultEngineRenderMode = kEngineRenderModeTraditional;
+inline constexpr uint32_t kDefaultEngineRenderMode = kEngineRenderModeGPUDriven;
 
 struct EngineGraphicsSettings
 {
