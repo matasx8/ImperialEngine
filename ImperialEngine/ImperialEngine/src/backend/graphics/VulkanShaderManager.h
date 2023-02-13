@@ -15,7 +15,7 @@ namespace imp
 	inline constexpr uint32_t kBindingCount					= 4;
 	inline constexpr uint32_t kMaxMaterialCount				= 128;
 	inline constexpr uint32_t kMaxDrawCount					= 1'048'576; //Should be upper bound, lets see what happens with 2
-	inline constexpr uint32_t kMaxMeshCount					= kMaxDrawCount; // TODO acceleration-part-1 ^^ should be less than VkPhysicalDeviceDescriptorIndexingProperties::maxDescriptorSetUpdateAfterBindStorageBuffers
+	inline constexpr uint32_t kMaxMeshCount					= kMaxDrawCount;
 	inline constexpr uint32_t kGlobalBufferBindingSlot		= 0;
 	inline constexpr uint32_t kGlobalBufferBindCount		= 1;
 	inline constexpr uint32_t kMaterialBufferBindingSlot	= kGlobalBufferBindingSlot + kGlobalBufferBindCount;

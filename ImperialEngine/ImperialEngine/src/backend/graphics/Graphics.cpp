@@ -261,13 +261,11 @@ namespace imp
         }
     }
 
-    static int first = 3;
     void Graphics::RenderCameras()
     {
         AUTO_TIMER("[RenderCameras]: ");
         if(m_Settings.renderMode == kEngineRenderModeGPUDriven)
             Cull();
-
 
         const auto& camera = m_PreviewCamera.isRenderCamera ? m_PreviewCamera : m_MainCamera;
 
