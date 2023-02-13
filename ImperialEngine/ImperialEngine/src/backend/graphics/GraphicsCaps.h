@@ -34,13 +34,6 @@ namespace imp
 		uint32_t FindMemoryTypeIndex(uint32_t allowedTypes, VkMemoryPropertyFlags flags) const;
 	};
 
-	struct Vertex// TODO: better memory alignment?
-	{
-		glm::vec3 pos;
-		glm::vec2 tex; // tex coords (u, v)
-		glm::vec3 norm;
-	};
-
 	class GraphicsCaps
 	{
 	public:

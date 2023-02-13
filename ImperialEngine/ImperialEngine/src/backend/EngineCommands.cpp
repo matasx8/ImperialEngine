@@ -34,7 +34,7 @@ namespace imp
 	}
 	void Engine::Cmd_UploadMeshes(std::shared_ptr<void> rsc)
 	{
-		auto re = (std::vector<imp::CmdRsc::MeshCreationRequest>*)rsc.get();
+		auto re = (std::vector<imp::MeshCreationRequest>*)rsc.get();
 		// we have place where to add index and vertex components
 		// we know vert and idx data
 
@@ -43,13 +43,13 @@ namespace imp
 
 	void Engine::Cmd_UploadMaterials(std::shared_ptr<void> rsc)
 	{
-		auto re = (std::vector<imp::CmdRsc::MaterialCreationRequest>*)rsc.get();
+		auto re = (std::vector<imp::MaterialCreationRequest>*)rsc.get();
 		m_Gfx.CreateAndUploadMaterials(*re);
 	}
 
 	void Engine::Cmd_UploadComputePrograms(std::shared_ptr<void> rsc)
 	{
-		auto re = (std::vector<imp::CmdRsc::ComputeProgramCreationRequest>*)rsc.get();
+		auto re = (std::vector<imp::ComputeProgramCreationRequest>*)rsc.get();
 		m_Gfx.CreateComputePrograms(*re);
 	}
 

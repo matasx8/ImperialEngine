@@ -268,7 +268,6 @@
     <ClCompile Include="src\frontend\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\backend\EngineCommandResources.h" />
     <ClInclude Include="src\backend\EnumTranslator.h" />
     <ClInclude Include="src\backend\graphics\CommandBuffer.h" />
     <ClInclude Include="src\backend\graphics\CommandBufferManager.h" />
@@ -294,6 +293,7 @@
     <ClInclude Include="src\backend\graphics\VkDebug.h" />
     <ClInclude Include="src\backend\graphics\VulkanShader.h" />
     <ClInclude Include="src\backend\graphics\VulkanShaderManager.h" />
+    <ClInclude Include="src\backend\VariousTypeDefinitions.h" />
     <ClInclude Include="src\backend\VulkanBuffer.h" />
     <ClInclude Include="src\backend\VulkanGarbageCollector.h" />
     <ClInclude Include="src\backend\VulkanMemory.h" />

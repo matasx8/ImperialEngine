@@ -8,6 +8,7 @@
 #include "backend/graphics/Semaphore.h"
 #include "backend/graphics/Swapchain.h"
 #include "backend/graphics/VkDebug.h"
+#include "backend/VariousTypeDefinitions.h"
 #include "backend/VulkanGarbageCollector.h"
 #include "backend/VulkanMemory.h"
 #include "backend/VkWindow.h"
@@ -24,36 +25,6 @@ namespace imp
 	class Window;
 	namespace CmdRsc { struct MeshCreationRequest; }
 
-	struct alignas(16) DrawDataSingle
-	{
-		glm::mat4x4 Transform;
-		uint32_t VertexBufferId;
-	};
-	struct CameraData
-	{
-		glm::mat4x4 Projection;
-		glm::mat4x4 View;
-		uint32_t camOutputType;
-		uint32_t cameraID;
-		bool dirty;
-		bool preview;
-		bool isRenderCamera;
-	};
-
-	// TODO acceleration-part-1: move these somewhere
-	struct IndirectDrawCmd
-	{
-		// VkDrawIndexedIndirectCommand:
-		uint32_t    indexCount;
-		uint32_t    instanceCount;
-		uint32_t    firstIndex;
-		int32_t     vertexOffset;
-		uint32_t    firstInstance;
-		// custom:
-		uint32_t	boundingVolumeIndex; // index to bounding volume descriptor
-	};
-
-
 	class Graphics : NonCopyable
 	{
 	public:
@@ -69,9 +40,9 @@ namespace imp
 		void RenderImGUI();
 		void EndFrame();
 
-		void CreateAndUploadMeshes(const std::vector<CmdRsc::MeshCreationRequest>& meshCreationData);
-		void CreateAndUploadMaterials(const std::vector<CmdRsc::MaterialCreationRequest>& materialCreationData);
-		void CreateComputePrograms(const std::vector<CmdRsc::ComputeProgramCreationRequest>& computeProgramRequests);
+		void CreateAndUploadMeshes(const std::vector<MeshCreationRequest>& meshCreationData);
+		void CreateAndUploadMaterials(const std::vector<MaterialCreationRequest>& materialCreationData);
+		void CreateComputePrograms(const std::vector<ComputeProgramCreationRequest>& computeProgramRequests);
 
 		// Will return ref to VulkanBuffer used for uploading new draw commands.
 		// Waits for fence associated with buffer to make sure it's not used by the GPU anymore.

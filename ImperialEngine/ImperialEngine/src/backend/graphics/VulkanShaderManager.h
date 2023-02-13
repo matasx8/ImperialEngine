@@ -1,6 +1,6 @@
 #pragma once
 #include "Utils/NonCopyable.h"
-#include "backend/EngineCommandResources.h"
+#include "backend/VariousTypeDefinitions.h"
 #include "backend/graphics/VulkanShader.h"
 #include "backend/VulkanBuffer.h"
 #include "frontend/EngineSettings.h"
@@ -8,12 +8,13 @@
 #include <extern/GLM/vec4.hpp>
 #include <unordered_map>
 #include <string>
+#include <array>
 
 namespace imp
 {
 	inline constexpr uint32_t kBindingCount					= 4;
 	inline constexpr uint32_t kMaxMaterialCount				= 128;
-	inline constexpr uint32_t kMaxDrawCount					= 1'000'000; //Should be upper bound, lets see what happens with 2
+	inline constexpr uint32_t kMaxDrawCount					= 1'048'576; //Should be upper bound, lets see what happens with 2
 	inline constexpr uint32_t kMaxMeshCount					= kMaxDrawCount; // TODO acceleration-part-1 ^^ should be less than VkPhysicalDeviceDescriptorIndexingProperties::maxDescriptorSetUpdateAfterBindStorageBuffers
 	inline constexpr uint32_t kGlobalBufferBindingSlot		= 0;
 	inline constexpr uint32_t kGlobalBufferBindCount		= 1;
@@ -66,8 +67,8 @@ namespace imp
 		VulkanBuffer& GetBoundingVolumeBuffer();
 		VulkanBuffer& GetDrawCommandCountBuffer();
 
-		void CreateVulkanShaderSet(VkDevice device, const CmdRsc::MaterialCreationRequest& req);
-		void CreateComputePrograms(VkDevice device, PipelineManager& pipeManager, const CmdRsc::ComputeProgramCreationRequest& req);
+		void CreateVulkanShaderSet(VkDevice device, const MaterialCreationRequest& req);
+		void CreateComputePrograms(VkDevice device, PipelineManager& pipeManager, const ComputeProgramCreationRequest& req);
 		void UpdateGlobalData(VkDevice device, uint32_t descriptorSetIdx, const GlobalData& data);
 		void UpdateDrawData(VkDevice device, uint32_t descriptorSetIdx, const std::vector<DrawDataSingle> drawData);
 

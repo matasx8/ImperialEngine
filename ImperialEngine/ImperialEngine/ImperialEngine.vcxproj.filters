@@ -182,9 +182,6 @@
     <ClInclude Include="src\backend\graphics\VkDebug.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\backend\EngineCommandResources.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\backend\VkWindow.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -315,6 +312,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Utils\Finalizer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\backend\VariousTypeDefinitions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

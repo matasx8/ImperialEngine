@@ -1,7 +1,7 @@
 #include "AssetImporter.h"
 #include "Utils/Utilities.h"
 #include "Utils/GfxUtilities.h"
-#include "backend/EngineCommandResources.h"
+#include "backend/VariousTypeDefinitions.h"
 #include "frontend/Engine.h"
 #include "frontend/Components/Components.h"
 #include <extern/ASSIMP/Importer.hpp>
@@ -45,7 +45,7 @@ namespace imp
 		const auto materialCreationReqs = LoadShaders(paths);
 
 		// parse material creation requests and create materials
-		m_Engine.m_Q->add(std::mem_fn(&Engine::Cmd_UploadMaterials), std::make_shared<std::vector<imp::CmdRsc::MaterialCreationRequest>>(materialCreationReqs));
+		m_Engine.m_Q->add(std::mem_fn(&Engine::Cmd_UploadMaterials), std::make_shared<std::vector<imp::MaterialCreationRequest>>(materialCreationReqs));
 
 		// should also create material entities.
 		// since we only have one no need for now.
@@ -60,7 +60,7 @@ namespace imp
 	{
 		const auto paths = OS::GetAllFileNamesInDirectory(path);
 
-		std::vector<CmdRsc::ComputeProgramCreationRequest> reqs;
+		std::vector<ComputeProgramCreationRequest> reqs;
 		for (const auto& shaderPath : paths)
 		{
 			if (shaderPath.string().find(".comp") == std::string::npos)
@@ -68,7 +68,7 @@ namespace imp
 
 			reqs.emplace_back(shaderPath.filename().stem().stem().stem().string(), OS::ReadFileContents(shaderPath.string()));
 		}
-		m_Engine.m_Q->add(std::mem_fn(&Engine::Cmd_UploadComputePrograms), std::make_shared<std::vector<imp::CmdRsc::ComputeProgramCreationRequest>>(reqs));
+		m_Engine.m_Q->add(std::mem_fn(&Engine::Cmd_UploadComputePrograms), std::make_shared<std::vector<imp::ComputeProgramCreationRequest>>(reqs));
 		printf("[Asset Importer] Successfully loaded compute programs from '%s' with %i total shaders\n", path.c_str(), static_cast<int>(paths.size()));
 	}
 
@@ -88,7 +88,7 @@ namespace imp
 			reg.emplace<Comp::Transform>(mainEntity, glm::mat4x4(1.0f));
 
 			static uint32_t temporaryMeshCounter = 0;
-			std::vector<imp::CmdRsc::MeshCreationRequest> reqs;
+			std::vector<imp::MeshCreationRequest> reqs;
 			LoadModel(reqs, imp, path);
 
 			for (auto& req : reqs)
@@ -119,16 +119,16 @@ namespace imp
 				m_Engine.m_SyncPoint->arrive_and_wait();
 
 			// TODO: put this somewhere higher in the callstack so we upload all the meshes at the same time
-			m_Engine.m_Q->add(std::mem_fn(&Engine::Cmd_UploadMeshes), std::make_shared<std::vector<imp::CmdRsc::MeshCreationRequest>>(reqs));
+			m_Engine.m_Q->add(std::mem_fn(&Engine::Cmd_UploadMeshes), std::make_shared<std::vector<imp::MeshCreationRequest>>(reqs));
 		}
 	}
 
-	static void LoadMesh(std::vector<imp::CmdRsc::MeshCreationRequest>& meshList, aiNode* node, const aiScene* scene)
+	static void LoadMesh(std::vector<imp::MeshCreationRequest>& meshList, aiNode* node, const aiScene* scene)
 	{
 		// go through each mesh at this node and create it, then add it to our meshlist
 		for (size_t i = 0; i < node->mNumMeshes; i++)
 		{
-			imp::CmdRsc::MeshCreationRequest req;
+			imp::MeshCreationRequest req;
 			const auto& mesh = scene->mMeshes[node->mMeshes[i]];
 
 			//resize vertex list to hold all vertices for mesh
@@ -176,7 +176,7 @@ namespace imp
 			LoadMesh(meshList, node->mChildren[i], scene);
 	}
 
-	void AssetImporter::LoadModel(std::vector<imp::CmdRsc::MeshCreationRequest>& reqs, Assimp::Importer& imp, const std::filesystem::path& path)
+	void AssetImporter::LoadModel(std::vector<imp::MeshCreationRequest>& reqs, Assimp::Importer& imp, const std::filesystem::path& path)
 	{
 		const aiScene* scene = imp.ReadFile(path.string(), aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals | aiProcess_JoinIdenticalVertices);
 		if (scene == nullptr)
@@ -188,7 +188,7 @@ namespace imp
 		assert(reqs.size());
 	}
 
-	std::vector<CmdRsc::MaterialCreationRequest> AssetImporter::LoadShaders(const std::vector<std::filesystem::path>& shaders)
+	std::vector<MaterialCreationRequest> AssetImporter::LoadShaders(const std::vector<std::filesystem::path>& shaders)
 	{
 		std::unordered_set<std::string> shaderSet;
 		// Not likely we will have anything more than a vertex and fragment shader anytime soon.
@@ -202,14 +202,14 @@ namespace imp
 			shaderSet.insert(shader.parent_path().string() + "/" + shader.stem().stem().stem().string()); //TODO: fix this nonsense
 		}
 
-		std::vector<CmdRsc::MaterialCreationRequest> reqs;
+		std::vector<MaterialCreationRequest> reqs;
 		for (const auto& shader : shaderSet)
 			reqs.emplace_back(LoadShader(shader));
 
 		return reqs;
 	}
 
-	CmdRsc::MaterialCreationRequest AssetImporter::LoadShader(const std::string& shader)
+	MaterialCreationRequest AssetImporter::LoadShader(const std::string& shader)
 	{
 		// Easy way to get just the shader name
 		std::filesystem::path shaderPath(shader);
@@ -220,7 +220,7 @@ namespace imp
 
 		// TODO: use reflection to compose material creation request
 
-		CmdRsc::MaterialCreationRequest req;
+		MaterialCreationRequest req;
 		req.shaderName = shaderPath.stem().string();
 		req.vertexSpv = OS::ReadFileContents(vertexShaderPath);
 		req.vertexIndSpv = OS::ReadFileContents(vertexIndirectShaderPath);

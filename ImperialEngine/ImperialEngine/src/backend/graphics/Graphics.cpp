@@ -1,5 +1,4 @@
 #include "backend/graphics/RenderPass/RenderPassFactorySimple.h"
-#include "backend/EngineCommandResources.h"
 #include "backend/graphics/Graphics.h"
 #include "backend/VulkanBuffer.h"
 #include "frontend/Components/Components.h"
@@ -309,7 +308,7 @@ namespace imp
         m_Timer.frameWorkTime.stop();
     }
 
-    void Graphics::CreateAndUploadMeshes(const std::vector<CmdRsc::MeshCreationRequest>& meshCreationData)
+    void Graphics::CreateAndUploadMeshes(const std::vector<MeshCreationRequest>& meshCreationData)
     {
         const uint32_t numCbs = 1;
         auto cbs = m_CbManager.AquireCommandBuffers(m_LogicalDevice, numCbs);
@@ -365,13 +364,13 @@ namespace imp
         m_IndexBuffer.GiveSemaphore(synchs.semaphore.semaphore);
     }
 
-    void Graphics::CreateAndUploadMaterials(const std::vector<CmdRsc::MaterialCreationRequest>& materialCreationData)
+    void Graphics::CreateAndUploadMaterials(const std::vector<MaterialCreationRequest>& materialCreationData)
     {
         for (const auto& req : materialCreationData)
         m_ShaderManager.CreateVulkanShaderSet(m_LogicalDevice, req);
     }
 
-    void Graphics::CreateComputePrograms(const std::vector<CmdRsc::ComputeProgramCreationRequest>& computeProgramRequests)
+    void Graphics::CreateComputePrograms(const std::vector<ComputeProgramCreationRequest>& computeProgramRequests)
     {
         for (const auto& req : computeProgramRequests)
             m_ShaderManager.CreateComputePrograms(m_LogicalDevice, m_PipelineManager, req);

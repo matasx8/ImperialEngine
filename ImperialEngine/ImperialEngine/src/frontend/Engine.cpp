@@ -1,7 +1,6 @@
 #define GLM_FORCE_RIGHT_HANDED
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "Engine.h"
-#include "backend/EngineCommandResources.h"
 #include "Utils/GfxUtilities.h"
 #include <barrier>
 #include <extern/IMGUI/imgui.h>
@@ -237,7 +236,8 @@ namespace imp
 		m_Entities.emplace<Comp::Transform>(previewCamera, glm::translate(defaultCameraTransform, glm::vec3(0.0f, 0.0f, 100.0f)));
 		m_Entities.emplace<Comp::Camera>(previewCamera, proj, glm::mat4x4(), kCamOutColor, true, true, false);
 
-		AddDemoEntity(999999);
+		AddDemoEntity(9999);
+		//AddDemoEntity(kMaxDrawCount - 1);
 	}
 
 	void Engine::RenderCameras()

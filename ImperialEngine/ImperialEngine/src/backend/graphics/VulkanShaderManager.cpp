@@ -137,7 +137,7 @@ namespace imp
 		return m_ComputeDescriptorSetLayout;
 	}
 
-	void VulkanShaderManager::CreateVulkanShaderSet(VkDevice device, const CmdRsc::MaterialCreationRequest& req)
+	void VulkanShaderManager::CreateVulkanShaderSet(VkDevice device, const MaterialCreationRequest& req)
 	{
 		const VulkanShader vertexShader(CreateShaderModule(device, *req.vertexSpv.get()));
 		const VulkanShader vertexIndShader(CreateShaderModule(device, *req.vertexIndSpv.get()));
@@ -147,7 +147,7 @@ namespace imp
 		m_ShaderMap[req.shaderName + ".frag"] = fragmentShader;
 	}
 
-	void VulkanShaderManager::CreateComputePrograms(VkDevice device, PipelineManager& pipeManager, const CmdRsc::ComputeProgramCreationRequest& req)
+	void VulkanShaderManager::CreateComputePrograms(VkDevice device, PipelineManager& pipeManager, const ComputeProgramCreationRequest& req)
 	{
 		const auto shader = VulkanShader(CreateShaderModule(device, *req.spv.get()));
 		m_ShaderMap[req.shaderName + ".comp"] = shader;
