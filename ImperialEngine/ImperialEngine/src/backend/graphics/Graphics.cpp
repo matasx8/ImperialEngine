@@ -170,7 +170,8 @@ namespace imp
         glm::mat4 vp = m_MainCamera.Projection * m_MainCamera.View;
         const auto frustumPlanes = utils::FindViewFrustumPlanes(vp);
 
-        struct Pushs
+        // TODO bug?: Is this aligned up to standard?
+        struct alignas(16) Pushs
         {
             glm::vec4 frustum[6];
             uint32_t numDraws;
