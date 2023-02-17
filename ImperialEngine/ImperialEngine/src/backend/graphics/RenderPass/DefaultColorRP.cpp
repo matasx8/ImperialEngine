@@ -40,7 +40,7 @@ namespace imp
 				gfx.PushConstants(cb, &drawIndex, sizeof(uint32_t), pipe.GetPipelineLayout());
 
 				const auto& mesh = gfx.m_VertexBuffers.at(drawData.VertexBufferId);
-				vkCmdDrawIndexed(cb, mesh.indices.GetCount(), 1, mesh.indices.GetOffset(), mesh.vertices.GetOffset(), 0);
+				//vkCmdDrawIndexed(cb, mesh.indices.GetCount(), 1, mesh.indices.GetOffset(), mesh.vertices.GetOffset(), 0);
 				drawIndex++;
 			}
 		}

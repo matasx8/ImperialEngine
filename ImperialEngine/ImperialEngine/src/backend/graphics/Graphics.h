@@ -33,14 +33,13 @@ namespace imp
 
 		void DoTransfers(bool releaseAll);
 		void UpdateDrawCommands();
-		void GraphicsQueueStart();
 		void Cull();
 		void StartFrame();
 		void RenderCameras();
 		void RenderImGUI();
 		void EndFrame();
 
-		void CreateAndUploadMeshes(const std::vector<MeshCreationRequest>& meshCreationData);
+		void CreateAndUploadMeshes(std::vector<MeshCreationRequest>& meshCreationData);
 		void CreateAndUploadMaterials(const std::vector<MaterialCreationRequest>& materialCreationData);
 		void CreateComputePrograms(const std::vector<ComputeProgramCreationRequest>& computeProgramRequests);
 

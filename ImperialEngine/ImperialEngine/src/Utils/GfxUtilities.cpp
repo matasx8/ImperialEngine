@@ -1,4 +1,5 @@
 #include "GfxUtilities.h"
+#include "extern/MESHOPTIMIZER/meshoptimizer.h"
 #include <GLM/gtc/matrix_access.hpp>
 
 namespace imp
@@ -102,6 +103,49 @@ namespace imp
 			bmb.offset = offset;
 			bmb.size = size;
 			return bmb;
+		}
+
+		void GenerateMeshLODS(const std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, VulkanSubBuffer* dstSubBuffers, uint32_t numLODs, double factor, float error)
+		{
+			const auto FillRestOfBuffers = [&](size_t currIndexBuffOffset, uint32_t idx, uint32_t newIndexCount)
+			{
+				for (auto i = idx; i < numLODs; i++)
+				{
+					dstSubBuffers[i] = VulkanSubBuffer(currIndexBuffOffset, newIndexCount);
+				}
+			};
+
+			const uint32_t* currIndices = indices.data();
+			size_t currIndexCount = indices.size();
+			size_t currIndexBuffOffset = 0;
+			uint32_t* dst = new uint32_t[currIndexCount];
+
+			for (uint32_t i = 0; i < numLODs; i++)
+			{
+				size_t indicesTarget = (size_t)((double)currIndexCount * factor);
+				float err;
+				size_t newIndexCount = meshopt_simplify(dst, currIndices, currIndexCount, (float*)(&vertices.front().pos), vertices.size(), sizeof(Vertex), indicesTarget, error, 0, &err);
+
+				// Didn't change the number of indices, means won't go anymore.
+				// Setting rest of LODs to last successful
+				if (newIndexCount == currIndexCount)
+				{
+					FillRestOfBuffers(currIndexBuffOffset, i, (uint32_t)newIndexCount);
+					break;
+				}
+
+				currIndexBuffOffset = indices.size();
+
+				dstSubBuffers[i] = VulkanSubBuffer(currIndexBuffOffset, (uint32_t)newIndexCount);
+
+				for (auto j = 0; j < newIndexCount; j++)
+					indices.emplace_back(dst[j]);
+
+				currIndices = &indices[currIndexBuffOffset];
+				currIndexCount = newIndexCount;
+			}
+
+			delete[] dst;
 		}
 	}
 }

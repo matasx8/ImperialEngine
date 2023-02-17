@@ -171,7 +171,7 @@ namespace imp
         const auto frustumPlanes = utils::FindViewFrustumPlanes(vp);
 
         // TODO bug?: Is this aligned up to standard?
-        struct alignas(16) Pushs
+        struct Pushs
         {
             glm::vec4 frustum[6];
             uint32_t numDraws;
@@ -307,7 +307,7 @@ namespace imp
         m_Timer.frameWorkTime.stop();
     }
 
-    void Graphics::CreateAndUploadMeshes(const std::vector<MeshCreationRequest>& meshCreationData)
+    void Graphics::CreateAndUploadMeshes(std::vector<MeshCreationRequest>& meshCreationData)
     {
         const uint32_t numCbs = 1;
         auto cbs = m_CbManager.AquireCommandBuffers(m_LogicalDevice, numCbs);
@@ -315,32 +315,54 @@ namespace imp
 
         cb.Begin();
 
-        // TODO: this can be abstracted to not differentiate between indices and vertices
-
         uint32_t vtxAllocSize = 0;
         uint32_t idxAllocSize = 0;
-        uint32_t bvAllocSize = 0;
+        uint32_t mdAllocSize = 0;
         std::vector<Vertex> verts;
         std::vector<uint32_t> idxs;
-        std::vector<BoundingVolumeSphere> bvs;
+        std::vector<MeshData> mds;
         const uint32_t vertBufferOffset = m_VertexBuffer.GetOffset() / sizeof(Vertex);
         const uint32_t indBufferOffset = m_IndexBuffer.GetOffset() / sizeof(uint32_t);
-        for (const auto& req : meshCreationData)
+
+        for (auto& req : meshCreationData)
         {
+            const auto vOffset = verts.size() + vertBufferOffset;
+            const auto iOffset = idxs.size() + indBufferOffset;
+
             // These subbuffers will be used to index and offset into the one bound Vertex and Index buffer
-            VulkanSubBuffer vtxSub = VulkanSubBuffer(verts.size() + vertBufferOffset, static_cast<uint32_t>(req.vertices.size()));
-            VulkanSubBuffer idxSub = VulkanSubBuffer(idxs.size() + indBufferOffset, static_cast<uint32_t>(req.indices.size()));
+            VulkanSubBuffer vtxSub = VulkanSubBuffer(vOffset, static_cast<uint32_t>(req.vertices.size()));
+            VulkanSubBuffer idxSub = VulkanSubBuffer(0, static_cast<uint32_t>(req.indices.size()));
+
+            Comp::IndexedVertexBuffers ivb;
+            ivb.vertices = vtxSub;
+            ivb.indices[0] = idxSub;
+
+            static constexpr uint32_t numDesiredLODs = kMaxLODCount - 1;
+            utils::GenerateMeshLODS(req.vertices, req.indices, &ivb.indices[1], numDesiredLODs, 0.33, 0.5);
+
+            for (auto i = 0; i < kMaxLODCount; i++)
+                ivb.indices[i].m_Offset += iOffset;
+
+            m_VertexBuffers[req.id] = ivb;
+
             verts.insert(verts.end(), req.vertices.begin(), req.vertices.end());
             idxs.insert(idxs.end(), req.indices.begin(), req.indices.end());
-            bvs.push_back(req.boundingVolume);
             vtxAllocSize += static_cast<uint32_t>(req.vertices.size() * sizeof(Vertex));
             idxAllocSize += static_cast<uint32_t>(req.indices.size() * sizeof(uint32_t));
-            bvAllocSize += static_cast<uint32_t>(sizeof(BoundingVolumeSphere));
 
-            m_VertexBuffers[req.id] = { idxSub, vtxSub };
+            MeshData md;
+            md.boundingVolume = req.boundingVolume;
+            md.vertexOffset = vOffset;
+            for (auto i = 0; i < kMaxLODCount; i++)
+            {
+                md.LODData[i].firstIndex = ivb.indices[i].GetOffset();
+                md.LODData[i].indexCount = ivb.indices[i].GetCount();
+            }
+            mds.emplace_back(md);
+            mdAllocSize += static_cast<uint32_t>(sizeof(MeshData));
         }
 
-        // i shouldnt have to pass these
+        // TODO LOD: i shouldnt have to pass these
         const auto usageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
         const auto memoryFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
@@ -352,8 +374,8 @@ namespace imp
         UploadVulkanBuffer(usageFlags, memoryFlags, m_IndexBuffer, cb, idxAllocSize, idxs.data());
 
         // upload BVs
-        assert(bvAllocSize);
-        UploadVulkanBuffer(usageFlags, memoryFlags, m_ShaderManager.GetBoundingVolumeBuffer(), cb, bvAllocSize, bvs.data());
+        assert(mdAllocSize);
+        UploadVulkanBuffer(usageFlags, memoryFlags, m_ShaderManager.GetMeshDataBuffer(), cb, mdAllocSize, mds.data());
 
         cb.End();
 

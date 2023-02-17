@@ -236,7 +236,7 @@ namespace imp
 		m_Entities.emplace<Comp::Transform>(previewCamera, glm::translate(defaultCameraTransform, glm::vec3(0.0f, 0.0f, 100.0f)));
 		m_Entities.emplace<Comp::Camera>(previewCamera, proj, glm::mat4x4(), kCamOutColor, true, true, false);
 
-		//AddDemoEntity(9999);
+		//AddDemoEntity(2);
 		AddDemoEntity(kMaxDrawCount - 1);
 	}
 
@@ -339,12 +339,8 @@ namespace imp
 
 	inline void GenerateIndirectDrawCommand(IGPUBuffer& dstBuffer, const Comp::IndexedVertexBuffers& meshData, uint32_t meshId)
 	{
-		IndirectDrawCmd cmd = {};
-		cmd.indexCount = meshData.indices.GetCount();
-		cmd.instanceCount = 1;
-		cmd.firstIndex = meshData.indices.GetOffset();
-		cmd.vertexOffset = meshData.vertices.GetOffset();
-		cmd.boundingVolumeIndex = meshId; // mesh id can be used to find BV
+		IndirectDrawCmd cmd;
+		cmd.meshDataIndex = meshId;
 		dstBuffer.push_back(&cmd, sizeof(IndirectDrawCmd));
 	}
 

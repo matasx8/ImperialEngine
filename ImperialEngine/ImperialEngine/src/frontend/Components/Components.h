@@ -2,6 +2,7 @@
 #include <GLM/mat4x4.hpp>
 #include <ENTT/entt.hpp>
 #include "backend/VulkanBuffer.h"
+#include "backend/VariousTypeDefinitions.h"
 
 enum CameraOutput : uint32_t
 {
@@ -49,7 +50,7 @@ namespace Comp
 
 	struct IndexedVertexBuffers
 	{
-		imp::VulkanSubBuffer indices;
 		imp::VulkanSubBuffer vertices;
+		imp::VulkanSubBuffer indices[imp::kMaxLODCount];
 	};
 }

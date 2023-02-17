@@ -7,10 +7,26 @@
 
 namespace imp
 {
+	inline constexpr uint32_t kMaxLODCount = 4;
+
 	struct BoundingVolumeSphere
 	{
 		glm::vec3 center;
 		float diameter;
+	};
+
+	struct MeshLOD
+	{
+		uint32_t indexCount;
+		uint32_t firstIndex;
+	};
+
+	struct alignas(16) MeshData
+	{
+		MeshLOD LODData[kMaxLODCount];
+		BoundingVolumeSphere boundingVolume;
+		int32_t     vertexOffset;
+		int32_t     pad;
 	};
 
 	struct Vertex
@@ -39,14 +55,7 @@ namespace imp
 
 	struct IndirectDrawCmd
 	{
-		// VkDrawIndexedIndirectCommand:
-		uint32_t    indexCount;
-		uint32_t    instanceCount;
-		uint32_t    firstIndex;
-		int32_t     vertexOffset;
-		uint32_t    firstInstance;
-		// custom:
-		uint32_t	boundingVolumeIndex; // index to bounding volume descriptor
+		uint32_t	meshDataIndex;
 	};
 
 	struct MeshCreationRequest

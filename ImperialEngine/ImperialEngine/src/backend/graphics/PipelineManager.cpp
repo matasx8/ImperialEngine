@@ -82,7 +82,7 @@ namespace imp
 		std::vector<VkDescriptorSetLayout> dsetLayouts = { config.descriptorSetLayout, config.descriptorSetLayout2 };
 
 		VkPushConstantRange pushRange;
-		pushRange.size = sizeof(glm::vec4) * 6 + sizeof(uint32_t) + sizeof(uint32_t);
+		pushRange.size = sizeof(glm::vec4) * 6 + sizeof(uint32_t);
 		pushRange.offset = 0;
 		pushRange.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 
