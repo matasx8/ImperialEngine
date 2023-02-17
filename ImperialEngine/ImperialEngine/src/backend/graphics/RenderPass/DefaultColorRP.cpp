@@ -1,5 +1,6 @@
 #include "DefaultColorRP.h"
 #include "backend/graphics/Graphics.h"
+#include "Utils/GfxUtilities.h"
 #include "GLM/gtc/matrix_transform.hpp"
 
 namespace imp
@@ -31,6 +32,8 @@ namespace imp
 
 		const auto& renderMode = gfx.GetGraphicsSettings().renderMode;
 
+		const auto vp = gfx.m_MainCamera.Projection * gfx.m_MainCamera.View;
+
 		if (renderMode == kEngineRenderModeTraditional)
 		{
 			AUTO_TIMER("[CPU DRAWS]: ");
@@ -39,8 +42,10 @@ namespace imp
 			{
 				gfx.PushConstants(cb, &drawIndex, sizeof(uint32_t), pipe.GetPipelineLayout());
 
+				uint32_t lodIdx = utils::ChooseMeshLODByNearPlaneDistance(drawData.Transform, gfx.m_BVs[drawData.VertexBufferId], vp);
+
 				const auto& mesh = gfx.m_VertexBuffers.at(drawData.VertexBufferId);
-				//vkCmdDrawIndexed(cb, mesh.indices.GetCount(), 1, mesh.indices.GetOffset(), mesh.vertices.GetOffset(), 0);
+				vkCmdDrawIndexed(cb, mesh.indices[lodIdx].GetCount(), 1, mesh.indices[lodIdx].GetOffset(), mesh.vertices.GetOffset(), 0);
 				drawIndex++;
 			}
 		}

@@ -146,6 +146,8 @@ namespace imp
 	public:
 		std::unordered_map<uint32_t, Comp::IndexedVertexBuffers> m_VertexBuffers;
 
+		std::unordered_map<uint32_t, BoundingVolumeSphere> m_BVs;
+
 		// TODO: remove this section and replace with some API
 
 		std::vector<DrawDataSingle> m_DrawData;

@@ -12,7 +12,7 @@
 namespace imp
 {
 	Engine::Engine()
-		: m_Entities(), m_DrawDataDirty(false), m_Q(nullptr), m_Worker(nullptr), m_SyncPoint(nullptr), m_EngineSettings(), m_Window(), m_UI(), m_Gfx(), m_CulledDrawData(), m_BVs(), m_AssetImporter(*this)
+		: m_Entities(), m_DrawDataDirty(false), m_Q(nullptr), m_Worker(nullptr), m_SyncPoint(nullptr), m_EngineSettings(), m_Window(), m_UI(), m_Gfx(), m_CulledDrawData()/*, m_BVs()*/, m_AssetImporter(*this)
 	{
 	}
 
@@ -236,7 +236,7 @@ namespace imp
 		m_Entities.emplace<Comp::Transform>(previewCamera, glm::translate(defaultCameraTransform, glm::vec3(0.0f, 0.0f, 100.0f)));
 		m_Entities.emplace<Comp::Camera>(previewCamera, proj, glm::mat4x4(), kCamOutColor, true, true, false);
 
-		//AddDemoEntity(2);
+		//AddDemoEntity(999);
 		AddDemoEntity(kMaxDrawCount - 1);
 	}
 
@@ -312,7 +312,7 @@ namespace imp
 			const auto& mesh = renderableChildren.get<Comp::Mesh>(ent);
 			const auto& parent = renderableChildren.get<Comp::ChildComponent>(ent).parent;
 			const auto& transform = transforms.get<Comp::Transform>(parent);
-			const auto& BV = m_BVs.at(mesh.meshId);
+			const auto& BV = m_Gfx.m_BVs.at(mesh.meshId);
 
 			glm::vec4 mCenter = glm::vec4(BV.center, 1.0f);
 			glm::vec4 wCenter = transform.transform * glm::vec4(BV.center, 1.0f);

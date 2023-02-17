@@ -105,6 +105,20 @@ namespace imp
 			return bmb;
 		}
 
+		uint32_t ChooseMeshLODByNearPlaneDistance(const glm::mat4x4& mTransform, const BoundingVolumeSphere& bv, const glm::mat4x4 vpTransform)
+		{
+			uint32_t idx = 0;
+			const auto hPos = vpTransform * mTransform * glm::vec4(bv.center, 1.0f);
+			
+			if (hPos.z - bv.diameter >= 250)
+				idx = 3;
+			else if (hPos.z - bv.diameter >= 100)
+				idx = 2;
+			else if (hPos.z - bv.diameter >= 25)
+				idx = 1;
+			return idx;
+		}
+
 		void GenerateMeshLODS(const std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, VulkanSubBuffer* dstSubBuffers, uint32_t numLODs, double factor, float error)
 		{
 			const auto FillRestOfBuffers = [&](size_t currIndexBuffOffset, uint32_t idx, uint32_t newIndexCount)

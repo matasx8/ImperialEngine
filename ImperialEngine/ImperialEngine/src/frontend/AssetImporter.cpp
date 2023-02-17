@@ -104,7 +104,7 @@ namespace imp
 
 				// TODO acceleration-part-1: create BV once
 				const auto BV = utils::FindSphereBoundingVolume(req.vertices.data(), req.vertices.size());
-				m_Engine.m_BVs[temporaryMeshCounter] = BV;
+				m_Engine.m_Gfx.m_BVs[temporaryMeshCounter] = BV;
 
 				// this counter can be used to identify the mesh or BV
 				req.id = static_cast<uint32_t>(temporaryMeshCounter);
