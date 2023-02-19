@@ -40,6 +40,7 @@ namespace imp
 	{
 		glm::mat4x4 Transform;
 		uint32_t VertexBufferId;
+		uint32_t LodIdx;
 	};
 
 	struct CameraData

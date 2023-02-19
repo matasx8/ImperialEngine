@@ -53,8 +53,6 @@ namespace imp
 		m_Window.UpdateImGUI();
 		m_Window.Update();
 		UpdateRegistry();
-	    //MarkDrawDataDirty();
-		//AddDemoEntity(1000);
 
 		if (m_EngineSettings.gfxSettings.renderMode == kEngineRenderModeTraditional)
 		{
@@ -330,7 +328,9 @@ namespace imp
 			
 			if (isVisible)
 			{
-				m_CulledDrawData.emplace_back(transform.transform, mesh.meshId);
+				auto lodIdx = utils::ChooseMeshLODByNearPlaneDistance(transform.transform, BV, VP);
+
+				m_CulledDrawData.emplace_back(transform.transform, mesh.meshId, lodIdx);
 			}
 		}
 

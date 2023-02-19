@@ -105,7 +105,7 @@ namespace imp
 			return bmb;
 		}
 
-		uint32_t ChooseMeshLODByNearPlaneDistance(const glm::mat4x4& mTransform, const BoundingVolumeSphere& bv, const glm::mat4x4 vpTransform)
+		uint32_t ChooseMeshLODByNearPlaneDistance(const glm::mat4x4& mTransform, const BoundingVolumeSphere& bv, const glm::mat4x4& vpTransform)
 		{
 			uint32_t idx = 0;
 			const auto hPos = vpTransform * mTransform * glm::vec4(bv.center, 1.0f);

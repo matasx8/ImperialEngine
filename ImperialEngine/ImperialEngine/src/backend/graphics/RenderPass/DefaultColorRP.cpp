@@ -42,7 +42,7 @@ namespace imp
 			{
 				gfx.PushConstants(cb, &drawIndex, sizeof(uint32_t), pipe.GetPipelineLayout());
 
-				uint32_t lodIdx = utils::ChooseMeshLODByNearPlaneDistance(drawData.Transform, gfx.m_BVs[drawData.VertexBufferId], vp);
+				const auto lodIdx = drawData.LodIdx;
 
 				const auto& mesh = gfx.m_VertexBuffers.at(drawData.VertexBufferId);
 				vkCmdDrawIndexed(cb, mesh.indices[lodIdx].GetCount(), 1, mesh.indices[lodIdx].GetOffset(), mesh.vertices.GetOffset(), 0);
@@ -71,7 +71,5 @@ namespace imp
 			ourSemaphores.push_back(Semaphore(sem));
 
 		gfx.m_CbManager.SubmitInternal(cmb, ourSemaphores); // should provide semaphores here
-		// also add semaphore?
-		//std::for_each(m_Surfaces.begin(), m_Surfaces.end(), [&](Surface& surf) {surf.AddSemaphore(synchs.semaphore.semaphore); });
 	}
 }
