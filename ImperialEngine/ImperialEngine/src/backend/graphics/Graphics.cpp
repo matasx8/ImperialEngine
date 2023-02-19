@@ -155,7 +155,7 @@ namespace imp
 
     void Graphics::Cull()
     {
-        const auto dispatchCount = (m_NumDraws + 255) / 256;
+        const auto dispatchCount = (m_NumDraws + 65) / 64;
 
         // TODO nice-to-have: make the interface for getting shaders better. At least make
         // shader manager return the configs immediately
