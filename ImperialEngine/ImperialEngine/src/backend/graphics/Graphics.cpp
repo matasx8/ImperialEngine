@@ -566,9 +566,13 @@ namespace imp
         features12.drawIndirectCount = true;
         features12.descriptorBindingPartiallyBound = true;
         features12.runtimeDescriptorArray = true;
-        features12.descriptorBindingUpdateUnusedWhilePending = true;
-        features12.descriptorBindingUniformBufferUpdateAfterBind = true;
-        features12.descriptorBindingStorageBufferUpdateAfterBind = true;
+        // Currently we're not using these so avoid enabling these features.
+        // e.g. my laptop does not support these.
+        // TODO nice-to-have: provide at least some basic errors for when features are not supported 
+        // and some basic fallbacks (e.g. mesh shading not supported so fallback to gpu driven regular)
+        //features12.descriptorBindingUpdateUnusedWhilePending = true;
+        //features12.descriptorBindingUniformBufferUpdateAfterBind = true;
+        //features12.descriptorBindingStorageBufferUpdateAfterBind = true;
         features12.descriptorBindingVariableDescriptorCount = true;
         features12.timelineSemaphore = true;
 
