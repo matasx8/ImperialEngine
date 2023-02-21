@@ -234,8 +234,8 @@ namespace imp
 		m_Entities.emplace<Comp::Transform>(previewCamera, glm::translate(defaultCameraTransform, glm::vec3(0.0f, 0.0f, 100.0f)));
 		m_Entities.emplace<Comp::Camera>(previewCamera, proj, glm::mat4x4(), kCamOutColor, true, true, false);
 
-		//AddDemoEntity(999);
-		AddDemoEntity(kMaxDrawCount - 1);
+		AddDemoEntity(999);
+		//AddDemoEntity(kMaxDrawCount - 1);
 	}
 
 	void Engine::RenderCameras()

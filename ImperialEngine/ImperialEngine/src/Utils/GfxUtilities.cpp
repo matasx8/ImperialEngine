@@ -148,6 +148,8 @@ namespace imp
 					break;
 				}
 
+				meshopt_optimizeVertexCache(dst, dst, newIndexCount, vertices.size());
+
 				currIndexBuffOffset = indices.size();
 
 				dstSubBuffers[i] = VulkanSubBuffer(currIndexBuffOffset, (uint32_t)newIndexCount);
@@ -160,6 +162,13 @@ namespace imp
 			}
 
 			delete[] dst;
+		}
+
+		void OptimizeMesh(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices)
+		{
+			meshopt_optimizeVertexCache(indices.data(), indices.data(), indices.size(), vertices.size());
+
+			meshopt_optimizeVertexFetch(vertices.data(), indices.data(), indices.size(), vertices.data(), vertices.size(), sizeof(Vertex));
 		}
 	}
 }

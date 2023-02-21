@@ -329,6 +329,8 @@ namespace imp
             const auto vOffset = verts.size() + vertBufferOffset;
             const auto iOffset = idxs.size() + indBufferOffset;
 
+            utils::OptimizeMesh(req.vertices, req.indices);
+
             // These subbuffers will be used to index and offset into the one bound Vertex and Index buffer
             VulkanSubBuffer vtxSub = VulkanSubBuffer(vOffset, static_cast<uint32_t>(req.vertices.size()));
             VulkanSubBuffer idxSub = VulkanSubBuffer(0, static_cast<uint32_t>(req.indices.size()));
