@@ -33,14 +33,13 @@ namespace imp
 
 		void DoTransfers(bool releaseAll);
 		void UpdateDrawCommands();
-		void GraphicsQueueStart();
 		void Cull();
 		void StartFrame();
 		void RenderCameras();
 		void RenderImGUI();
 		void EndFrame();
 
-		void CreateAndUploadMeshes(const std::vector<MeshCreationRequest>& meshCreationData);
+		void CreateAndUploadMeshes(std::vector<MeshCreationRequest>& meshCreationData);
 		void CreateAndUploadMaterials(const std::vector<MaterialCreationRequest>& materialCreationData);
 		void CreateComputePrograms(const std::vector<ComputeProgramCreationRequest>& computeProgramRequests);
 
@@ -135,7 +134,6 @@ namespace imp
 		VulkanBuffer m_MeshBuffer;
 		VulkanBuffer m_DrawBuffer;
 		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_StagingDrawBuffer;
-		//std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_StagingDrawDataBuffer;
 		VulkanBuffer m_BoundingVolumeBuffer;
 		uint32_t m_NumDraws;
 
@@ -146,6 +144,8 @@ namespace imp
 
 	public:
 		std::unordered_map<uint32_t, Comp::IndexedVertexBuffers> m_VertexBuffers;
+
+		std::unordered_map<uint32_t, BoundingVolumeSphere> m_BVs;
 
 		// TODO: remove this section and replace with some API
 

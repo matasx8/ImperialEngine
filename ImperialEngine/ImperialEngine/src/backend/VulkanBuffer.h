@@ -61,8 +61,6 @@ namespace imp
 
 		void Destroy(VkDevice device) override;
 
-	private:
-		// make this into struct so we can safely add more members
 		uint32_t m_Offset;
 		uint32_t m_Count;
 	};

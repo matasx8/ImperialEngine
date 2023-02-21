@@ -1,4 +1,5 @@
 #include "GfxUtilities.h"
+#include "extern/MESHOPTIMIZER/meshoptimizer.h"
 #include <GLM/gtc/matrix_access.hpp>
 
 namespace imp
@@ -102,6 +103,72 @@ namespace imp
 			bmb.offset = offset;
 			bmb.size = size;
 			return bmb;
+		}
+
+		uint32_t ChooseMeshLODByNearPlaneDistance(const glm::mat4x4& mTransform, const BoundingVolumeSphere& bv, const glm::mat4x4& vpTransform)
+		{
+			uint32_t idx = 0;
+			const auto hPos = vpTransform * mTransform * glm::vec4(bv.center, 1.0f);
+			
+			if (hPos.z - bv.diameter >= 250)
+				idx = 3;
+			else if (hPos.z - bv.diameter >= 100)
+				idx = 2;
+			else if (hPos.z - bv.diameter >= 25)
+				idx = 1;
+			return idx;
+		}
+
+		void GenerateMeshLODS(const std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, VulkanSubBuffer* dstSubBuffers, uint32_t numLODs, double factor, float error)
+		{
+			const auto FillRestOfBuffers = [&](size_t currIndexBuffOffset, uint32_t idx, uint32_t newIndexCount)
+			{
+				for (auto i = idx; i < numLODs; i++)
+				{
+					dstSubBuffers[i] = VulkanSubBuffer(currIndexBuffOffset, newIndexCount);
+				}
+			};
+
+			const uint32_t* currIndices = indices.data();
+			size_t currIndexCount = indices.size();
+			size_t currIndexBuffOffset = 0;
+			uint32_t* dst = new uint32_t[currIndexCount];
+
+			for (uint32_t i = 0; i < numLODs; i++)
+			{
+				size_t indicesTarget = (size_t)((double)currIndexCount * factor);
+				float err;
+				size_t newIndexCount = meshopt_simplify(dst, currIndices, currIndexCount, (float*)(&vertices.front().pos), vertices.size(), sizeof(Vertex), indicesTarget, error, 0, &err);
+
+				// Didn't change the number of indices, means won't go anymore.
+				// Setting rest of LODs to last successful
+				if (newIndexCount == currIndexCount)
+				{
+					FillRestOfBuffers(currIndexBuffOffset, i, (uint32_t)newIndexCount);
+					break;
+				}
+
+				meshopt_optimizeVertexCache(dst, dst, newIndexCount, vertices.size());
+
+				currIndexBuffOffset = indices.size();
+
+				dstSubBuffers[i] = VulkanSubBuffer(currIndexBuffOffset, (uint32_t)newIndexCount);
+
+				for (auto j = 0; j < newIndexCount; j++)
+					indices.emplace_back(dst[j]);
+
+				currIndices = &indices[currIndexBuffOffset];
+				currIndexCount = newIndexCount;
+			}
+
+			delete[] dst;
+		}
+
+		void OptimizeMesh(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices)
+		{
+			meshopt_optimizeVertexCache(indices.data(), indices.data(), indices.size(), vertices.size());
+
+			meshopt_optimizeVertexFetch(vertices.data(), indices.data(), indices.size(), vertices.data(), vertices.size(), sizeof(Vertex));
 		}
 	}
 }

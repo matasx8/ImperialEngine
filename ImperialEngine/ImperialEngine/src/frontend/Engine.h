@@ -101,7 +101,7 @@ namespace imp
 		Graphics m_Gfx;
 		// Used as a "staging" buffer for CPU VF culling
 		std::vector<DrawDataSingle> m_CulledDrawData;
-		std::unordered_map<uint32_t, BoundingVolumeSphere> m_BVs;
+
 
 		// asset stuff
 		friend class AssetImporter;

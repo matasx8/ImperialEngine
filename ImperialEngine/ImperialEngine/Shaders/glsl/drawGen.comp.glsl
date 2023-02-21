@@ -2,11 +2,8 @@
 #extension GL_EXT_nonuniform_qualifier : require
 #extension GL_GOOGLE_include_directive: require
 
-layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
-// actual indirect draw command that command processor will use
-// VkDrawIndexedIndirectCommand
-// write to
 struct IndirectDrawCommand
 {
     uint    indexCount;
@@ -16,17 +13,29 @@ struct IndirectDrawCommand
     uint    firstInstance;
 };
 
-// read from
 struct IndirectDraw
 {
-    IndirectDrawCommand idc;
-    uint    BVIndex;        // index to binding volume descriptor
+    uint meshDataIndex;
 };
 
 struct BoundingVolume
 {
     vec3 center;
     float diameter;
+};
+
+struct MeshLOD
+{
+	uint indexCount;
+	uint firstIndex;
+};
+
+struct MeshData
+{
+	MeshLOD LODData[4];
+	BoundingVolume boundingVolume;
+	int     vertexOffset;
+	int     pad;
 };
 
 #include "DescriptorSet0.h"
@@ -41,9 +50,9 @@ layout(set = 1, binding = 1) writeonly buffer DrawCommands
 	IndirectDrawCommand drawsDst[];
 };
 
-layout(set = 1, binding = 2) readonly buffer BoundingVolumes
+layout(set = 1, binding = 2) readonly buffer MeshDatas
 {
-    BoundingVolume bv[];
+    MeshData md[];
 };
 
 layout(set = 1, binding = 3) buffer DrawCommandCount
@@ -57,22 +66,39 @@ layout(push_constant) uniform ViewFrustum
     uint numDraws;
 };
 
+float distFromCamera = 0.0;
+
 void copy_draw_command(uint idx, uint newIdx)
 {
     drawDataIndices[newIdx] = idx;
-    drawsDst[newIdx].indexCount    = drawsSrc[idx].idc.indexCount;
-    drawsDst[newIdx].instanceCount = drawsSrc[idx].idc.instanceCount;
-    drawsDst[newIdx].firstIndex    = drawsSrc[idx].idc.firstIndex;
-    drawsDst[newIdx].vertexOffset  = drawsSrc[idx].idc.vertexOffset;
-    drawsDst[newIdx].firstInstance = drawsSrc[idx].idc.firstInstance;
+
+    MeshData meshdata = md[drawsSrc[idx].meshDataIndex];
+
+    uint lodIdx = 0;
+    if(distFromCamera >= 250)
+        lodIdx = 3;
+    else if(distFromCamera >= 100)
+        lodIdx = 2;
+    else if(distFromCamera >= 25)
+        lodIdx = 1;
+
+    MeshLOD lod = meshdata.LODData[lodIdx];
+
+    drawsDst[newIdx].indexCount    = lod.indexCount;
+    drawsDst[newIdx].instanceCount = 1;
+    drawsDst[newIdx].firstIndex    = lod.firstIndex;
+    drawsDst[newIdx].vertexOffset  = meshdata.vertexOffset;
+    drawsDst[newIdx].firstInstance = 0;
 }
 
 bool is_inside_view_frustum(uint idx)
 {
-    vec4 mCenter = vec4(bv[drawsSrc[idx].BVIndex].center, 1.0); // BV center in Model space
+    BoundingVolume bv = md[drawsSrc[idx].meshDataIndex].boundingVolume;
+
+    vec4 mCenter = vec4(bv.center, 1.0); // BV center in Model space
     vec4 wCenter = drawData[idx].Transform * mCenter;           // BV center in World space
 
-    float diameter = bv[drawsSrc[idx].BVIndex].diameter;
+    float diameter = bv.diameter;
 
     for (int i = 0; i < 6; i++)
     {
@@ -85,13 +111,17 @@ bool is_inside_view_frustum(uint idx)
         // If it's less than 0 + (-diameter) then BV is outside VF
         if(signedDistance < -diameter)
             return false;
+        
+        // Temporary solution to saving distance from near plane for LOD picking
+        if(i == 4)
+            distFromCamera = signedDistance - diameter;
     }
     return true;
 }
 
 void main()
 {
-	uint drawIdx = gl_WorkGroupID.x * 32 + gl_LocalInvocationID.x;
+	uint drawIdx = gl_WorkGroupID.x * 64 + gl_LocalInvocationID.x;
 
     if(drawIdx >= numDraws)
         return;

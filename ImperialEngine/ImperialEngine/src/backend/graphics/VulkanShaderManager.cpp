@@ -13,7 +13,7 @@ namespace imp
 		m_DrawDataIndices(),
 		m_DrawDataBuffers(),
 		m_DrawCommands(),
-		m_BoundingVolumes(),
+		m_MeshData(),
 		m_DrawCommandCount(),
 		m_DescriptorSets(),
 		m_ComputeDescriptorSets(),
@@ -28,9 +28,9 @@ namespace imp
 		static constexpr uint32_t kMaterialBufferSize = sizeof(ShaderDrawData) * kMaterialBufferBindCount;
 		static constexpr uint32_t kDrawDataIndicesBufferSize = sizeof(uint32_t) * kMaxDrawCount;
 		static constexpr uint32_t kDrawDataBufferSize = sizeof(ShaderDrawData) * kMaxDrawCount;
-		static constexpr uint32_t kHostDrawCommandBufferSize = sizeof(IndirectDrawCmd) * (kMaxDrawCount + 31);
-		static constexpr uint32_t kDrawCommandBufferSize = sizeof(VkDrawIndexedIndirectCommand) * (kMaxDrawCount + 31);
-		static constexpr uint32_t kBoundingVolumeBufferSize = sizeof(BoundingVolumeSphere) * kMaxMeshCount;
+		static constexpr uint32_t kHostDrawCommandBufferSize = sizeof(IndirectDrawCmd) * kMaxDrawCount;
+		static constexpr uint32_t kDrawCommandBufferSize = sizeof(VkDrawIndexedIndirectCommand) * kMaxDrawCount;
+		static constexpr uint32_t kMeshDataBufferSize = sizeof(MeshData) * kMaxMeshCount;
 		static constexpr uint32_t kDrawCommandCountBufferSize = sizeof(uint32_t);
 		static constexpr auto kHostVisisbleCoherentFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
@@ -58,9 +58,9 @@ namespace imp
 
 		// also compute data:
 		m_DrawCommands = memory.GetBuffer(device, kHostDrawCommandBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memProps);
-		m_BoundingVolumes = memory.GetBuffer(device, kBoundingVolumeBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memProps);
+		m_MeshData = memory.GetBuffer(device, kMeshDataBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memProps);
 		m_DrawCommandCount = memory.GetBuffer(device, kDrawCommandCountBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memProps);
-		deviceMemUsed += kBoundingVolumeBufferSize + kDrawDataIndicesBufferSize + kDrawCommandCountBufferSize;
+		deviceMemUsed += kMeshDataBufferSize + kDrawDataIndicesBufferSize + kDrawCommandCountBufferSize;
 
 		CreateMegaDescriptorSets(device);
 
@@ -71,7 +71,7 @@ namespace imp
 
 		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawCommands, kHostDrawCommandBufferSize, 0, 1, kEngineSwapchainExclusiveMax - 1);
 		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, drawCommands, kDrawCommandBufferSize, 1, 1, kEngineSwapchainExclusiveMax - 1);
-		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_BoundingVolumes, kBoundingVolumeBufferSize, 2, 1, kEngineSwapchainExclusiveMax - 1);
+		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MeshData, kMeshDataBufferSize, 2, 1, kEngineSwapchainExclusiveMax - 1);
 		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawCommandCount, kDrawCommandCountBufferSize, 3, 1, kEngineSwapchainExclusiveMax - 1);
 
 		CreateDefaultMaterial(device);
@@ -117,9 +117,9 @@ namespace imp
 		return m_DrawDataIndices;
 	}
 
-	VulkanBuffer& VulkanShaderManager::GetBoundingVolumeBuffer()
+	VulkanBuffer& VulkanShaderManager::GetMeshDataBuffer()
 	{
-		return m_BoundingVolumes;
+		return m_MeshData;
 	}
 
 	VulkanBuffer& VulkanShaderManager::GetDrawCommandCountBuffer()

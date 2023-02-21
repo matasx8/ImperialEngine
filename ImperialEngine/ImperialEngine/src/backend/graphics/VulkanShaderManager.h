@@ -14,7 +14,7 @@ namespace imp
 {
 	inline constexpr uint32_t kBindingCount					= 4;
 	inline constexpr uint32_t kMaxMaterialCount				= 128;
-	inline constexpr uint32_t kMaxDrawCount					= 1'048'576; //Should be upper bound, lets see what happens with 2
+	inline constexpr uint32_t kMaxDrawCount					= 1'048'000; //Should be upper bound, lets see what happens with 2
 	inline constexpr uint32_t kMaxMeshCount					= kMaxDrawCount;
 	inline constexpr uint32_t kGlobalBufferBindingSlot		= 0;
 	inline constexpr uint32_t kGlobalBufferBindCount		= 1;
@@ -64,7 +64,7 @@ namespace imp
 		VulkanBuffer& GetDrawDataBuffers(uint32_t idx);
 		VulkanBuffer& GetDrawCommandBuffer();
 		VulkanBuffer& GetDrawDataIndicesBuffer();
-		VulkanBuffer& GetBoundingVolumeBuffer();
+		VulkanBuffer& GetMeshDataBuffer();
 		VulkanBuffer& GetDrawCommandCountBuffer();
 
 		void CreateVulkanShaderSet(VkDevice device, const MaterialCreationRequest& req);
@@ -99,7 +99,7 @@ namespace imp
 		// compute
 		//std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_DrawCommands;
 		VulkanBuffer m_DrawCommands; // out custom draw commands
-		VulkanBuffer m_BoundingVolumes;
+		VulkanBuffer m_MeshData;
 		VulkanBuffer m_DrawCommandCount;
 
 		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_DescriptorSets;
