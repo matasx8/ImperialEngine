@@ -44,18 +44,6 @@ imp::QueueFamilyIndices imp::GraphicsCaps::GetQueueFamilies(VkPhysicalDevice dev
     std::vector<VkQueueFamilyProperties> queueFamilyList(queueFamilyCount);
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilyList.data());
 
-    for (const auto& fam : queueFamilyList)
-    {
-        bool gfx = fam.queueFlags & VK_QUEUE_GRAPHICS_BIT;
-        bool com = fam.queueFlags & VK_QUEUE_COMPUTE_BIT;
-        bool tra = fam.queueFlags & VK_QUEUE_TRANSFER_BIT;
-        bool spa = fam.queueFlags & VK_QUEUE_SPARSE_BINDING_BIT;
-        bool pro = fam.queueFlags & VK_QUEUE_PROTECTED_BIT;
-        bool dec = fam.queueFlags & 0x20;
-        bool enc = fam.queueFlags & 0x40;
-        bool flo = fam.queueFlags & VK_QUEUE_OPTICAL_FLOW_BIT_NV;
-    }
-
     indices.transferFamily = GetDesiredQueue(queueFamilyList, VK_QUEUE_TRANSFER_BIT, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT);
     indices.graphicsFamily = GetDesiredQueue(queueFamilyList, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0);
     
