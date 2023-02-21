@@ -11,6 +11,7 @@ Vulkan real-time rendering engine named after my cat Marcus Aurelius
 * GPU-driven Rendering
 * View Frustum Culling
 * Async Transfer Queue
+* Simple automatic Mesh LOD system based on distance from camera
 
 ## How to Build and Run
 * Must have VS22, Vulkan SDK, C++ 20
