@@ -82,7 +82,7 @@ namespace imp
         CreateRenderPassGenerator();
 
         InitializeVulkanMemory();
-        m_ShaderManager.Initialize(m_LogicalDevice, m_MemoryManager, m_Settings, m_DeviceMemoryProps, m_DrawBuffer);
+        m_ShaderManager.Initialize(m_LogicalDevice, m_MemoryManager, m_Settings, m_DeviceMemoryProps, m_DrawBuffer, m_VertexBuffer);
 
         // Until we haven't made custom vulkan backend for imgui we can't fully have dynamic RenderPassGenerator
         // since CreateImGUI needs a renderpass
@@ -118,11 +118,6 @@ namespace imp
         // So when next queue uses these resources it will take its semaphore and wait on it.
         m_TransferCbManager.SubmitToTransferQueue(m_TransferQueue, m_LogicalDevice, m_CurrentFrame);
     }
-
-    // TODO ST-BUG:
-    // This doesn't work when going in ST because I'm using this bool as a hack to
-    // upload the first data to DrawBuffer. When I remove this ST should work.
-    static bool FirstFrame = true;
 
     void Graphics::UpdateDrawCommands()
     {
@@ -570,12 +565,17 @@ namespace imp
         // e.g. my laptop does not support these.
         // TODO nice-to-have: provide at least some basic errors for when features are not supported 
         // and some basic fallbacks (e.g. mesh shading not supported so fallback to gpu driven regular)
-        //features12.descriptorBindingUpdateUnusedWhilePending = true;
-        //features12.descriptorBindingUniformBufferUpdateAfterBind = true;
-        //features12.descriptorBindingStorageBufferUpdateAfterBind = true;
+        // TODO mesh: properly disable these
+        features12.descriptorBindingUpdateUnusedWhilePending = true;
+        features12.descriptorBindingUniformBufferUpdateAfterBind = true;
+        features12.descriptorBindingStorageBufferUpdateAfterBind = true;
         features12.descriptorBindingVariableDescriptorCount = true;
         features12.timelineSemaphore = true;
+        
+        VkPhysicalDeviceMeshShaderFeaturesNV featuresMesh = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV };
+        featuresMesh.meshShader = true;
 
+        features12.pNext = &featuresMesh;
         drawParamsFeature.pNext = &features12;
         physical_features2.pNext = &drawParamsFeature;
         dci.pNext = &physical_features2;
@@ -719,7 +719,7 @@ namespace imp
         static constexpr VkDeviceSize stagingDrawSize = sizeof(IndirectDrawCmd) * (kMaxDrawCount + 31);
         //static constexpr VkDeviceSize stagingDrawDataSize = sizeof(DrawDataSingle) * kMaxDrawCount;
 
-        m_VertexBuffer          = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
+        m_VertexBuffer          = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
         m_IndexBuffer           = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
         m_MeshBuffer            = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
         m_DrawBuffer            = m_MemoryManager.GetBuffer(m_LogicalDevice, drawAllocSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);

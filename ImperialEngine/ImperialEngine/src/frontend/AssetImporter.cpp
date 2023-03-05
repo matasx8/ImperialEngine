@@ -8,6 +8,7 @@
 #include <extern/ASSIMP/scene.h>
 #include <extern/ASSIMP/postprocess.h>
 #include <extern/GLM/mat4x4.hpp>
+#include <MESHOPTIMIZER/meshoptimizer.h>
 
 namespace imp
 {
@@ -134,22 +135,31 @@ namespace imp
 			//resize vertex list to hold all vertices for mesh
 			req.vertices.resize(mesh->mNumVertices);
 
+			static_assert(sizeof(Vertex) == 24);
+
 			for (size_t j = 0; j < mesh->mNumVertices; j++)
 			{
 				// set position
-				req.vertices[j].pos = { mesh->mVertices[j].x, mesh->mVertices[j].y, mesh->mVertices[j].z };
+				req.vertices[j].vx = mesh->mVertices[j].x;
+				req.vertices[j].vy = mesh->mVertices[j].y;
+				req.vertices[j].vz = mesh->mVertices[j].z;
 
 				// set tex coords (if they exist)
 				if (mesh->mTextureCoords[0])
 				{
-					req.vertices[j].tex = { mesh->mTextureCoords[0][j].x, mesh->mTextureCoords[0][j].y };
+					req.vertices[j].tu = meshopt_quantizeHalf(mesh->mTextureCoords[0][j].x);
+					req.vertices[j].tv = meshopt_quantizeHalf(mesh->mTextureCoords[0][j].y);
 				}
 				else
 				{
-					req.vertices[j].tex = { 0.0f, 0.0f };
-				}
+					req.vertices[j].tu = 0;
+				 	req.vertices[j].tv = 0;
+				}	
 
-				req.vertices[j].norm = { mesh->mNormals[j].x, mesh->mNormals[j].y, mesh->mNormals[j].z };
+				req.vertices[j].nx = meshopt_quantizeHalf(mesh->mNormals[j].x);
+				req.vertices[j].ny = meshopt_quantizeHalf(mesh->mNormals[j].y);
+				req.vertices[j].nz = meshopt_quantizeHalf(mesh->mNormals[j].z);
+				req.vertices[j].nw = 0;
 			}
 
 			// iterate over indices through faces and copy across

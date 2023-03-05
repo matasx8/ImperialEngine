@@ -122,11 +122,11 @@ namespace imp
 	}
 	std::vector<VkVertexInputAttributeDescription> PipelineManager::MakeVertexAttrDescs() const
 	{
-		constexpr int inputAttributes = 3;
+		constexpr int inputAttributes = 0;
 		std::vector<VkVertexInputAttributeDescription> descs(inputAttributes);
-		descs[0] = MakeVertexAttrDesc(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos));
-		descs[1] = MakeVertexAttrDesc(0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, norm));
-		descs[2] = MakeVertexAttrDesc(0, 2, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, tex));
+		//descs[0] = MakeVertexAttrDesc(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos));
+		//descs[1] = MakeVertexAttrDesc(0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, norm));
+		//descs[2] = MakeVertexAttrDesc(0, 2, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, tex));
 		return descs;
 	}
 
@@ -144,10 +144,10 @@ namespace imp
 	{
 		VkPipelineVertexInputStateCreateInfo ci;
 		ci.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		ci.vertexBindingDescriptionCount = 1;
-		ci.pVertexBindingDescriptions = &vertInputBindingDesc;
-		ci.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertInputAttrDesc.size());
-		ci.pVertexAttributeDescriptions = vertInputAttrDesc.data();
+		ci.vertexBindingDescriptionCount = 0;
+		ci.pVertexBindingDescriptions = nullptr;
+		ci.vertexAttributeDescriptionCount = 0;// static_cast<uint32_t>(vertInputAttrDesc.size());
+		ci.pVertexAttributeDescriptions = nullptr;// vertInputAttrDesc.data();
 		ci.pNext = nullptr;
 		ci.flags = 0;
 		return ci;

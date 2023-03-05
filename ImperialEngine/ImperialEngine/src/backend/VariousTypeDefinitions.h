@@ -31,9 +31,9 @@ namespace imp
 
 	struct Vertex
 	{
-		glm::vec3 pos;
-		glm::vec2 tex; // tex coords (u, v)
-		glm::vec3 norm;
+		float vx, vy, vz;
+		uint16_t nx, ny, nz, nw;
+		uint16_t tu, tv;
 	};
 
 	struct alignas(16) DrawDataSingle

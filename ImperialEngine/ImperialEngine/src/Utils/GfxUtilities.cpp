@@ -54,22 +54,22 @@ namespace imp
 
 		BoundingVolumeSphere FindSphereBoundingVolume(const Vertex* vertices, size_t numVertices)
 		{
-			glm::vec3 minX = vertices->pos;
-			glm::vec3 maxX = vertices->pos;
-			glm::vec3 minY = vertices->pos;
-			glm::vec3 maxY = vertices->pos;
-			glm::vec3 minZ = vertices->pos;
-			glm::vec3 maxZ = vertices->pos;
+			glm::vec3 pos = glm::vec3(vertices->vx, vertices->vy, vertices->vz);
+			glm::vec3 minX = pos;
+			glm::vec3 maxX = pos;
+			glm::vec3 minY = pos;
+			glm::vec3 maxY = pos;
+			glm::vec3 minZ = pos;
+			glm::vec3 maxZ = pos;
 
 			for (auto i = 0; i < numVertices; i++)
 			{
-				const auto& vert = vertices[i].pos;
-				if (vert.x < minX.x) minX = vert;
-				if (vert.x > maxX.x) maxX = vert;
-				if (vert.y < minY.y) minY = vert;
-				if (vert.y > maxY.y) maxY = vert;
-				if (vert.z < minZ.z) minZ = vert;
-				if (vert.z > maxZ.z) maxZ = vert;
+				if (vertices[i].vx < minX.x) minX = glm::vec3(vertices[i].vx, vertices[i].vy, vertices[i].vz);
+				if (vertices[i].vx > maxX.x) maxX = glm::vec3(vertices[i].vx, vertices[i].vy, vertices[i].vz);
+				if (vertices[i].vy < minY.y) minY = glm::vec3(vertices[i].vx, vertices[i].vy, vertices[i].vz);
+				if (vertices[i].vy > maxY.y) maxY = glm::vec3(vertices[i].vx, vertices[i].vy, vertices[i].vz);
+				if (vertices[i].vz < minZ.z) minZ = glm::vec3(vertices[i].vx, vertices[i].vy, vertices[i].vz);
+				if (vertices[i].vz > maxZ.z) maxZ = glm::vec3(vertices[i].vx, vertices[i].vy, vertices[i].vz);
 			}
 
 			glm::vec3 diag = (maxX - minX) + (maxY - minY) + (maxZ - minZ);
@@ -138,7 +138,7 @@ namespace imp
 			{
 				size_t indicesTarget = (size_t)((double)currIndexCount * factor);
 				float err;
-				size_t newIndexCount = meshopt_simplify(dst, currIndices, currIndexCount, (float*)(&vertices.front().pos), vertices.size(), sizeof(Vertex), indicesTarget, error, 0, &err);
+				size_t newIndexCount = meshopt_simplify(dst, currIndices, currIndexCount, (float*)(&vertices.front().vx), vertices.size(), sizeof(Vertex), indicesTarget, error, 0, &err);
 
 				// Didn't change the number of indices, means won't go anymore.
 				// Setting rest of LODs to last successful

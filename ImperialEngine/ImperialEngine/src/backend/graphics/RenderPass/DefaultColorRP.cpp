@@ -23,9 +23,9 @@ namespace imp
 		const auto pipe = gfx.EnsurePipeline(cb, *this);	// since we have to get pipeline, bind here and not in that func
 		vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe.GetPipelineLayout(), 0, 1, &dset, 0, nullptr);
 
-		const auto bigVtxBuffer = gfx.m_VertexBuffer.GetBuffer();
-		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(cb, 0, 1, &bigVtxBuffer, offsets);
+		//const auto bigVtxBuffer = gfx.m_VertexBuffer.GetBuffer();
+		//VkDeviceSize offsets[] = { 0 };
+		//vkCmdBindVertexBuffers(cb, 0, 1, &bigVtxBuffer, offsets);
 
 		const auto bigIdxBuffer = gfx.m_IndexBuffer.GetBuffer();
 		vkCmdBindIndexBuffer(cb, bigIdxBuffer, 0, VK_INDEX_TYPE_UINT32);
