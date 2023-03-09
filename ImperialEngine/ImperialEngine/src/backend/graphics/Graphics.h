@@ -1,4 +1,6 @@
 #pragma once
+//#define VK_USE_PLATFORM_WIN32_KHR
+//#define VOLK_IMPLEMENTATION
 #include "backend/graphics/RenderPassGeneratorBase.h"
 #include "backend/graphics/CommandBufferManager.h"
 #include "backend/graphics/VulkanShaderManager.h"
@@ -49,7 +51,7 @@ namespace imp
 		// Will return ref to VulkanBuffer used for uploading new descriptor draw data
 		IGPUBuffer& GetDrawDataBuffer();
 
-		const Comp::IndexedVertexBuffers& GetMeshData(uint32_t index) const;
+		const Comp::MeshGeometry& GetMeshData(uint32_t index) const;
 
 		Timings& GetFrameTimings() { return m_Timer; }
 		Timings& GetOldFrameTimings() { return m_OldTimer; }
@@ -143,7 +145,7 @@ namespace imp
 		GpuCrashTracker m_AfterMathTracker;
 
 	public:
-		std::unordered_map<uint32_t, Comp::IndexedVertexBuffers> m_VertexBuffers;
+		std::unordered_map<uint32_t, Comp::MeshGeometry> m_VertexBuffers;
 
 		std::unordered_map<uint32_t, BoundingVolumeSphere> m_BVs;
 

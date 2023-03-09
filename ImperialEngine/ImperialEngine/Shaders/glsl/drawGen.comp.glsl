@@ -2,64 +2,12 @@
 #extension GL_EXT_nonuniform_qualifier : require
 #extension GL_GOOGLE_include_directive: require
 #extension GL_EXT_shader_16bit_storage: require
+#extension GL_EXT_shader_8bit_storage: require
 
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
-struct IndirectDrawCommand
-{
-    uint    indexCount;
-    uint    instanceCount;
-    uint    firstIndex;
-    int     vertexOffset;
-    uint    firstInstance;
-};
-
-struct IndirectDraw
-{
-    uint meshDataIndex;
-};
-
-struct BoundingVolume
-{
-    vec3 center;
-    float diameter;
-};
-
-struct MeshLOD
-{
-	uint indexCount;
-	uint firstIndex;
-};
-
-struct MeshData
-{
-	MeshLOD LODData[4];
-	BoundingVolume boundingVolume;
-	int     vertexOffset;
-	int     pad;
-};
-
 #include "DescriptorSet0.h"
-
-layout(set = 1, binding = 0) readonly buffer Draws
-{
-	IndirectDraw drawsSrc[];
-};
-
-layout(set = 1, binding = 1) writeonly buffer DrawCommands
-{
-	IndirectDrawCommand drawsDst[];
-};
-
-layout(set = 1, binding = 2) readonly buffer MeshDatas
-{
-    MeshData md[];
-};
-
-layout(set = 1, binding = 3) buffer DrawCommandCount
-{
-    uint drawCommandCount;
-};
+#include "DescriptorSet1.h"
 
 layout(push_constant) uniform ViewFrustum
 {

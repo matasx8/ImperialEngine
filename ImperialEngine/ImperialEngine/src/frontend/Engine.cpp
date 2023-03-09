@@ -54,7 +54,7 @@ namespace imp
 		m_Window.Update();
 		UpdateRegistry();
 
-		if (m_EngineSettings.gfxSettings.renderMode == kEngineRenderModeTraditional)
+		if (m_EngineSettings.gfxSettings.renderMode == kEngineRenderModeTraditional || m_EngineSettings.gfxSettings.renderMode == kEngineRenderModeGPUDrivenMeshShading)
 		{
 			Cull();
 		}
@@ -115,7 +115,7 @@ namespace imp
 		if (count)
 			MarkDrawDataDirty();
 
-		static constexpr uint32_t numMeshes = 2u; // lets say we have 2 meshes
+		static constexpr uint32_t numMeshes = 4u; // lets say we have 2 meshes
 
 		auto& reg = m_Entities;
 		for (auto i = 0; i < count; i++)
@@ -130,7 +130,7 @@ namespace imp
 			
 			const auto child = reg.create();
 			reg.emplace<Comp::ChildComponent>(child, monkey);
-			reg.emplace<Comp::Mesh>(child, (uint32_t)rand() % 2);
+			reg.emplace<Comp::Mesh>(child, (uint32_t)rand() % numMeshes);
 			reg.emplace<Comp::Material>(child, kDefaultMaterialIndex);
 		}
 	}
@@ -234,8 +234,8 @@ namespace imp
 		m_Entities.emplace<Comp::Transform>(previewCamera, glm::translate(defaultCameraTransform, glm::vec3(0.0f, 0.0f, 100.0f)));
 		m_Entities.emplace<Comp::Camera>(previewCamera, proj, glm::mat4x4(), kCamOutColor, true, true, false);
 
-		//AddDemoEntity(999);
-		AddDemoEntity(kMaxDrawCount - 1);
+		AddDemoEntity(10);
+		//AddDemoEntity(kMaxDrawCount - 1);
 	}
 
 	void Engine::RenderCameras()
@@ -292,7 +292,8 @@ namespace imp
 
 	void Engine::Cull()
 	{
-		assert(IsCurrentRenderMode(kEngineRenderModeTraditional));
+		// TODO mesh: reenable this
+		//assert(IsCurrentRenderMode(kEngineRenderModeTraditional));
 		m_CulledDrawData.resize(0);
 
 		const auto cameras = m_Entities.view<Comp::Transform, Comp::Camera>();
@@ -337,7 +338,7 @@ namespace imp
 		//printf("[CPU CULL] Total Renderable Meshes: %u; Renderable Meshes after culling: %llu\n", totalMeshes, m_CulledDrawData.size());
 	}
 
-	inline void GenerateIndirectDrawCommand(IGPUBuffer& dstBuffer, const Comp::IndexedVertexBuffers& meshData, uint32_t meshId)
+	inline void GenerateIndirectDrawCommand(IGPUBuffer& dstBuffer, const Comp::MeshGeometry& meshData, uint32_t meshId)
 	{
 		IndirectDrawCmd cmd;
 		cmd.meshDataIndex = meshId;
@@ -356,7 +357,7 @@ namespace imp
 		m_SyncTime.start();
 		m_Window.UpdateDeltaTime();
 
-		if (IsCurrentRenderMode(kEngineRenderModeTraditional))
+		if (IsCurrentRenderMode(kEngineRenderModeTraditional) || IsCurrentRenderMode(kEngineRenderModeGPUDrivenMeshShading))
 		{
 			auto& srcDrawData = m_CulledDrawData;
 			auto& dstDrawData = m_Gfx.m_DrawData;

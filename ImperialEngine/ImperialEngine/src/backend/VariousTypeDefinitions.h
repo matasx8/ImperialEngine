@@ -59,11 +59,20 @@ namespace imp
 		uint32_t	meshDataIndex;
 	};
 
+	struct Meshlet
+	{
+		uint32_t vertices[64];
+		uint8_t indices[126 * 3]; // up to 126 triangles
+		uint8_t triangleCount;
+		uint8_t vertexCount;
+	};
+
 	struct MeshCreationRequest
 	{
 		uint32_t id;
 		std::vector<Vertex> vertices;
 		std::vector<uint32_t> indices;
+		std::vector<Meshlet> meshlets;
 		BoundingVolumeSphere boundingVolume;
 	};
 
@@ -74,6 +83,8 @@ namespace imp
 		std::shared_ptr<std::string> vertexSpv;
 		// Indirect variant
 		std::shared_ptr<std::string> vertexIndSpv;
+		// Mesh variant
+		std::shared_ptr<std::string> meshSpv;
 		std::shared_ptr<std::string> fragmentSpv;
 	};
 

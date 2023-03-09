@@ -48,9 +48,10 @@ namespace Comp
 		entt::entity parent; 
 	};
 
-	struct IndexedVertexBuffers
+	struct MeshGeometry
 	{
 		imp::VulkanSubBuffer vertices;
 		imp::VulkanSubBuffer indices[imp::kMaxLODCount];
+		uint32_t meshletCount;
 	};
 }

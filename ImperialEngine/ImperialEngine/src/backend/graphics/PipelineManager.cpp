@@ -13,8 +13,11 @@ namespace imp
 	Pipeline PipelineManager::CreatePipeline(VkDevice device, const RenderPass& rp, const PipelineConfig& config)
 	{
 		// TODO: have a 'base' pipeline that I can use to create pipeline derivatives?
+
+		const bool meshPipeline = config.meshModule != VK_NULL_HANDLE;
+
 		VkPipelineShaderStageCreateInfo shaderStages[2];
-		shaderStages[0] = MakeShaderStageCI(config.vertModule, VK_SHADER_STAGE_VERTEX_BIT);
+		shaderStages[0] = MakeShaderStageCI(meshPipeline ? config.meshModule : config.vertModule, meshPipeline ? VK_SHADER_STAGE_MESH_BIT_EXT : VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = MakeShaderStageCI(config.fragModule, VK_SHADER_STAGE_FRAGMENT_BIT);
 
 		const auto vertInputBindingDesc = MakeVertexBindingDesc();
@@ -43,8 +46,9 @@ namespace imp
 		VkPushConstantRange pushRange;
 		pushRange.size = sizeof(uint32_t); // index into draw data
 		pushRange.offset = 0;
-		pushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		pushRange.stageFlags = VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_VERTEX_BIT;
 		std::vector<VkDescriptorSetLayout> layouts = { config.descriptorSetLayout };
+		if (meshPipeline) layouts.push_back(config.descriptorSetLayout2);
 
 		const auto pipelineLayoutCI = MakePipelineLayoutCI(&pushRange, layouts);
 		const auto pipelineLayout = MakePipelineLayout(device, pipelineLayoutCI);

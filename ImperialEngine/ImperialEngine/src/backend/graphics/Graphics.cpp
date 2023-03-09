@@ -71,10 +71,13 @@ namespace imp
 #endif
 
         m_Settings = settings;
+        volkInitialize();
         CreateInstance();
+        volkLoadInstance(m_VkInstance);
         CreateVkWindow(window);
         FindPhysicalDevice();
         CreateLogicalDevice();
+        volkLoadDevice(m_LogicalDevice);
         CreateSwapchain();
         CreateCommandBufferManager();
         CreateSurfaceManager();
@@ -244,9 +247,10 @@ namespace imp
         switch (m_Settings.renderMode)
         {
         case kEngineRenderModeTraditional:
+        case kEngineRenderModeGPUDrivenMeshShading:
             // this contains a race condition
             //m_CbManager.AquireCommandBuffer(m_LogicalDevice);
-            m_ShaderManager.UpdateDrawData(m_LogicalDevice, index, m_DrawData);
+            m_ShaderManager.UpdateDrawData(m_LogicalDevice, index, m_DrawData, m_VertexBuffers);
             break;
         case kEngineRenderModeGPUDriven:
             // should have been already waited on in engine sync, can just get it
@@ -313,9 +317,11 @@ namespace imp
         uint32_t vtxAllocSize = 0;
         uint32_t idxAllocSize = 0;
         uint32_t mdAllocSize = 0;
+        uint32_t mldAllocSize = 0;
         std::vector<Vertex> verts;
         std::vector<uint32_t> idxs;
         std::vector<MeshData> mds;
+        std::vector<Meshlet> mlds;
         const uint32_t vertBufferOffset = m_VertexBuffer.GetOffset() / sizeof(Vertex);
         const uint32_t indBufferOffset = m_IndexBuffer.GetOffset() / sizeof(uint32_t);
 
@@ -330,7 +336,7 @@ namespace imp
             VulkanSubBuffer vtxSub = VulkanSubBuffer(vOffset, static_cast<uint32_t>(req.vertices.size()));
             VulkanSubBuffer idxSub = VulkanSubBuffer(0, static_cast<uint32_t>(req.indices.size()));
 
-            Comp::IndexedVertexBuffers ivb;
+            Comp::MeshGeometry ivb;
             ivb.vertices = vtxSub;
             ivb.indices[0] = idxSub;
 
@@ -340,7 +346,6 @@ namespace imp
             for (auto i = 0; i < kMaxLODCount; i++)
                 ivb.indices[i].m_Offset += iOffset;
 
-            m_VertexBuffers[req.id] = ivb;
 
             verts.insert(verts.end(), req.vertices.begin(), req.vertices.end());
             idxs.insert(idxs.end(), req.indices.begin(), req.indices.end());
@@ -356,7 +361,19 @@ namespace imp
                 md.LODData[i].indexCount = ivb.indices[i].GetCount();
             }
             mds.emplace_back(md);
+
+            mlds.insert(mlds.end(), req.meshlets.begin(), req.meshlets.end());
+            for (auto& mld : mlds)
+            {
+                for (auto& v : mld.vertices)
+                    v += vOffset;
+            }
+            mldAllocSize += req.meshlets.size() * sizeof(Meshlet);
+
             mdAllocSize += static_cast<uint32_t>(sizeof(MeshData));
+   
+            ivb.meshletCount = req.meshlets.size();
+            m_VertexBuffers[req.id] = ivb;
         }
 
         // TODO LOD: i shouldnt have to pass these
@@ -374,6 +391,9 @@ namespace imp
         assert(mdAllocSize);
         UploadVulkanBuffer(usageFlags, memoryFlags, m_ShaderManager.GetMeshDataBuffer(), cb, mdAllocSize, mds.data());
 
+        // upload meshlets
+        UploadVulkanBuffer(usageFlags, memoryFlags, m_ShaderManager.GetMeshletDataBuffer(), cb, mldAllocSize, mlds.data());
+
         cb.End();
 
         m_CbManager.SubmitInternal(cb);
@@ -385,7 +405,7 @@ namespace imp
     void Graphics::CreateAndUploadMaterials(const std::vector<MaterialCreationRequest>& materialCreationData)
     {
         for (const auto& req : materialCreationData)
-        m_ShaderManager.CreateVulkanShaderSet(m_LogicalDevice, req);
+            m_ShaderManager.CreateVulkanShaderSet(m_LogicalDevice, req);
     }
 
     void Graphics::CreateComputePrograms(const std::vector<ComputeProgramCreationRequest>& computeProgramRequests)
@@ -411,7 +431,7 @@ namespace imp
         return drawDataBuffer;
     }
 
-    const Comp::IndexedVertexBuffers& Graphics::GetMeshData(uint32_t index) const
+    const Comp::MeshGeometry& Graphics::GetMeshData(uint32_t index) const
     {
         return m_VertexBuffers.at(index);
     }
@@ -549,13 +569,15 @@ namespace imp
         VkPhysicalDeviceFeatures devicefeatures = {};
         devicefeatures.samplerAnisotropy = VK_TRUE;
 
-         // indexing ---
-        VkPhysicalDeviceShaderDrawParametersFeatures drawParamsFeature{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES, nullptr, VK_TRUE };
-        VkPhysicalDeviceDescriptorIndexingFeatures indexing_features{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT, nullptr };
         VkPhysicalDeviceFeatures2 physical_features2 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
         physical_features2.features.samplerAnisotropy = VK_TRUE;
         vkGetPhysicalDeviceFeatures2(m_PhysicalDevice, &physical_features2);
         physical_features2.features.multiDrawIndirect = true;
+
+
+        VkPhysicalDeviceVulkan11Features features11 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES };
+        features11.storageBuffer16BitAccess = true;
+        features11.shaderDrawParameters = true;
 
         VkPhysicalDeviceVulkan12Features features12 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
         features12.drawIndirectCount = true;
@@ -571,13 +593,14 @@ namespace imp
         features12.descriptorBindingStorageBufferUpdateAfterBind = true;
         features12.descriptorBindingVariableDescriptorCount = true;
         features12.timelineSemaphore = true;
+        features12.storageBuffer8BitAccess = true;
         
         VkPhysicalDeviceMeshShaderFeaturesNV featuresMesh = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV };
         featuresMesh.meshShader = true;
 
-        features12.pNext = &featuresMesh;
-        drawParamsFeature.pNext = &features12;
-        physical_features2.pNext = &drawParamsFeature;
+        features11.pNext = &featuresMesh;
+        features12.pNext = &features11;
+        physical_features2.pNext = &features12;
         dci.pNext = &physical_features2;
 #if USE_AFTERMATH
         deviceCreateInfo.pNext = &dci;
@@ -786,14 +809,27 @@ namespace imp
         // if true: return
         // else: get pipeline from pipeline manager
         // Material should store precalculates hash of shader name
-        PipelineConfig tempConfig;
-        if (m_Settings.renderMode == kEngineRenderModeTraditional)
+        PipelineConfig tempConfig = {};
+
+        // TODO mesh: rework pipeline management to be more convenient for mesh shaders
+        switch (m_Settings.renderMode)
+        {
+        case kEngineRenderModeTraditional:
             tempConfig.vertModule = m_ShaderManager.GetShader("basic.vert").GetShaderModule();
-        else
+            break;
+        case kEngineRenderModeGPUDriven:
             tempConfig.vertModule = m_ShaderManager.GetShader("basic.ind.vert").GetShaderModule();
+            break;
+        case kEngineRenderModeGPUDrivenMeshShading:
+            tempConfig.meshModule = m_ShaderManager.GetShader("basic.mesh").GetShaderModule();
+            break;
+        }
+
         tempConfig.fragModule = m_ShaderManager.GetShader("basic.frag").GetShaderModule();
 
         tempConfig.descriptorSetLayout = m_ShaderManager.GetDescriptorSetLayout();
+        // may not be needed if non-mesh pipeline
+        tempConfig.descriptorSetLayout2 = m_ShaderManager.GetComputeDescriptorSetLayout();
 
         const auto& pipeline = m_PipelineManager.GetOrCreatePipeline(m_LogicalDevice, rp, tempConfig);
         vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.GetPipeline());
@@ -804,7 +840,7 @@ namespace imp
     {
         assert(data);
         assert(size);
-        vkCmdPushConstants(cb, pipeLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, size, data);
+        vkCmdPushConstants(cb, pipeLayout, VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_VERTEX_BIT, 0, size, data);
     }
 
     void Graphics::DrawIndexed(VkCommandBuffer cb, uint32_t indexCount) const

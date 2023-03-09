@@ -1,0 +1,60 @@
+#version 450
+
+#extension GL_EXT_shader_16bit_storage: require
+#extension GL_EXT_shader_8bit_storage: require
+#extension GL_NV_mesh_shader: require
+#extension GL_GOOGLE_include_directive: require
+#extension GL_ARB_shader_draw_parameters: require
+#extension GL_EXT_nonuniform_qualifier : require
+
+layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
+layout(triangles, max_vertices = 64, max_primitives = 126) out;
+
+#include "DescriptorSet0.h"
+#include "DescriptorSet1.h"
+
+layout(location = 0) out float NdotL[];
+layout(location = 1) out vec3  ReflectVec[];
+layout(location = 2) out vec3  ViewVec[];
+
+layout(push_constant) uniform PushModel{
+	uint idx;
+} pushModel;
+
+void main()
+{
+	uint mi = gl_WorkGroupID.x;
+	uint ti = gl_LocalInvocationID.x;
+
+    uint vertexCount = uint(meshlets[mi].vertexCount);
+	uint triangleCount = uint(meshlets[mi].triangleCount);
+    uint indexCount = triangleCount * 3;
+
+    for (uint i = ti; i < vertexCount; i += 32)
+	{
+		uint vi = meshlets[mi].vertices[i + drawData[pushModel.idx].vertexBufferOffset];
+
+		vec3 pos = vec3(vertices[vi].vx, vertices[vi].vy, vertices[vi].vz);
+		vec3 norm = vec3(vertices[vi].nx, vertices[vi].ny, vertices[vi].nz);
+		vec2 tex = vec2(vertices[vi].tu, vertices[vi].tv);
+
+		vec3 lol = vec3(materialData[drawData[pushModel.idx].materialIdx].color);
+		mat4 model = drawData[pushModel.idx].Transform;
+		vec3 ecPos      = vec3(model * vec4(pos, 1.0));
+        vec3 tnorm      = norm;
+        vec3 lightVec   = normalize(lol  - ecPos);
+        ReflectVec[i]      = normalize(reflect(-lightVec, tnorm));
+        ViewVec[i]         = normalize(-ecPos);
+        NdotL[i]           = (dot(lightVec, tnorm) + 1.0) * 0.5;
+
+		gl_MeshVerticesNV[i].gl_Position = uboViewProjection.PV * model * vec4(pos, 1.0);
+	}
+
+	for (uint i = ti; i < indexCount; i += 32)
+	{
+		gl_PrimitiveIndicesNV[i] = uint(meshlets[mi].indices[i]);
+	}
+
+	if (ti == 0)
+		gl_PrimitiveCountNV = uint(meshlets[mi].triangleCount);
+}

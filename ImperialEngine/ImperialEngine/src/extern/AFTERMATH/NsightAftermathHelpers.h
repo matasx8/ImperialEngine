@@ -29,7 +29,7 @@
 #include <sstream>
 //#include <winuser.h>
 
-#include <vulkan.h>
+#include "volk.h"
 #include "GFSDK_Aftermath.h"
 #include "GFSDK_Aftermath_GpuCrashDump.h"
 #include "GFSDK_Aftermath_GpuCrashDumpDecoding.h"

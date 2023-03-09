@@ -167,7 +167,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)/src;$(VULKAN_SDK)/Include/vulkan;$(VK_SDK_PATH)/Include/vulkan;$(ProjectDir)/src/extern/IMGUI;$(ProjectDir)/src/extern/;$(ProjectDir)/src/extern/ENTT;$(ProjectDir)/extern/AFTERMATH/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)/src;$(VULKAN_SDK)/Include;$(VK_SDK_PATH)/Include;$(ProjectDir)/src/extern/IMGUI;$(ProjectDir)/src/extern/;$(ProjectDir)/src/extern/ENTT;$(ProjectDir)/extern/AFTERMATH/include;$(ProjectDir)/extern/VOLK;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -175,7 +175,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(ProjectDir)extern/GLFW/;$(VK_SDK_PATH);$(VULKAN_SDK);$(ProjectDir)extern/IMGUI/debug;$(ProjectDir)extern/ASSIMP/;$(ProjectDir)extern/XXHASH/;$(ProjectDir)extern/AFTERMATH/x64;$(ProjectDir)extern/MESHOPTIMIZER</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;Lib/vulkan-1.lib;StaticDearImGUI.lib;assimp-vc143-mt.lib;xxhash.lib;GFSDK_Aftermath_Lib.x64.lib;meshoptimizer.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>glfw3.lib;StaticDearImGUI.lib;assimp-vc143-mt.lib;xxhash.lib;GFSDK_Aftermath_Lib.x64.lib;meshoptimizer.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Development|x64'">
@@ -185,7 +185,7 @@
       <PreprocessorDefinitions>_DEV;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)/src;$(VULKAN_SDK)/Include/vulkan;$(VK_SDK_PATH)/Include/vulkan;$(ProjectDir)/src/extern/IMGUI;$(ProjectDir)/src/extern/;$(ProjectDir)/src/extern/ENTT;$(ProjectDir)/extern/AFTERMATH/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)/src;$(VULKAN_SDK)/Include;$(VK_SDK_PATH)/Include;$(ProjectDir)/src/extern/IMGUI;$(ProjectDir)/src/extern/;$(ProjectDir)/src/extern/ENTT;$(ProjectDir)/extern/AFTERMATH/include;$(ProjectDir)/extern/VOLK;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UndefinePreprocessorDefinitions>
       </UndefinePreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -194,7 +194,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(ProjectDir)extern/GLFW/;$(VK_SDK_PATH);$(VULKAN_SDK);$(ProjectDir)extern/IMGUI/debug;$(ProjectDir)extern/ASSIMP/;$(ProjectDir)extern/XXHASH/;$(ProjectDir)extern/AFTERMATH/x64;$(ProjectDir)extern/MESHOPTIMIZER</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;Lib/vulkan-1.lib;StaticDearImGUI.lib;assimp-vc143-mt.lib;xxhash.lib;GFSDK_Aftermath_Lib.x64.lib;meshoptimizer.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>glfw3.lib;StaticDearImGUI.lib;assimp-vc143-mt.lib;xxhash.lib;GFSDK_Aftermath_Lib.x64.lib;meshoptimizer.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -206,7 +206,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>$(ProjectDir)/src;$(VULKAN_SDK)/Include/vulkan;$(VK_SDK_PATH)/Include/vulkan;$(ProjectDir)/src/extern/IMGUI;$(ProjectDir)/src/extern/;$(ProjectDir)/src/extern/ENTT;$(ProjectDir)/extern/AFTERMATH/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)/src;$(VULKAN_SDK)/Include;$(VK_SDK_PATH)/Include;$(ProjectDir)/src/extern/IMGUI;$(ProjectDir)/src/extern/;$(ProjectDir)/src/extern/ENTT;$(ProjectDir)/extern/AFTERMATH/include;$(ProjectDir)/extern/VOLK;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <Optimization>MaxSpeed</Optimization>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -220,10 +220,11 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(ProjectDir)extern/GLFW/;$(VK_SDK_PATH);$(VULKAN_SDK);$(ProjectDir)extern/IMGUI/release;$(ProjectDir)extern/ASSIMP/;$(ProjectDir)extern/XXHASH/;$(ProjectDir)extern/AFTERMATH/x64;$(ProjectDir)extern/MESHOPTIMIZER/;$(ProjectDir)extern/MESHOPTIMIZER</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glfw3.lib;Lib/vulkan-1.lib;StaticDearImGUI.lib;assimp-vc143-mt.lib;xxhash.lib;GFSDK_Aftermath_Lib.x64.lib;meshoptimizer.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>glfw3.lib;StaticDearImGUI.lib;assimp-vc143-mt.lib;xxhash.lib;GFSDK_Aftermath_Lib.x64.lib;meshoptimizer.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="extern\VOLK\volk.c" />
     <ClCompile Include="src\backend\EngineCommands.cpp" />
     <ClCompile Include="src\backend\graphics\CommandBuffer.cpp" />
     <ClCompile Include="src\backend\graphics\CommandBufferManager.cpp" />
@@ -268,6 +269,7 @@
     <ClCompile Include="src\frontend\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="extern\VOLK\volk.h" />
     <ClInclude Include="src\backend\EnumTranslator.h" />
     <ClInclude Include="src\backend\graphics\CommandBuffer.h" />
     <ClInclude Include="src\backend\graphics\CommandBufferManager.h" />

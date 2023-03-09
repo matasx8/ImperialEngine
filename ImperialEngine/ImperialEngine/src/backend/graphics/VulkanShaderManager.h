@@ -10,6 +10,11 @@
 #include <string>
 #include <array>
 
+namespace Comp
+{
+	struct MeshGeometry;
+}
+
 namespace imp
 {
 	inline constexpr uint32_t kBindingCount					= 5;
@@ -27,7 +32,7 @@ namespace imp
 	inline constexpr uint32_t kDrawDataBufferBindingSlot	= kDrawDataIndicesBindingSlot + kDrawDataIndicesBindCount;
 	inline constexpr uint32_t kDefaultMaterialIndex			= 0;
 
-	inline constexpr uint32_t kComputeBindingCount			= 4;
+	inline constexpr uint32_t kComputeBindingCount			= 5;
 
 	struct GlobalData
 	{
@@ -43,6 +48,7 @@ namespace imp
 	{
 		glm::mat4x4 transform;
 		uint32_t materialIndex;
+		uint32_t vertexOffset;
 	};
 
 	class VulkanMemory;
@@ -68,11 +74,12 @@ namespace imp
 		VulkanBuffer& GetDrawDataIndicesBuffer();
 		VulkanBuffer& GetMeshDataBuffer();
 		VulkanBuffer& GetDrawCommandCountBuffer();
+		VulkanBuffer& GetMeshletDataBuffer();
 
 		void CreateVulkanShaderSet(VkDevice device, const MaterialCreationRequest& req);
 		void CreateComputePrograms(VkDevice device, PipelineManager& pipeManager, const ComputeProgramCreationRequest& req);
 		void UpdateGlobalData(VkDevice device, uint32_t descriptorSetIdx, const GlobalData& data);
-		void UpdateDrawData(VkDevice device, uint32_t descriptorSetIdx, const std::vector<DrawDataSingle> drawData);
+		void UpdateDrawData(VkDevice device, uint32_t descriptorSetIdx, const std::vector<DrawDataSingle>& drawData, std::unordered_map<uint32_t, Comp::MeshGeometry>& geometryData);
 
 	private:
 
@@ -103,6 +110,9 @@ namespace imp
 		VulkanBuffer m_DrawCommands; // out custom draw commands
 		VulkanBuffer m_MeshData;
 		VulkanBuffer m_DrawCommandCount;
+
+		// Mesh Shading
+		VulkanBuffer m_MeshletData;
 
 		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_DescriptorSets;
 		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_ComputeDescriptorSets;
