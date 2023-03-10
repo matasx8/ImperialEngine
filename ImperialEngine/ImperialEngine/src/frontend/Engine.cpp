@@ -115,7 +115,7 @@ namespace imp
 		if (count)
 			MarkDrawDataDirty();
 
-		static constexpr uint32_t numMeshes = 4u; // lets say we have 2 meshes
+		static constexpr uint32_t numMeshes = 4u;
 
 		auto& reg = m_Entities;
 		for (auto i = 0; i < count; i++)
@@ -131,6 +131,7 @@ namespace imp
 			const auto child = reg.create();
 			reg.emplace<Comp::ChildComponent>(child, monkey);
 			reg.emplace<Comp::Mesh>(child, (uint32_t)rand() % numMeshes);
+			//reg.emplace<Comp::Mesh>(child, (uint32_t)0);
 			reg.emplace<Comp::Material>(child, kDefaultMaterialIndex);
 		}
 	}
@@ -234,7 +235,7 @@ namespace imp
 		m_Entities.emplace<Comp::Transform>(previewCamera, glm::translate(defaultCameraTransform, glm::vec3(0.0f, 0.0f, 100.0f)));
 		m_Entities.emplace<Comp::Camera>(previewCamera, proj, glm::mat4x4(), kCamOutColor, true, true, false);
 
-		AddDemoEntity(10);
+		//AddDemoEntity(10);
 		//AddDemoEntity(kMaxDrawCount - 1);
 	}
 

@@ -53,5 +53,6 @@ namespace Comp
 		imp::VulkanSubBuffer vertices;
 		imp::VulkanSubBuffer indices[imp::kMaxLODCount];
 		uint32_t meshletCount;
+		uint32_t meshletOffset; // offset into meshlet buffer
 	};
 }

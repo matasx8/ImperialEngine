@@ -324,13 +324,17 @@ namespace imp
         std::vector<Meshlet> mlds;
         const uint32_t vertBufferOffset = m_VertexBuffer.GetOffset() / sizeof(Vertex);
         const uint32_t indBufferOffset = m_IndexBuffer.GetOffset() / sizeof(uint32_t);
+        const uint32_t meshletBufferOffset = m_ShaderManager.GetMeshletDataBuffer().GetOffset() / sizeof(Meshlet);
 
         for (auto& req : meshCreationData)
         {
             const auto vOffset = verts.size() + vertBufferOffset;
             const auto iOffset = idxs.size() + indBufferOffset;
+            const auto mOffset = mlds.size() + meshletBufferOffset;
 
             utils::OptimizeMesh(req.vertices, req.indices);
+
+            std::vector<Meshlet> meshlets = utils::GenerateMeshlets(req.vertices, req.indices);
 
             // These subbuffers will be used to index and offset into the one bound Vertex and Index buffer
             VulkanSubBuffer vtxSub = VulkanSubBuffer(vOffset, static_cast<uint32_t>(req.vertices.size()));
@@ -362,17 +366,19 @@ namespace imp
             }
             mds.emplace_back(md);
 
-            mlds.insert(mlds.end(), req.meshlets.begin(), req.meshlets.end());
-            for (auto& mld : mlds)
+            for (auto& meshlet : meshlets)
             {
-                for (auto& v : mld.vertices)
+                for (auto& v : meshlet.vertices)
                     v += vOffset;
             }
-            mldAllocSize += req.meshlets.size() * sizeof(Meshlet);
+            mlds.insert(mlds.end(), meshlets.begin(), meshlets.end());
+
+            mldAllocSize += meshlets.size() * sizeof(Meshlet);
 
             mdAllocSize += static_cast<uint32_t>(sizeof(MeshData));
    
-            ivb.meshletCount = req.meshlets.size();
+            ivb.meshletCount = meshlets.size();
+            ivb.meshletOffset = mOffset;
             m_VertexBuffers[req.id] = ivb;
         }
 

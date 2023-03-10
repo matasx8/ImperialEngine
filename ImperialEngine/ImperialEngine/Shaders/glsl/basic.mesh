@@ -10,20 +10,35 @@
 layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
 layout(triangles, max_vertices = 64, max_primitives = 126) out;
 
+#include "prefix.h"
 #include "DescriptorSet0.h"
 #include "DescriptorSet1.h"
 
 layout(location = 0) out float NdotL[];
 layout(location = 1) out vec3  ReflectVec[];
 layout(location = 2) out vec3  ViewVec[];
+#if DEBUG_MESH
+layout(location = 3) out vec3 SurfaceColor[];
+#endif
 
 layout(push_constant) uniform PushModel{
 	uint idx;
 } pushModel;
 
+uint hash(uint a)
+{
+   a = (a+0x7ed55d16) + (a<<12);
+   a = (a^0xc761c23c) ^ (a>>19);
+   a = (a+0x165667b1) + (a<<5);
+   a = (a+0xd3a2646c) ^ (a<<9);
+   a = (a+0xfd7046c5) + (a<<3);
+   a = (a^0xb55a4f09) ^ (a>>16);
+   return a;
+}
+
 void main()
 {
-	uint mi = gl_WorkGroupID.x;
+	uint mi = gl_WorkGroupID.x + drawData[pushModel.idx].meshletBufferOffset;
 	uint ti = gl_LocalInvocationID.x;
 
     uint vertexCount = uint(meshlets[mi].vertexCount);
@@ -32,7 +47,8 @@ void main()
 
     for (uint i = ti; i < vertexCount; i += 32)
 	{
-		uint vi = meshlets[mi].vertices[i + drawData[pushModel.idx].vertexBufferOffset];
+		//  + drawData[pushModel.idx].vertexBufferOffset
+		uint vi = meshlets[mi].vertices[i];
 
 		vec3 pos = vec3(vertices[vi].vx, vertices[vi].vy, vertices[vi].vz);
 		vec3 norm = vec3(vertices[vi].nx, vertices[vi].ny, vertices[vi].nz);
@@ -46,6 +62,12 @@ void main()
         ReflectVec[i]      = normalize(reflect(-lightVec, tnorm));
         ViewVec[i]         = normalize(-ecPos);
         NdotL[i]           = (dot(lightVec, tnorm) + 1.0) * 0.5;
+
+#if DEBUG_MESH
+		uint mhash = hash(mi);
+		vec3 mcolor = vec3(float(mhash & 255), float((mhash >> 8) & 255), float((mhash >> 16) & 255)) / 255.0;
+		SurfaceColor[i] = mcolor;
+#endif
 
 		gl_MeshVerticesNV[i].gl_Position = uboViewProjection.PV * model * vec4(pos, 1.0);
 	}

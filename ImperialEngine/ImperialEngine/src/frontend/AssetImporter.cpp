@@ -73,60 +73,6 @@ namespace imp
 		printf("[Asset Importer] Successfully loaded compute programs from '%s' with %i total shaders\n", path.c_str(), static_cast<int>(paths.size()));
 	}
 
-	static void GenerateMeshlets(imp::MeshCreationRequest& req)
-	{
-		Meshlet meshlet = {};
-
-		std::vector<uint8_t> meshletVertices(req.vertices.size(), 0xff);
-
-		for (size_t i = 0; i < req.indices.size(); i += 3)
-		{
-			unsigned int a = req.indices[i + 0];
-			unsigned int b = req.indices[i + 1];
-			unsigned int c = req.indices[i + 2];
-
-			uint8_t& av = meshletVertices[a];
-			uint8_t& bv = meshletVertices[b];
-			uint8_t& cv = meshletVertices[c];
-
-			if (meshlet.vertexCount + (av == 0xff) + (bv == 0xff) + (cv == 0xff) > 64 || meshlet.triangleCount >= 126)
-			{
-				req.meshlets.push_back(meshlet);
-
-				for (size_t j = 0; j < meshlet.vertexCount; ++j)
-					meshletVertices[meshlet.vertices[j]] = 0xff;
-
-				meshlet = {};
-			}
-
-			if (av == 0xff)
-			{
-				av = meshlet.vertexCount;
-				meshlet.vertices[meshlet.vertexCount++] = a;
-			}
-
-			if (bv == 0xff)
-			{
-				bv = meshlet.vertexCount;
-				meshlet.vertices[meshlet.vertexCount++] = b;
-			}
-
-			if (cv == 0xff)
-			{
-				cv = meshlet.vertexCount;
-				meshlet.vertices[meshlet.vertexCount++] = c;
-			}
-
-			meshlet.indices[meshlet.triangleCount * 3 + 0] = av;
-			meshlet.indices[meshlet.triangleCount * 3 + 1] = bv;
-			meshlet.indices[meshlet.triangleCount * 3 + 2] = cv;
-			meshlet.triangleCount++;
-		}
-
-		if (meshlet.triangleCount)
-			req.meshlets.push_back(meshlet);
-	}
-
 	void AssetImporter::LoadFile(Assimp::Importer& imp, const std::filesystem::path& path)
 	{
 		// TODO: currently we load every obj file in Scenes folder and also create an entity for it
@@ -160,8 +106,6 @@ namespace imp
 				// TODO acceleration-part-1: create BV once
 				const auto BV = utils::FindSphereBoundingVolume(req.vertices.data(), req.vertices.size());
 				m_Engine.m_Gfx.m_BVs[temporaryMeshCounter] = BV;
-
-				GenerateMeshlets(req);
 
 				// this counter can be used to identify the mesh or BV
 				req.id = static_cast<uint32_t>(temporaryMeshCounter);

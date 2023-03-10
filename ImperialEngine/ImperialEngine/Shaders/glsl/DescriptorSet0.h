@@ -1,3 +1,5 @@
+#include "prefix.h"
+
 layout(set = 0, binding = 0) uniform UboViewProjection 
 {
 	mat4 PV;
@@ -32,4 +34,5 @@ layout(set = 0, binding = 131) buffer DrawData
 	mat4 Transform;
 	uint materialIdx;
 	uint vertexBufferOffset;
+	uint meshletBufferOffset;
 } drawData[];

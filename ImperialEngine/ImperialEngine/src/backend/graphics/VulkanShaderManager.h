@@ -49,6 +49,7 @@ namespace imp
 		glm::mat4x4 transform;
 		uint32_t materialIndex;
 		uint32_t vertexOffset;
+		uint32_t meshletOffset;
 	};
 
 	class VulkanMemory;

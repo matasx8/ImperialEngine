@@ -186,6 +186,7 @@ namespace imp
 			dat.transform = draw.Transform;
 			dat.materialIndex = kDefaultMaterialIndex;
 			dat.vertexOffset = geometryData.at(draw.VertexBufferId).vertices.GetOffset();
+			dat.meshletOffset = geometryData.at(draw.VertexBufferId).meshletOffset;
 
 			shaderData.push_back(dat);
 		}

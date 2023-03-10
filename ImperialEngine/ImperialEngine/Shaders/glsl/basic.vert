@@ -3,11 +3,16 @@
 #extension GL_GOOGLE_include_directive: require
 #extension GL_EXT_shader_16bit_storage: require
 
+#include "prefix.h"
+#include "DescriptorSet0.h"
+
 layout(location = 0) out float NdotL;
 layout(location = 1) out vec3  ReflectVec;
 layout(location = 2) out vec3  ViewVec;
+#if DEBUG_MESH
+layout(location = 3) out vec3 SurfaceColor;
+#endif
 
-#include "DescriptorSet0.h"
 
 layout(push_constant) uniform PushModel{
 	uint idx;
@@ -27,5 +32,8 @@ void main()
     ReflectVec      = normalize(reflect(-lightVec, tnorm));
     ViewVec         = normalize(-ecPos);
     NdotL           = (dot(lightVec, tnorm) + 1.0) * 0.5;
+#if DEBUG_MESH
+    SurfaceColor = vec3(0.3, 0.3, 0.3);
+#endif
 	gl_Position 	= uboViewProjection.PV * model * vec4(pos, 1.0);
 }

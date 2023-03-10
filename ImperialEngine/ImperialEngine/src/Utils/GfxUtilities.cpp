@@ -170,5 +170,64 @@ namespace imp
 
 			meshopt_optimizeVertexFetch(vertices.data(), indices.data(), indices.size(), vertices.data(), vertices.size(), sizeof(Vertex));
 		}
+
+		//meshopt_Meshlet* meshlets, 
+		//unsigned int* meshlet_vertices, 
+		//	unsigned char* meshlet_triangles, 
+		//	const T* indices, size_t index_count, 
+		//	const float* vertex_positions, size_t vertex_count, 
+		//	size_t vertex_positions_stride, 
+		//	size_t max_vertices, 
+		//	size_t max_triangles, 
+		//	float cone_weight
+
+		//struct meshopt_Meshlet
+		//{
+		//	/* offsets within meshlet_vertices and meshlet_triangles arrays with meshlet data */
+		//	unsigned int vertex_offset;
+		//	unsigned int triangle_offset;
+		//
+		//	/* number of vertices and triangles used in the meshlet; data is stored in consecutive range defined by offset and count */
+		//	unsigned int vertex_count;
+		//	unsigned int triangle_count;
+		//};
+		std::vector<Meshlet> GenerateMeshlets(std::vector<Vertex>& verts, std::vector<uint32_t>& indices)
+		{
+			std::vector<Meshlet> meshletsDst;
+			const size_t max_vertices = 64;
+			const size_t max_triangles = 126;
+			const size_t index_count = max_triangles * 3;
+			const float cone_weight = 0.0f; // not used rn
+
+			size_t meshletBound = meshopt_buildMeshletsBound(indices.size(), max_vertices, max_triangles);
+			assert(meshletBound);
+
+			std::vector<meshopt_Meshlet> meshlets(meshletBound);
+			std::vector<unsigned int> vertices(meshletBound * max_vertices);
+			// this is an index buffer, but this library likes to name it as triangles
+			std::vector<unsigned char> triangles(meshletBound * max_triangles * 3);
+
+			size_t meshletCount = meshopt_buildMeshlets(meshlets.data(), vertices.data(), triangles.data(), indices.data(), indices.size(), (float*)verts.data(), verts.size(), sizeof(Vertex), max_vertices, max_triangles, cone_weight);
+			
+			for (size_t i = 0; i < meshletCount; i++)
+			{
+				Meshlet meshlet = {};
+
+				for (unsigned int j = 0; j < meshlets[i].vertex_count; j++)
+					meshlet.vertices[j] = vertices[j + meshlets[i].vertex_offset];
+
+				for (unsigned int j = 0; j < meshlets[i].triangle_count * 3; j++)
+				{
+					meshlet.indices[j] = static_cast<uint8_t>(triangles[j + meshlets[i].triangle_offset]);
+				}
+
+				meshlet.triangleCount = static_cast<uint8_t>(meshlets[i].triangle_count);
+				meshlet.vertexCount = static_cast<uint8_t>(meshlets[i].vertex_count);
+
+				meshletsDst.push_back(meshlet);
+			}
+
+			return meshletsDst;
+		}
 	}
 }

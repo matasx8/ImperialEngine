@@ -72,7 +72,6 @@ namespace imp
 		uint32_t id;
 		std::vector<Vertex> vertices;
 		std::vector<uint32_t> indices;
-		std::vector<Meshlet> meshlets;
 		BoundingVolumeSphere boundingVolume;
 	};
 
