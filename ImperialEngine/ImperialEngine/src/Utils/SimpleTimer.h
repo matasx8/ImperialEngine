@@ -3,7 +3,7 @@
 
 namespace imp
 {
-#define LOG_TIMINGS 1
+#define LOG_TIMINGS 0
 #if LOG_TIMINGS
 #define AUTO_TIMER(message) SimpleAutoTimer timer(message); 
 #else

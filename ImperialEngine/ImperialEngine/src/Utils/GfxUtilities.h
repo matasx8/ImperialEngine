@@ -16,5 +16,7 @@ namespace imp
 		void GenerateMeshLODS(const std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, VulkanSubBuffer* dstSubBuffers, uint32_t numLODs, double factor, float error);
 		void OptimizeMesh(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices);
 		std::vector<Meshlet> GenerateMeshlets(std::vector<Vertex>& verts, std::vector<uint32_t>& indices);
+
+
 	}
 }

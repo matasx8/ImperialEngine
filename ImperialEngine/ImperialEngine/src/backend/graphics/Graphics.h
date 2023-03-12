@@ -60,6 +60,7 @@ namespace imp
 		SimpleTimer& GetOldSyncTimings() { return m_SyncTimer; }
 
 		EngineGraphicsSettings& GetGraphicsSettings();
+		const GraphicsCaps& GetGfxCaps() const;
 
 		void Destroy();
 
@@ -92,7 +93,7 @@ namespace imp
 
 		const VulkanBuffer& GetDrawCommandCountBuffer();
 		
-		bool CheckExtensionsSupported(std::vector<const char*> extensions);
+		bool CheckExtensionsSupported(std::vector<const char*>& extensions) const;
 
 		EngineGraphicsSettings m_Settings;
 		GraphicsCaps m_GfxCaps;

@@ -466,6 +466,11 @@ namespace imp
         return m_Settings;
     }
 
+    const GraphicsCaps& Graphics::GetGfxCaps() const
+    {
+        return m_GfxCaps;
+    }
+
     void Graphics::Destroy()
     {
         AUTO_TIMER("[Destroy]: ");
@@ -487,9 +492,13 @@ namespace imp
 
     void Graphics::CreateInstance()
     {
-        m_Settings.validationLayersEnabled = m_Settings.validationLayersEnabled ? m_GfxCaps.ValidationLayersSupported() : false;
+        const bool validationLayersRequested = m_Settings.validationLayersEnabled;
+        m_Settings.validationLayersEnabled = validationLayersRequested ? m_GfxCaps.ValidationLayersSupported() : false;
         if (m_Settings.validationLayersEnabled)
             m_Settings.requiredExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        
+        if (validationLayersRequested && !m_Settings.validationLayersEnabled)
+            printf("[VK INSTANCE INIT]: Validation Layers requested, but is not supported on this device\n");
 
         VkApplicationInfo appInfo = {};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -544,13 +553,17 @@ namespace imp
         bool foundSuitableDevice = false;
         for (const auto& device : devices)
         {
-            if (m_GfxCaps.IsDeviceSuitable(device, m_Window.GetWindowSurface()) && m_GfxCaps.CheckDeviceExtensionSupport(device, m_Settings.requiredDeviceExtensions))
+            const auto supportedRequestedExtensions = m_GfxCaps.CheckDeviceExtensionSupport(device, m_Settings.requiredDeviceExtensions);
+            if (m_GfxCaps.IsDeviceSuitable(device, m_Window.GetWindowSurface()) && supportedRequestedExtensions.size())
             {
                 m_PhysicalDevice = device;
+                m_Settings.requiredDeviceExtensions = supportedRequestedExtensions;
                 foundSuitableDevice = true;
                 break;
             }
         }
+
+        m_GfxCaps.CollectSupportedFeatures(m_PhysicalDevice, m_Settings.requiredDeviceExtensions);
 
         if (!foundSuitableDevice)
             throw std::runtime_error("Vulkan Error! Didn't find a suitable physical device!");
@@ -621,7 +634,7 @@ namespace imp
         features12.storageBuffer8BitAccess = true;
         
         VkPhysicalDeviceMeshShaderFeaturesNV featuresMesh = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV };
-        featuresMesh.meshShader = true;
+        featuresMesh.meshShader = true && m_GfxCaps.IsMeshShadingSupported();
 
         features11.pNext = &featuresMesh;
         features12.pNext = &features11;
@@ -639,7 +652,7 @@ namespace imp
             throw std::runtime_error("Failed to create a logical device!");
         printf("Vulkan Logical device successfully created!\n"); // TODO: log more stuff, like extensions used and etc.
 
-        // TODO: Make system for multiple queues when needed
+        // TODO nice-to-have: Make system for multiple queues when needed
         vkGetDeviceQueue(m_LogicalDevice, indices.graphicsFamily, 0, &m_GfxQueue);
         vkGetDeviceQueue(m_LogicalDevice, indices.presentationFamily, 0, &m_PresentationQueue);
         vkGetDeviceQueue(m_LogicalDevice, indices.transferFamily, 0, &m_TransferQueue);
@@ -878,7 +891,7 @@ namespace imp
         return m_ShaderManager.GetDrawCommandCountBuffer();
     }
 
-    bool Graphics::CheckExtensionsSupported(std::vector<const char*> extensions)
+    bool Graphics::CheckExtensionsSupported(std::vector<const char*>& extensions) const
     {
         uint32_t extensionCount = 0;
         vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
@@ -890,7 +903,7 @@ namespace imp
             bool hasExtension = false;
             for (const auto& extension : extensionsSupported)
             {
-                if (strcmp(checkExtension, extension.extensionName))
+                if (!strcmp(checkExtension, extension.extensionName))
                 {
                     hasExtension = true;
                     break;
@@ -899,6 +912,7 @@ namespace imp
 
             if (!hasExtension)
             {
+                printf("[VK INSTANCE INIT]: Instance Extension '%s' is not supported!\n", checkExtension);
                 return false;
             }
         }

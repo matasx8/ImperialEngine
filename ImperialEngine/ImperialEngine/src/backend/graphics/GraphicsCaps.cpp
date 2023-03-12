@@ -2,7 +2,10 @@
 #include "backend/EnumTranslator.h"
 #include <vector>
 
-imp::GraphicsCaps::GraphicsCaps()
+imp::GraphicsCaps::GraphicsCaps() 
+    : m_DeviceSurfaceCaps(),
+    m_QueueFamilyIndices(),
+    m_MeshShadingSupported(true)
 {
 }
 
@@ -74,9 +77,21 @@ imp::QueueFamilyIndices imp::GraphicsCaps::GetQueueFamilies() const
     return m_QueueFamilyIndices;
 }
 
+void imp::GraphicsCaps::CollectSupportedFeatures(VkPhysicalDevice device, const std::vector<const char*>& extensionsUsed)
+{
+    m_MeshShadingSupported = std::find_if(extensionsUsed.begin(), extensionsUsed.end(), [](auto ex) { return strcmp(ex, VK_NV_MESH_SHADER_EXTENSION_NAME) == 0; }) != extensionsUsed.end();
+
+    // TODO nice-to-have: find support for other stuff like bindless and nvidia nsight extensions..
+}
+
 void imp::GraphicsCaps::SetQueueFamilies(QueueFamilyIndices& fams)
 {
     m_QueueFamilyIndices = fams;
+}
+
+bool imp::GraphicsCaps::IsMeshShadingSupported() const
+{
+    return m_MeshShadingSupported;
 }
 
 VkSurfaceFormatKHR imp::GraphicsCaps::ChooseBestSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats)
@@ -141,19 +156,20 @@ bool imp::GraphicsCaps::IsDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR s
     return indices.IsValid() && deviceFeatures.samplerAnisotropy && CheckDeviceHasAnySwapchainSupport(device, surface);
 }
 
-bool imp::GraphicsCaps::CheckDeviceExtensionSupport(VkPhysicalDevice device, const std::vector<const char*>& requiredExtens)
+std::vector<const char*> imp::GraphicsCaps::CheckDeviceExtensionSupport(VkPhysicalDevice device, const std::vector<const char*>& requestedExtens) const
 {
+    std::vector<const char*> extensionsToBeUsed;
     uint32_t extensionCount = 0;
     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
 
     if (extensionCount == 0)
-        return false;
+        return extensionsToBeUsed;
 
     std::vector<VkExtensionProperties> extensions(extensionCount);
     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, extensions.data());
 
     // Renderdoc no work with nsight
-    for (const auto& deviceExtension : requiredExtens)
+    for (const auto& deviceExtension : requestedExtens)
     {
         bool hasExtension = false;
         for (const auto& extension : extensions)
@@ -161,15 +177,27 @@ bool imp::GraphicsCaps::CheckDeviceExtensionSupport(VkPhysicalDevice device, con
             if (strcmp(deviceExtension, extension.extensionName) == 0)
             {
                 hasExtension = true;
+                extensionsToBeUsed.push_back(deviceExtension);
                 break;
             }
         }
 
         if (!hasExtension)
-            return false;
+        {
+            if (strcmp(deviceExtension, VK_NV_MESH_SHADER_EXTENSION_NAME) == 0)
+            {
+                printf("[VK DEVICE INIT]: Device Extension '%s' not supported! Mesh Shading will fall back to regular GPU-driven pipeline\n", deviceExtension);
+            }
+            // TODO NSIGHT: add nsight extension fallback options here
+            else
+            {
+                printf("[VK DEVICE INIT]: Device Extension '%s' not supported! No fallback detected..\n", deviceExtension);
+                return extensionsToBeUsed;
+            }
+        }
     }
 
-    return true;
+    return extensionsToBeUsed;
 }
 
 bool imp::GraphicsCaps::CheckDeviceHasAnySwapchainSupport(VkPhysicalDevice device, VkSurfaceKHR surface)

@@ -111,6 +111,13 @@ namespace imp
 
 	void Engine::SwitchRenderingMode(EngineRenderMode newRenderMode)
 	{
+		if (newRenderMode == kEngineRenderModeGPUDrivenMeshShading)
+		{
+			const auto& caps = m_Gfx.GetGfxCaps();
+			if (!caps.IsMeshShadingSupported())
+				newRenderMode = kEngineRenderModeGPUDriven;
+		}
+
 		m_EngineSettings.gfxSettings.renderMode = newRenderMode;
 		m_Q->add(std::mem_fn(&Engine::Cmd_ChangeRenderMode), std::make_shared<EngineRenderMode>(newRenderMode));
 		MarkDrawDataDirty();
