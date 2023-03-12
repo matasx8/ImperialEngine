@@ -54,7 +54,7 @@ namespace imp
 		m_Window.Update();
 		UpdateRegistry();
 
-		if (m_EngineSettings.gfxSettings.renderMode == kEngineRenderModeTraditional || m_EngineSettings.gfxSettings.renderMode == kEngineRenderModeGPUDrivenMeshShading)
+		if (m_EngineSettings.gfxSettings.renderMode == kEngineRenderModeTraditional)
 		{
 			Cull();
 		}
@@ -104,10 +104,16 @@ namespace imp
 		return m_EngineSettings.gfxSettings.renderMode == mode;
 	}
 
+	EngineRenderMode Engine::GetCurrentRenderMode() const
+	{
+		return m_EngineSettings.gfxSettings.renderMode;
+	}
+
 	void Engine::SwitchRenderingMode(EngineRenderMode newRenderMode)
 	{
 		m_EngineSettings.gfxSettings.renderMode = newRenderMode;
 		m_Q->add(std::mem_fn(&Engine::Cmd_ChangeRenderMode), std::make_shared<EngineRenderMode>(newRenderMode));
+		MarkDrawDataDirty();
 	}
 
 	void Engine::AddDemoEntity(uint32_t count)
@@ -235,7 +241,7 @@ namespace imp
 		m_Entities.emplace<Comp::Transform>(previewCamera, glm::translate(defaultCameraTransform, glm::vec3(0.0f, 0.0f, 100.0f)));
 		m_Entities.emplace<Comp::Camera>(previewCamera, proj, glm::mat4x4(), kCamOutColor, true, true, false);
 
-		//AddDemoEntity(10);
+		AddDemoEntity(5000);
 		//AddDemoEntity(kMaxDrawCount - 1);
 	}
 
@@ -358,7 +364,11 @@ namespace imp
 		m_SyncTime.start();
 		m_Window.UpdateDeltaTime();
 
-		if (IsCurrentRenderMode(kEngineRenderModeTraditional) || IsCurrentRenderMode(kEngineRenderModeGPUDrivenMeshShading))
+		const auto renderMode = GetCurrentRenderMode();
+
+		switch (renderMode)
+		{
+		case kEngineRenderModeTraditional:
 		{
 			auto& srcDrawData = m_CulledDrawData;
 			auto& dstDrawData = m_Gfx.m_DrawData;
@@ -366,9 +376,12 @@ namespace imp
 
 			// We already composed the draw data in Engine::Cull, can just copy it in
 			dstDrawData.insert(dstDrawData.end(), srcDrawData.begin(), srcDrawData.end());
+			break;
 		}
-		else if (IsCurrentRenderMode(kEngineRenderModeGPUDriven))
+		case kEngineRenderModeGPUDriven:
+		case kEngineRenderModeGPUDrivenMeshShading:
 		{
+			AUTO_TIMER("[ENGINE SYNC - GPU-Driven part]: ");
 			// This can stall because it may wait on timeline semaphore
 			IGPUBuffer& drawCmdBuffer = m_Gfx.GetDrawCommandStagingBuffer();
 			drawCmdBuffer.resize(0);
@@ -384,20 +397,21 @@ namespace imp
 				const auto& parent = renderableChildren.get<Comp::ChildComponent>(ent).parent;
 				const auto& transform = transforms.get<Comp::Transform>(parent);
 
+				const auto& meshData = m_Gfx.GetMeshData(mesh.meshId);
 				if (IsDrawDataDirty())
 				{
 					// Needed for GPU-driven
-					// TODO nice-to-have: only do what's necessary for either rendering modes
-					const auto& meshData = m_Gfx.GetMeshData(mesh.meshId);
 					GenerateIndirectDrawCommand(drawCmdBuffer, meshData, mesh.meshId);
 				}
 
 				// Also update shader draw data. Also contains mesh id, that CPU-driven can use to generate draw commands
-				DrawDataSingle dds;
-				dds.Transform = transform.transform;
-				dds.VertexBufferId = mesh.meshId;
+				ShaderDrawData sdd;
+				sdd.transform = transform.transform;
+				sdd.materialIndex = kDefaultMaterialIndex;
+				sdd.vertexOffset = 0;
+				sdd.meshletOffset = meshData.meshletOffset;
 				// This seems to be quite slow, might be faster if I'd templatize the VulkanBuffer container
-				drawDataBuffer.push_back(&dds, sizeof(dds));
+				drawDataBuffer.push_back(&sdd, sizeof(sdd));
 			}
 			if (IsDrawDataDirty())
 			{
@@ -406,6 +420,8 @@ namespace imp
 				m_Q->add(std::mem_fn(&Engine::Cmd_UpdateDraws), std::shared_ptr<void>());
 				m_DrawDataDirty = false;
 			}
+			break;
+		}
 		}
 
 		const auto cameras = m_Entities.view<Comp::Transform, Comp::Camera>();

@@ -7,6 +7,12 @@ struct IndirectDrawCommand
     uint    firstInstance;
 };
 
+struct ms_IndirectDrawCommand
+{
+    uint    taskCount;
+    uint    firstTask;
+};
+
 struct IndirectDraw
 {
     uint meshDataIndex;
@@ -24,12 +30,27 @@ struct MeshLOD
     uint firstIndex;
 };
 
+//struct ms_MeshLOD
+//{
+//
+//};
+
 struct MeshData
 {
     MeshLOD LODData[4];
     BoundingVolume boundingVolume;
     int     vertexOffset;
     int     pad;
+};
+
+struct ms_MeshData
+{
+    //ms_MeshLOD LODData[4];
+    BoundingVolume boundingVolume;
+    // VkDrawMeshTasksIndirectCommand
+    uint taskCount;
+    uint firstTask;
+    uint pad[2];
 };
 
 struct Meshlet
@@ -47,7 +68,12 @@ layout(set = 1, binding = 0) readonly buffer Draws
 
 layout(set = 1, binding = 1) writeonly buffer DrawCommands
 {
+#ifndef MESH_PIPELINE
     IndirectDrawCommand drawsDst[];
+#else
+    //ms_IndirectDrawCommand is smaller in size so using the same buffer for this is ok
+    ms_IndirectDrawCommand ms_DrawDst[];
+#endif
 };
 
 layout(set = 1, binding = 2) readonly buffer MeshDatas
@@ -63,4 +89,9 @@ layout(set = 1, binding = 3) buffer DrawCommandCount
 layout(set = 1, binding = 4) buffer Meshlets
 {
     Meshlet meshlets[];
+};
+
+layout(set = 1, binding = 5) readonly buffer ms_MeshDatas
+{
+    ms_MeshData ms_md[];
 };

@@ -46,6 +46,7 @@ namespace imp
 		void CreateComputePrograms(const std::vector<ComputeProgramCreationRequest>& computeProgramRequests);
 
 		// Will return ref to VulkanBuffer used for uploading new draw commands.
+		// Actual data is indices to "MeshData" that compute can use to generate actual commands.
 		// Waits for fence associated with buffer to make sure it's not used by the GPU anymore.
 		IGPUBuffer& GetDrawCommandStagingBuffer();
 		// Will return ref to VulkanBuffer used for uploading new descriptor draw data

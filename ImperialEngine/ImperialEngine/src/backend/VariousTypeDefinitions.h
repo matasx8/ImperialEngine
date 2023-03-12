@@ -26,7 +26,16 @@ namespace imp
 		MeshLOD LODData[kMaxLODCount];
 		BoundingVolumeSphere boundingVolume;
 		int32_t     vertexOffset;
-		int32_t     pad;
+		int32_t     pad; // TODO mesh: is this needed?
+	};
+
+	struct alignas(16) ms_MeshData
+	{
+		//MeshLOD LODData[kMaxLODCount];
+		BoundingVolumeSphere boundingVolume;
+		uint32_t taskCount;
+		uint32_t firstTask;
+		uint32_t pad[2];
 	};
 
 	struct Vertex

@@ -63,18 +63,7 @@ namespace imp
 			vkCmdDrawIndexedIndirectCount(cb, gfx.m_DrawBuffer.GetBuffer(), 0, gfx.GetDrawCommandCountBuffer().GetBuffer(), 0, gfx.m_NumDraws, sizeof(VkDrawIndexedIndirectCommand));
 			break;
 		case kEngineRenderModeGPUDrivenMeshShading:
-			AUTO_TIMER("[Mesh DRAWS]: ");
-			uint32_t drawIndex = 0;
-			for (const auto& drawData : gfx.m_DrawData)
-			{
-				gfx.PushConstants(cb, &drawIndex, sizeof(uint32_t), pipe.GetPipelineLayout());
-
-				const auto lodIdx = drawData.LodIdx;
-
-				const auto& mesh = gfx.m_VertexBuffers.at(drawData.VertexBufferId);
-				vkCmdDrawMeshTasksNV(cb, mesh.meshletCount, 0);
-				drawIndex++;
-			}
+			vkCmdDrawMeshTasksIndirectCountNV(cb, gfx.m_DrawBuffer.GetBuffer(), 0, gfx.GetDrawCommandCountBuffer().GetBuffer(), 0, gfx.m_NumDraws, sizeof(VkDrawMeshTasksIndirectCommandNV));
 			break;
 		}
 

@@ -32,7 +32,7 @@ namespace imp
 	inline constexpr uint32_t kDrawDataBufferBindingSlot	= kDrawDataIndicesBindingSlot + kDrawDataIndicesBindCount;
 	inline constexpr uint32_t kDefaultMaterialIndex			= 0;
 
-	inline constexpr uint32_t kComputeBindingCount			= 5;
+	inline constexpr uint32_t kComputeBindingCount			= 6;
 
 	struct GlobalData
 	{
@@ -74,6 +74,7 @@ namespace imp
 		VulkanBuffer& GetDrawCommandBuffer();
 		VulkanBuffer& GetDrawDataIndicesBuffer();
 		VulkanBuffer& GetMeshDataBuffer();
+		VulkanBuffer& GetmsMeshDataBuffer();
 		VulkanBuffer& GetDrawCommandCountBuffer();
 		VulkanBuffer& GetMeshletDataBuffer();
 
@@ -107,9 +108,9 @@ namespace imp
 		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_DrawDataBuffers;
 
 		// compute
-		//std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_DrawCommands;
-		VulkanBuffer m_DrawCommands; // out custom draw commands
+		VulkanBuffer m_DrawCommands;
 		VulkanBuffer m_MeshData;
+		VulkanBuffer m_msMeshData;
 		VulkanBuffer m_DrawCommandCount;
 
 		// Mesh Shading

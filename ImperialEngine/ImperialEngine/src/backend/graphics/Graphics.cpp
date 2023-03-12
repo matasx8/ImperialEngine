@@ -154,10 +154,11 @@ namespace imp
     void Graphics::Cull()
     {
         const auto dispatchCount = (m_NumDraws + 65) / 64;
+        const auto renderMode = m_Settings.renderMode;
 
         // TODO nice-to-have: make the interface for getting shaders better. At least make
         // shader manager return the configs immediately
-        const auto updateDrawCS = m_ShaderManager.GetShader("drawGen.comp");
+        const auto updateDrawCS = m_ShaderManager.GetShader(renderMode == kEngineRenderModeGPUDriven ? "drawGen.comp" : "ms_drawGen.comp");
         ComputePipelineConfig config = { updateDrawCS.GetShaderModule(), m_ShaderManager.GetDescriptorSetLayout(),m_ShaderManager.GetComputeDescriptorSetLayout() };
         const auto updateDrawsProgram = m_PipelineManager.GetComputePipeline(config);
         const auto dset1 = m_ShaderManager.GetDescriptorSet(m_Swapchain.GetFrameClock());
@@ -247,12 +248,12 @@ namespace imp
         switch (m_Settings.renderMode)
         {
         case kEngineRenderModeTraditional:
-        case kEngineRenderModeGPUDrivenMeshShading:
             // this contains a race condition
             //m_CbManager.AquireCommandBuffer(m_LogicalDevice);
             m_ShaderManager.UpdateDrawData(m_LogicalDevice, index, m_DrawData, m_VertexBuffers);
             break;
         case kEngineRenderModeGPUDriven:
+        case kEngineRenderModeGPUDrivenMeshShading:
             // should have been already waited on in engine sync, can just get it
             auto& dst = m_ShaderManager.GetDrawDataBuffers(index);
             m_CbManager.AddQueueDependencies(dst.GetTimeline());
@@ -264,7 +265,7 @@ namespace imp
     void Graphics::RenderCameras()
     {
         AUTO_TIMER("[RenderCameras]: ");
-        if(m_Settings.renderMode == kEngineRenderModeGPUDriven)
+        if(m_Settings.renderMode == kEngineRenderModeGPUDriven || m_Settings.renderMode == kEngineRenderModeGPUDrivenMeshShading)
             Cull();
 
         const auto& camera = m_PreviewCamera.isRenderCamera ? m_PreviewCamera : m_MainCamera;
@@ -318,10 +319,12 @@ namespace imp
         uint32_t idxAllocSize = 0;
         uint32_t mdAllocSize = 0;
         uint32_t mldAllocSize = 0;
+        uint32_t ms_mdAllocSize = 0;
         std::vector<Vertex> verts;
         std::vector<uint32_t> idxs;
         std::vector<MeshData> mds;
         std::vector<Meshlet> mlds;
+        std::vector<ms_MeshData> ms_mds;
         const uint32_t vertBufferOffset = m_VertexBuffer.GetOffset() / sizeof(Vertex);
         const uint32_t indBufferOffset = m_IndexBuffer.GetOffset() / sizeof(uint32_t);
         const uint32_t meshletBufferOffset = m_ShaderManager.GetMeshletDataBuffer().GetOffset() / sizeof(Meshlet);
@@ -350,7 +353,6 @@ namespace imp
             for (auto i = 0; i < kMaxLODCount; i++)
                 ivb.indices[i].m_Offset += iOffset;
 
-
             verts.insert(verts.end(), req.vertices.begin(), req.vertices.end());
             idxs.insert(idxs.end(), req.indices.begin(), req.indices.end());
             vtxAllocSize += static_cast<uint32_t>(req.vertices.size() * sizeof(Vertex));
@@ -366,6 +368,13 @@ namespace imp
             }
             mds.emplace_back(md);
 
+            ms_MeshData ms_md;
+            // TODO mesh: deduplicate bouding volume data
+            ms_md.boundingVolume = req.boundingVolume;
+            ms_md.taskCount = meshlets.size();
+            ms_md.firstTask = 0;
+            ms_mds.emplace_back(ms_md);
+
             for (auto& meshlet : meshlets)
             {
                 for (auto& v : meshlet.vertices)
@@ -376,6 +385,7 @@ namespace imp
             mldAllocSize += meshlets.size() * sizeof(Meshlet);
 
             mdAllocSize += static_cast<uint32_t>(sizeof(MeshData));
+            ms_mdAllocSize += static_cast<uint32_t>(sizeof(ms_MeshData));
    
             ivb.meshletCount = meshlets.size();
             ivb.meshletOffset = mOffset;
@@ -388,17 +398,24 @@ namespace imp
 
         // TODO nice-to-have: batch uploads and use transfer queueu
         // upload vertices
+        assert(vtxAllocSize);
         UploadVulkanBuffer(usageFlags, memoryFlags, m_VertexBuffer, cb, vtxAllocSize, verts.data());
 
         // upload indices
+        assert(idxAllocSize);
         UploadVulkanBuffer(usageFlags, memoryFlags, m_IndexBuffer, cb, idxAllocSize, idxs.data());
 
-        // upload BVs
+        // upload mesh data
         assert(mdAllocSize);
         UploadVulkanBuffer(usageFlags, memoryFlags, m_ShaderManager.GetMeshDataBuffer(), cb, mdAllocSize, mds.data());
 
         // upload meshlets
+        assert(mldAllocSize);
         UploadVulkanBuffer(usageFlags, memoryFlags, m_ShaderManager.GetMeshletDataBuffer(), cb, mldAllocSize, mlds.data());
+
+        // upload mesh shading mesh data
+        assert(ms_mdAllocSize);
+        UploadVulkanBuffer(usageFlags, memoryFlags, m_ShaderManager.GetmsMeshDataBuffer(), cb, ms_mdAllocSize, ms_mds.data());
 
         cb.End();
 
@@ -423,6 +440,7 @@ namespace imp
     // until have scartch mem, i can keep this
     IGPUBuffer& Graphics::GetDrawCommandStagingBuffer()
     {
+        AUTO_TIMER("[GET DC STAGING]: ");
         auto& drawDataBuffer = m_StagingDrawBuffer[m_Swapchain.GetFrameClock()];
         drawDataBuffer.MakeSureNotUsedOnGPU(m_LogicalDevice);
 
@@ -431,6 +449,7 @@ namespace imp
 
     IGPUBuffer& Graphics::GetDrawDataBuffer()
     {
+        AUTO_TIMER("[GET DRAW DATA]: ");
         auto& drawDataBuffer = m_ShaderManager.GetDrawDataBuffers(m_Swapchain.GetFrameClock());
         drawDataBuffer.MakeSureNotUsedOnGPU(m_LogicalDevice);
 
@@ -773,7 +792,7 @@ namespace imp
 
     void Graphics::UploadVulkanBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags, VulkanBuffer& dst, const CommandBuffer& cb, uint32_t allocSize, const void* dataToUpload)
     {
-        // TODO: later change this so it returns buffer that's on scratch memory
+        // TODO nice-to-have: use scratch memory
         auto stagingBuffer = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, usageFlags, memoryFlags, m_DeviceMemoryProps);
         // then as a vulkan resource we can override the destruction so it doesn't try to deallocate a sub-buffer and just notifies the scratch there's a spot open
         stagingBuffer.UpdateLastUsed(m_CurrentFrame);

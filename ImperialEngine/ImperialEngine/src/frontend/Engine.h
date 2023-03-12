@@ -29,6 +29,7 @@ namespace imp
 		void SyncGameThread();
 
 		bool IsCurrentRenderMode(EngineRenderMode mode) const;
+		EngineRenderMode GetCurrentRenderMode() const;
 
 		const Timings& GetFrameTimings() { return m_OldTimer; }
 		const Timings& GetGfxFrameTimings() { return m_Gfx.GetFrameTimings(); }

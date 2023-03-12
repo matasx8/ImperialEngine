@@ -85,6 +85,7 @@ namespace imp
 
 		std::vector<VkDescriptorSetLayout> dsetLayouts = { config.descriptorSetLayout, config.descriptorSetLayout2 };
 
+		// TODO mesh: is this needed anymore?
 		VkPushConstantRange pushRange;
 		pushRange.size = sizeof(glm::vec4) * 6 + sizeof(uint32_t);
 		pushRange.offset = 0;
