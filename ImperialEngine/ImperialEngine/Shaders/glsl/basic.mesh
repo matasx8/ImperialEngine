@@ -36,9 +36,14 @@ uint hash(uint a)
    return a;
 }
 
+in taskNV block
+{
+	uint meshletOffset;
+};
+
 void main()
 {
-	uint mi = gl_WorkGroupID.x + drawData[drawDataIndices[gl_DrawIDARB]].meshletBufferOffset;
+	uint mi = gl_WorkGroupID.x + drawData[drawDataIndices[gl_DrawIDARB]].meshletBufferOffset + meshletOffset;
 	uint ti = gl_LocalInvocationID.x;
 
     uint vertexCount = uint(meshlets[mi].vertexCount);

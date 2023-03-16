@@ -93,6 +93,7 @@ namespace imp
 		std::shared_ptr<std::string> vertexIndSpv;
 		// Mesh variant
 		std::shared_ptr<std::string> meshSpv;
+		std::shared_ptr<std::string> taskSpv;
 		std::shared_ptr<std::string> fragmentSpv;
 	};
 

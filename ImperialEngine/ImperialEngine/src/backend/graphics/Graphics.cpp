@@ -153,7 +153,7 @@ namespace imp
 
     void Graphics::Cull()
     {
-        const auto dispatchCount = (m_NumDraws + 65) / 64;
+        const auto dispatchCount = (m_NumDraws + 63) / 64;
         const auto renderMode = m_Settings.renderMode;
 
         // TODO nice-to-have: make the interface for getting shaders better. At least make
@@ -635,6 +635,7 @@ namespace imp
         
         VkPhysicalDeviceMeshShaderFeaturesNV featuresMesh = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV };
         featuresMesh.meshShader = true && m_GfxCaps.IsMeshShadingSupported();
+        featuresMesh.taskShader = true && m_GfxCaps.IsMeshShadingSupported();
 
         features11.pNext = &featuresMesh;
         features12.pNext = &features11;
@@ -860,6 +861,7 @@ namespace imp
             break;
         case kEngineRenderModeGPUDrivenMeshShading:
             tempConfig.meshModule = m_ShaderManager.GetShader("basic.mesh").GetShaderModule();
+            tempConfig.taskModule = m_ShaderManager.GetShader("basic.task").GetShaderModule();
             break;
         }
 

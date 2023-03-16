@@ -50,6 +50,7 @@ namespace imp
 		uint32_t materialIndex;
 		uint32_t vertexOffset;
 		uint32_t meshletOffset;
+		uint32_t taskCount;
 	};
 
 	class VulkanMemory;

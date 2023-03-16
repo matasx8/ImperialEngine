@@ -11,7 +11,7 @@ def CompileDir(directory):
     #compile them all
     for root, dirs, files in os.walk(directory):
         for names in files:
-            pos = max(names.rfind(".frag"), names.rfind(".vert"), names.rfind(".mesh"), names.rfind(".comp"))
+            pos = max(names.rfind(".frag"), names.rfind(".vert"), names.rfind(".mesh"), names.rfind(".comp"), names.rfind(".task"))
 
             if names.find(".spv") != -1 or names.find(".bak") != -1:
               continue

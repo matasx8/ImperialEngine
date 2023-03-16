@@ -417,6 +417,7 @@ namespace imp
 				sdd.materialIndex = kDefaultMaterialIndex;
 				sdd.vertexOffset = 0;
 				sdd.meshletOffset = meshData.meshletOffset;
+				sdd.taskCount = meshData.meshletCount;
 				// This seems to be quite slow, might be faster if I'd templatize the VulkanBuffer container
 				drawDataBuffer.push_back(&sdd, sizeof(sdd));
 			}

@@ -166,10 +166,12 @@ namespace imp
 		const VulkanShader vertexIndShader(CreateShaderModule(device, *req.vertexIndSpv.get()));
 		const VulkanShader fragmentShader(CreateShaderModule(device, *req.fragmentSpv.get()));
 		const VulkanShader meshShader(CreateShaderModule(device, *req.meshSpv.get()));
+		const VulkanShader taskShader(CreateShaderModule(device, *req.taskSpv.get()));
 		m_ShaderMap[req.shaderName + ".vert"] = vertexShader;
 		m_ShaderMap[req.shaderName + ".ind.vert"] = vertexIndShader;
 		m_ShaderMap[req.shaderName + ".frag"] = fragmentShader;
 		m_ShaderMap[req.shaderName + ".mesh"] = meshShader;
+		m_ShaderMap[req.shaderName + ".task"] = taskShader;
 	}
 
 	void VulkanShaderManager::CreateComputePrograms(VkDevice device, PipelineManager& pipeManager, const ComputeProgramCreationRequest& req)

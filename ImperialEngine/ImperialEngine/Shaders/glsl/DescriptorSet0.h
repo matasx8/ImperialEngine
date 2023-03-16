@@ -35,4 +35,5 @@ layout(set = 0, binding = 131) buffer DrawData
 	uint materialIdx;
 	uint vertexBufferOffset;
 	uint meshletBufferOffset;
+	uint taskCount;
 } drawData[];

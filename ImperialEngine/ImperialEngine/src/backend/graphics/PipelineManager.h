@@ -32,7 +32,7 @@ namespace imp
 		VkPipelineDepthStencilStateCreateInfo MakeDepthStencilStateCI() const;
 		VkPipelineLayoutCreateInfo MakePipelineLayoutCI(const VkPushConstantRange* pushRange, const std::vector<VkDescriptorSetLayout>& layouts) const;
 		VkPipelineLayout MakePipelineLayout(VkDevice device, const VkPipelineLayoutCreateInfo& ci) const;
-		VkGraphicsPipelineCreateInfo MakePipelineCI(const VkPipelineShaderStageCreateInfo* shaderStages, const VkPipelineVertexInputStateCreateInfo* vertexInputCreateInfo, const
+		VkGraphicsPipelineCreateInfo MakePipelineCI(const VkPipelineShaderStageCreateInfo* shaderStages, uint32_t stageCount, const VkPipelineVertexInputStateCreateInfo* vertexInputCreateInfo, const
 			VkPipelineInputAssemblyStateCreateInfo* inputAssembly, const VkPipelineViewportStateCreateInfo* viewportStateCreateInfo, const
 			VkPipelineDynamicStateCreateInfo* dynamicState, const VkPipelineRasterizationStateCreateInfo* rasterizerCreateInfo, const
 			VkPipelineMultisampleStateCreateInfo* multisamplingCreateInfo, const VkPipelineColorBlendStateCreateInfo* colourBlendingCreateInfo, const

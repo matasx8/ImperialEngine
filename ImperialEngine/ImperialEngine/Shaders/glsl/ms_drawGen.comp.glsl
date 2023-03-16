@@ -26,7 +26,7 @@ void copy_draw_command(uint idx, uint newIdx)
     
     ms_MeshData meshdata = ms_md[drawsSrc[idx].meshDataIndex];
     
-    ms_DrawDst[newIdx].taskCount = meshdata.taskCount;
+    ms_DrawDst[newIdx].taskCount = (meshdata.taskCount + 31) / 32;
     ms_DrawDst[newIdx].firstTask = 0;
 }
 

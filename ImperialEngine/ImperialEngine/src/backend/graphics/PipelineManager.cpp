@@ -15,10 +15,13 @@ namespace imp
 		// TODO: have a 'base' pipeline that I can use to create pipeline derivatives?
 
 		const bool meshPipeline = config.meshModule != VK_NULL_HANDLE;
+		const auto shaderStageCount = meshPipeline ? 3 : 2;
 
-		VkPipelineShaderStageCreateInfo shaderStages[2];
+		VkPipelineShaderStageCreateInfo shaderStages[3];
 		shaderStages[0] = MakeShaderStageCI(meshPipeline ? config.meshModule : config.vertModule, meshPipeline ? VK_SHADER_STAGE_MESH_BIT_EXT : VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = MakeShaderStageCI(config.fragModule, VK_SHADER_STAGE_FRAGMENT_BIT);
+		if (meshPipeline)
+			shaderStages[2] = MakeShaderStageCI(config.taskModule, VK_SHADER_STAGE_TASK_BIT_EXT);
 
 		const auto vertInputBindingDesc = MakeVertexBindingDesc();
 		const auto vertInputAttrDesc = MakeVertexAttrDescs();
@@ -53,7 +56,7 @@ namespace imp
 		const auto pipelineLayoutCI = MakePipelineLayoutCI(&pushRange, layouts);
 		const auto pipelineLayout = MakePipelineLayout(device, pipelineLayoutCI);
 
-		const auto pipelineCI = MakePipelineCI(shaderStages, &vertInputState, &inputAssembly, &viewportState, nullptr, &rasterizationState, &msaaState, &colorBlendState, &depthStencilState, pipelineLayout, rp.GetVkRenderPass(), 0);
+		const auto pipelineCI = MakePipelineCI(shaderStages, shaderStageCount, &vertInputState, &inputAssembly, &viewportState, nullptr, &rasterizationState, &msaaState, &colorBlendState, &depthStencilState, pipelineLayout, rp.GetVkRenderPass(), 0);
 		const auto pipeline = MakePipeline(device, pipelineCI);
 
 		return Pipeline(pipeline, pipelineLayout);
@@ -242,17 +245,16 @@ namespace imp
 		return layout;
 	}
 
-	VkGraphicsPipelineCreateInfo PipelineManager::MakePipelineCI(const VkPipelineShaderStageCreateInfo* shaderStages, const VkPipelineVertexInputStateCreateInfo* vertexInputCreateInfo, const
+	VkGraphicsPipelineCreateInfo PipelineManager::MakePipelineCI(const VkPipelineShaderStageCreateInfo* shaderStages, uint32_t stageCount, const VkPipelineVertexInputStateCreateInfo* vertexInputCreateInfo, const
 		VkPipelineInputAssemblyStateCreateInfo* inputAssembly, const VkPipelineViewportStateCreateInfo* viewportStateCreateInfo, const
 		VkPipelineDynamicStateCreateInfo* dynamicState, const VkPipelineRasterizationStateCreateInfo* rasterizerCreateInfo, const
 		VkPipelineMultisampleStateCreateInfo* multisamplingCreateInfo, const VkPipelineColorBlendStateCreateInfo* colourBlendingCreateInfo, const
 		VkPipelineDepthStencilStateCreateInfo* depthStencilCreateInfo, const VkPipelineLayout pipelineLayout, const
 		VkRenderPass renderPass, VkPipelineCreateFlags flags) const
 	{
-		const auto stage = shaderStages[1];
 		VkGraphicsPipelineCreateInfo ci = {};
 		ci.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		ci.stageCount = 2;
+		ci.stageCount = stageCount;
 		ci.pStages = shaderStages;
 		ci.pVertexInputState = vertexInputCreateInfo;
 		ci.pInputAssemblyState = inputAssembly;

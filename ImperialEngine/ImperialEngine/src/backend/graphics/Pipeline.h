@@ -10,6 +10,7 @@ namespace imp
 	{
 		VkShaderModule vertModule;
 		VkShaderModule meshModule;
+		VkShaderModule taskModule;
 		VkShaderModule fragModule;
 		VkDescriptorSetLayout descriptorSetLayout;
 		VkDescriptorSetLayout descriptorSetLayout2;
