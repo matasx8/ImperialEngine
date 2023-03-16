@@ -4,7 +4,7 @@
 #extension GL_EXT_shader_16bit_storage: require
 #extension GL_EXT_shader_8bit_storage: require
 
-layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
 
 #define MESH_PIPELINE
 #include "DescriptorSet0.h"
@@ -60,7 +60,7 @@ bool is_inside_view_frustum(uint idx)
 
 void main()
 {
-	uint drawIdx = gl_WorkGroupID.x * 64 + gl_LocalInvocationID.x;
+	uint drawIdx = gl_WorkGroupID.x * 32 + gl_LocalInvocationID.x;
 
     if(drawIdx >= numDraws)
         return;

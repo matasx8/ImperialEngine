@@ -153,7 +153,7 @@ namespace imp
 
     void Graphics::Cull()
     {
-        const auto dispatchCount = (m_NumDraws + 63) / 64;
+        const auto dispatchCount = (m_NumDraws + 31) / 32;
         const auto renderMode = m_Settings.renderMode;
 
         // TODO nice-to-have: make the interface for getting shaders better. At least make
