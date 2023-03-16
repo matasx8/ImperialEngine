@@ -69,9 +69,11 @@ namespace imp
 		uint32_t	meshDataIndex;
 	};
 
+	// TODO mesh: align
 	struct alignas(16) Meshlet
 	{
-		glm::vec4 cone;
+		BoundingVolumeSphere BV;
+		uint8_t cone[4];
 		uint32_t vertices[64];
 		uint8_t indices[126 * 3]; // up to 126 triangles
 		uint8_t triangleCount;

@@ -35,5 +35,5 @@ void main()
 #if DEBUG_MESH
     SurfaceColor = vec3(0.3, 0.3, 0.3);
 #endif
-	gl_Position 	= uboViewProjection.PV * model * vec4(pos, 1.0);
+	gl_Position 	= globals.PV * model * vec4(pos, 1.0);
 }

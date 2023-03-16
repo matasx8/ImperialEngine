@@ -166,16 +166,10 @@ namespace imp
 
         std::array<VkDescriptorSet, 2> dsets = { dset1, dset2 };
 
-        glm::mat4 vp = m_MainCamera.Projection * m_MainCamera.View;
-        const auto frustumPlanes = utils::FindViewFrustumPlanes(vp);
-
-        // TODO bug?: Is this aligned up to standard?
         struct Pushs
         {
-            glm::vec4 frustum[6];
             uint32_t numDraws;
         } push;
-        std::memcpy(push.frustum, frustumPlanes.data(), sizeof(frustumPlanes));
         push.numDraws = m_NumDraws;
 
         CommandBuffer cb = m_CbManager.AquireCommandBuffer(m_LogicalDevice);
@@ -260,6 +254,20 @@ namespace imp
             dst.MarkUsedInQueue();
             break;
         }
+
+        const auto& camera = m_PreviewCamera.isRenderCamera ? m_PreviewCamera : m_MainCamera;
+
+        GlobalData data;
+        data.ViewProjection = camera.Projection * camera.View;
+        data.CameraTransform = camera.Model;
+
+        const auto mainCamVP = m_PreviewCamera.isRenderCamera ? m_MainCamera.Projection * m_MainCamera.View : data.ViewProjection;
+        const auto frustumPlanes = utils::FindViewFrustumPlanes(mainCamVP);
+        std::memcpy(&data.FrustumPlanes, frustumPlanes.data(), sizeof(data.FrustumPlanes));
+
+        m_ShaderManager.UpdateGlobalData(m_LogicalDevice, index, data);
+        m_CbManager.AddQueueDependencies(m_ShaderManager.GetGlobalDataBuffer(index).GetTimeline());
+        m_ShaderManager.GetGlobalDataBuffer(index).MarkUsedInQueue();
     }
 
     void Graphics::RenderCameras()
@@ -269,13 +277,6 @@ namespace imp
             Cull();
 
         const auto& camera = m_PreviewCamera.isRenderCamera ? m_PreviewCamera : m_MainCamera;
-
-        GlobalData data;
-        data.ViewProjection = camera.Projection * camera.View;
-        data.CameraTransform = camera.Model;
-        m_ShaderManager.UpdateGlobalData(m_LogicalDevice, m_Swapchain.GetFrameClock(), data);
-        m_CbManager.AddQueueDependencies(m_ShaderManager.GetGlobalDataBuffer(m_Swapchain.GetFrameClock()).GetTimeline());
-        m_ShaderManager.GetGlobalDataBuffer(m_Swapchain.GetFrameClock()).MarkUsedInQueue();
 
         auto& renderPasses = m_RenderPassManager.GetRenderPasses(m_LogicalDevice, camera, m_Swapchain);
         for (auto& rp : renderPasses)

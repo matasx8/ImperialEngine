@@ -73,7 +73,7 @@ void main()
 		SurfaceColor[i] = mcolor;
 #endif
 
-		gl_MeshVerticesNV[i].gl_Position = uboViewProjection.PV * model * vec4(pos, 1.0);
+		gl_MeshVerticesNV[i].gl_Position = globals.PV * model * vec4(pos, 1.0);
 	}
 
 	for (uint i = ti; i < indexCount; i += 32)

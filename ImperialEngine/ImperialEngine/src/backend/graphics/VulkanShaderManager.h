@@ -38,6 +38,7 @@ namespace imp
 	{
 		glm::mat4x4 ViewProjection;
 		glm::mat4x4 CameraTransform;
+		glm::vec4 FrustumPlanes[6];
 	};
 
 	struct MaterialData

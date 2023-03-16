@@ -14,7 +14,6 @@ layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
 
 layout(push_constant) uniform ViewFrustum
 {
-    vec4 frustum[6];
     uint numDraws;
 };
 
@@ -44,7 +43,7 @@ bool is_inside_view_frustum(uint idx)
         // Compute signed distance of center of BV from plane.
         // Plane equation: Ax + By + Cy + d = 0
         // Inserting our point into equation gives us the signed distance for wCenter
-        float signedDistance = dot(frustum[i], wCenter);
+        float signedDistance = dot(globals.frustum[i], wCenter);
 
         // Negative result already lets us know that point is in negative half space of plane
         // If it's less than 0 + (-diameter) then BV is outside VF
