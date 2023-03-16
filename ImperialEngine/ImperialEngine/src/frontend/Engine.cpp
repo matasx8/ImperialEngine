@@ -441,9 +441,9 @@ namespace imp
 			// Supporting only 1 camera and 1 "fake offset" camera
 			static constexpr uint32_t cameraID = 0;
 			if (cam.preview)
-				m_Gfx.m_PreviewCamera = { cam.projection, cam.view, cam.camOutputType, cameraID, cam.dirty, cam.preview, cam.isRenderCamera };
+				m_Gfx.m_PreviewCamera = { cam.projection, cam.view, transform.transform, cam.camOutputType, cameraID, cam.dirty, cam.preview, cam.isRenderCamera };
 			else
-				m_Gfx.m_MainCamera = { cam.projection, cam.view, cam.camOutputType, cameraID, cam.dirty, cam.preview, cam.isRenderCamera };
+				m_Gfx.m_MainCamera = { cam.projection, cam.view, transform.transform, cam.camOutputType, cameraID, cam.dirty, cam.preview, cam.isRenderCamera };
 
 			cam.dirty = false;
 		}

@@ -272,6 +272,7 @@ namespace imp
 
         GlobalData data;
         data.ViewProjection = camera.Projection * camera.View;
+        data.CameraTransform = camera.Model;
         m_ShaderManager.UpdateGlobalData(m_LogicalDevice, m_Swapchain.GetFrameClock(), data);
         m_CbManager.AddQueueDependencies(m_ShaderManager.GetGlobalDataBuffer(m_Swapchain.GetFrameClock()).GetTimeline());
         m_ShaderManager.GetGlobalDataBuffer(m_Swapchain.GetFrameClock()).MarkUsedInQueue();

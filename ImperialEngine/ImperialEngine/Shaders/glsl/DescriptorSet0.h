@@ -3,6 +3,7 @@
 layout(set = 0, binding = 0) uniform UboViewProjection 
 {
 	mat4 PV;
+	mat4 cameraModel;
 } uboViewProjection;
 
 struct Vertex

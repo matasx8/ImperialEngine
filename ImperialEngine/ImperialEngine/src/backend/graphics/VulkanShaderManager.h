@@ -37,6 +37,7 @@ namespace imp
 	struct GlobalData
 	{
 		glm::mat4x4 ViewProjection;
+		glm::mat4x4 CameraTransform;
 	};
 
 	struct MaterialData

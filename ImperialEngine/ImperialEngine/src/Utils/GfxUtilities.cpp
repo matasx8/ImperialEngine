@@ -171,33 +171,13 @@ namespace imp
 			meshopt_optimizeVertexFetch(vertices.data(), indices.data(), indices.size(), vertices.data(), vertices.size(), sizeof(Vertex));
 		}
 
-		//meshopt_Meshlet* meshlets, 
-		//unsigned int* meshlet_vertices, 
-		//	unsigned char* meshlet_triangles, 
-		//	const T* indices, size_t index_count, 
-		//	const float* vertex_positions, size_t vertex_count, 
-		//	size_t vertex_positions_stride, 
-		//	size_t max_vertices, 
-		//	size_t max_triangles, 
-		//	float cone_weight
-
-		//struct meshopt_Meshlet
-		//{
-		//	/* offsets within meshlet_vertices and meshlet_triangles arrays with meshlet data */
-		//	unsigned int vertex_offset;
-		//	unsigned int triangle_offset;
-		//
-		//	/* number of vertices and triangles used in the meshlet; data is stored in consecutive range defined by offset and count */
-		//	unsigned int vertex_count;
-		//	unsigned int triangle_count;
-		//};
 		std::vector<Meshlet> GenerateMeshlets(std::vector<Vertex>& verts, std::vector<uint32_t>& indices)
 		{
 			std::vector<Meshlet> meshletsDst;
 			const size_t max_vertices = 64;
 			const size_t max_triangles = 126;
 			const size_t index_count = max_triangles * 3;
-			const float cone_weight = 0.0f; // not used rn
+			const float cone_weight = 0.5f;
 
 			size_t meshletBound = meshopt_buildMeshletsBound(indices.size(), max_vertices, max_triangles);
 			assert(meshletBound);
@@ -221,9 +201,15 @@ namespace imp
 					meshlet.indices[j] = static_cast<uint8_t>(triangles[j + meshlets[i].triangle_offset]);
 				}
 
+
 				meshlet.triangleCount = static_cast<uint8_t>(meshlets[i].triangle_count);
 				meshlet.vertexCount = static_cast<uint8_t>(meshlets[i].vertex_count);
 
+				meshopt_Bounds bounds = meshopt_computeMeshletBounds(meshlet.vertices, meshlet.indices, meshlet.triangleCount, (float*)verts.data(), verts.size(), sizeof(Vertex));
+				meshlet.cone[0] = bounds.cone_axis[0];
+				meshlet.cone[1] = bounds.cone_axis[1];
+				meshlet.cone[2] = bounds.cone_axis[2];
+				meshlet.cone[3] = bounds.cone_cutoff;
 				meshletsDst.push_back(meshlet);
 			}
 

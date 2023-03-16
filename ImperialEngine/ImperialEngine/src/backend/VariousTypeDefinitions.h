@@ -56,6 +56,7 @@ namespace imp
 	{
 		glm::mat4x4 Projection;
 		glm::mat4x4 View;
+		glm::mat4x4 Model;
 		uint32_t camOutputType;
 		uint32_t cameraID;
 		bool dirty;
@@ -68,8 +69,9 @@ namespace imp
 		uint32_t	meshDataIndex;
 	};
 
-	struct Meshlet
+	struct alignas(16) Meshlet
 	{
+		glm::vec4 cone;
 		uint32_t vertices[64];
 		uint8_t indices[126 * 3]; // up to 126 triangles
 		uint8_t triangleCount;
