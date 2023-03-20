@@ -66,13 +66,11 @@ void main()
 
 	mat4 model_matrix = drawData[drawDataIndices[gl_DrawIDARB]].Transform;
 	
-	vec4 decoded_cone = vec4(meshlets[mi].cone[0], meshlets[mi].cone[1], meshlets[mi].cone[2], meshlets[mi].cone[3]);
+	vec4 decoded_cone = vec4(int(meshlets[mi].cone[0]), int(meshlets[mi].cone[1]), int(meshlets[mi].cone[2]), int(meshlets[mi].cone[3])) / 127.0;
 	mat4 rotmat = globals.View * model_matrix;
 	rotmat[3] = vec4(0,0,0,1);
 	vec4 cone = vec4((rotmat * vec4(decoded_cone.xyz, 1)).xyz, decoded_cone.w);
 
-	
-	
 	// Transform BV to view space
 	BoundingVolume bv = meshlets[mi].boundingVolume;
 	vec3 bv_center_world_space = (globals.View * model_matrix * vec4(bv.center, 1.0)).xyz;

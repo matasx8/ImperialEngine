@@ -209,10 +209,10 @@ namespace imp
 				//static_assert(sizeof(meshlet.cone) == sizeof(bounds.cone_axis_s8) + sizeof(bounds.cone_cutoff_s8));
 				// Getting a warning for "reading invalid data". Is it not okay to read like this? (look at above assert)
 				//std::memcpy(meshlet.cone, bounds.cone_axis_s8, sizeof(meshlet.cone));
-				meshlet.cone[0] = meshopt_quantizeHalf(bounds.cone_axis[0]);
-				meshlet.cone[1] = meshopt_quantizeHalf(bounds.cone_axis[1]);
-				meshlet.cone[2] = meshopt_quantizeHalf(bounds.cone_axis[2]);
-				meshlet.cone[3] = meshopt_quantizeHalf(bounds.cone_cutoff);
+				meshlet.cone[0] = bounds.cone_axis_s8[0];
+				meshlet.cone[1] = bounds.cone_axis_s8[1];
+				meshlet.cone[2] = bounds.cone_axis_s8[2];
+				meshlet.cone[3] = bounds.cone_cutoff_s8;
 
 				static_assert(sizeof(meshlet.BV.center) == sizeof(meshlet.BV.center));
 				std::memcpy(&meshlet.BV.center.x, bounds.center, sizeof(meshlet.BV.center));
