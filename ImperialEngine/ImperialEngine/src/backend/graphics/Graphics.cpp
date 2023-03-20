@@ -259,7 +259,8 @@ namespace imp
 
         GlobalData data;
         data.ViewProjection = camera.Projection * camera.View;
-        data.CameraTransform = camera.Model;
+        data.ViewMatrix = m_MainCamera.View;
+        data.CameraTransform = m_MainCamera.Model;
 
         const auto mainCamVP = m_PreviewCamera.isRenderCamera ? m_MainCamera.Projection * m_MainCamera.View : data.ViewProjection;
         const auto frustumPlanes = utils::FindViewFrustumPlanes(mainCamVP);

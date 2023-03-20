@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <string>
 #include <array>
+#include <GLM/ext/quaternion_float.hpp>
 
 namespace Comp
 {
@@ -37,6 +38,7 @@ namespace imp
 	struct GlobalData
 	{
 		glm::mat4x4 ViewProjection;
+		glm::mat4x4 ViewMatrix;
 		glm::mat4x4 CameraTransform;
 		glm::vec4 FrustumPlanes[6];
 	};

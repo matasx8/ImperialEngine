@@ -206,12 +206,16 @@ namespace imp
 				meshlet.vertexCount = static_cast<uint8_t>(meshlets[i].vertex_count);
 
 				meshopt_Bounds bounds = meshopt_computeMeshletBounds(meshlet.vertices, meshlet.indices, meshlet.triangleCount, (float*)verts.data(), verts.size(), sizeof(Vertex));
-				static_assert(sizeof(meshlet.cone) == sizeof(bounds.cone_axis_s8) + sizeof(bounds.cone_cutoff_s8));
+				//static_assert(sizeof(meshlet.cone) == sizeof(bounds.cone_axis_s8) + sizeof(bounds.cone_cutoff_s8));
 				// Getting a warning for "reading invalid data". Is it not okay to read like this? (look at above assert)
-				std::memcpy(meshlet.cone, bounds.cone_axis_s8, sizeof(meshlet.cone));
+				//std::memcpy(meshlet.cone, bounds.cone_axis_s8, sizeof(meshlet.cone));
+				meshlet.cone[0] = bounds.cone_axis[0];
+				meshlet.cone[1] = bounds.cone_axis[1];
+				meshlet.cone[2] = bounds.cone_axis[2];
+				meshlet.cone[3] = bounds.cone_cutoff;
 
 				static_assert(sizeof(meshlet.BV.center) == sizeof(meshlet.BV.center));
-				std::memcpy(&meshlet.BV.center, bounds.center, sizeof(meshlet.BV.center));
+				std::memcpy(&meshlet.BV.center.x, bounds.center, sizeof(meshlet.BV.center));
 
 				meshlet.BV.diameter = bounds.radius * 2.0f;
 

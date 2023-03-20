@@ -16,6 +16,7 @@ layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
 out taskNV block
 {
 	uint meshletIndices[32];
+	uint drawIdx;
 };
 
 bool is_inside_view_frustum(uint idx)
@@ -38,29 +39,15 @@ bool is_inside_view_frustum(uint idx)
         // If it's less than 0 + (-diameter) then BV is outside VF
         if(signedDistance < -diameter)
             return false;
-        
-        // Temporary solution to saving distance from near plane for LOD picking
-        //if(i == 4)
-        //    distFromCamera = signedDistance - diameter;
     }
     return true;
 }
 
-/**
- * For backface culling with orthographic projection, use the following formula to reject backfacing clusters:
- *   dot(view, cone_axis) >= cone_cutoff
- *
- * For perspective projection, you can the formula that needs cone apex in addition to axis & cutoff:
- *   dot(normalize(cone_apex - camera_position), cone_axis) >= cone_cutoff
- */
- // Above snippet from meshoptimizer.h
- // apparent this is wrong for perspective projection as I suspected
- // look at RT-rendering 19.3 for more info
-
- // TODO: backface cluster culling is not 100% correct. Haven't figured out what to do when mesh is half clipped
-bool coneCull(vec4 cone, vec3 view)
+// Real-Time Rendering 4th edition, 19.3
+bool coneCull(vec4 cone, vec3 center, vec3 cam_pos, float radius)
 {
-	return dot(cone.xyz, view) > cone.w;
+	//return dot(normalize(cam_pos - center), cone.xyz) >= cone.w + radius / length(center - cam_pos);
+	return dot(center - cam_pos, cone.xyz) >= cone.w * length(center - cam_pos) + radius;
 }
 
 shared uint meshletCount;
@@ -68,31 +55,37 @@ shared uint meshletCount;
 void main()
 {
 	uint ti = gl_LocalInvocationID.x;
-	uint mgi = gl_WorkGroupID.x;
-	uint mi = mgi * 32 + ti;
+	uint mi = gl_GlobalInvocationID.x + drawData[drawDataIndices[gl_DrawIDARB]].meshletBufferOffset;
 
 	meshletCount = 0;
+	drawIdx = drawDataIndices[gl_DrawIDARB];
 
 	memoryBarrierShared();
 
-	vec4 decoded_cone = vec4(uint(meshlets[mi].cone[0]), uint(meshlets[mi].cone[1]), uint(meshlets[mi].cone[2]), uint(meshlets[mi].cone[3])) / 127.0;
-
-	// Transform meshlet normal cone to clip space
-	vec4 cone_model_space = vec4(decoded_cone.xyz, 1);
 	mat4 model_matrix = drawData[drawDataIndices[gl_DrawIDARB]].Transform;
-	vec4 cone_clip_space = globals.PV * model_matrix * cone_model_space;
-	 
-	// In Vulkan clip space the camera view direction is -z
-	vec3 view_dir_clip_space = vec3(0, 0, -1);
+	
+	vec4 decoded_cone = vec4(meshlets[mi].cone[0], meshlets[mi].cone[1], meshlets[mi].cone[2], meshlets[mi].cone[3]);
+	mat4 rotmat = globals.View * model_matrix;
+	rotmat[3] = vec4(0,0,0,1);
+	vec4 cone = vec4((rotmat * vec4(decoded_cone.xyz, 1)).xyz, decoded_cone.w);
 
-	// w component is cone half angle
-	vec4 cone = vec4(cone_clip_space.xyz, decoded_cone.w);
+	//vec4 decoded_cone = vec4(int(meshlets[mi].cone[0]) / 127.0, int(meshlets[mi].cone[1]) / 127.0, int(meshlets[mi].cone[2]) / 127.0, int(meshlets[mi].cone[3]) / 127.0);
+	
+	
+	// Transform BV to view space
+	BoundingVolume bv = meshlets[mi].boundingVolume;
+	vec3 bv_center_world_space = (globals.View * model_matrix * vec4(bv.center, 1.0)).xyz;
 
-	bool visible = !coneCull(cone, view_dir_clip_space);
-	bool is_inside_VF = false;
+	// Camera position in View space is at the origin
+	vec4 cam_pos = vec4(0,0,0,0);
 
-	if (visible)
-		is_inside_VF = is_inside_view_frustum(mi);
+	bool notOutOfBounds = gl_GlobalInvocationID.x < drawData[drawDataIndices[gl_DrawIDARB]].taskCount;
+
+	bool visible = notOutOfBounds && !coneCull(cone, bv_center_world_space.xyz, cam_pos.xyz, bv.diameter / 2.0);
+
+	bool is_inside_VF = true;
+	//if (visible)
+	//	is_inside_VF = is_inside_view_frustum(mi);
 
 	if(visible && is_inside_VF)
 	{
