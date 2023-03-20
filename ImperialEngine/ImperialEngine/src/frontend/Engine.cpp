@@ -128,7 +128,7 @@ namespace imp
 		if (count)
 			MarkDrawDataDirty();
 
-		static constexpr uint32_t numMeshes = 4u;
+		static constexpr uint32_t numMeshes = 3u;
 
 		auto& reg = m_Entities;
 		for (auto i = 0; i < count; i++)

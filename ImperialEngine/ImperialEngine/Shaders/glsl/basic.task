@@ -46,8 +46,10 @@ bool is_inside_view_frustum(uint idx)
 // Real-Time Rendering 4th edition, 19.3
 bool coneCull(vec4 cone, vec3 center, vec3 cam_pos, float radius)
 {
-	//return dot(normalize(cam_pos - center), cone.xyz) >= cone.w + radius / length(center - cam_pos);
-	return dot(center - cam_pos, cone.xyz) >= cone.w * length(center - cam_pos) + radius;
+	return dot(normalize(center - cam_pos), cone.xyz) >= cone.w + radius / length(center - cam_pos);
+
+	// meshoptimizer.h tells us to use this instead, figure out why
+	//return dot(center - cam_pos, cone.xyz) >= cone.w * length(center - cam_pos) + radius;
 }
 
 shared uint meshletCount;
@@ -69,7 +71,6 @@ void main()
 	rotmat[3] = vec4(0,0,0,1);
 	vec4 cone = vec4((rotmat * vec4(decoded_cone.xyz, 1)).xyz, decoded_cone.w);
 
-	//vec4 decoded_cone = vec4(int(meshlets[mi].cone[0]) / 127.0, int(meshlets[mi].cone[1]) / 127.0, int(meshlets[mi].cone[2]) / 127.0, int(meshlets[mi].cone[3]) / 127.0);
 	
 	
 	// Transform BV to view space
