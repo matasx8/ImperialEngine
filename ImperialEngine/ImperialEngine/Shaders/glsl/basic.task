@@ -6,6 +6,7 @@
 #extension GL_GOOGLE_include_directive: require
 #extension GL_ARB_shader_draw_parameters: require
 #extension GL_EXT_nonuniform_qualifier : require
+#extension GL_KHR_shader_subgroup_ballot: require
 
 //#include "prefix.h"
 #include "DescriptorSet0.h"
@@ -52,17 +53,12 @@ bool coneCull(vec4 cone, vec3 center, vec3 cam_pos, float radius)
 	//return dot(center - cam_pos, cone.xyz) >= cone.w * length(center - cam_pos) + radius;
 }
 
-shared uint meshletCount;
-
 void main()
 {
 	uint ti = gl_LocalInvocationID.x;
 	uint mi = gl_GlobalInvocationID.x + drawData[drawDataIndices[gl_DrawIDARB]].meshletBufferOffset;
 
-	meshletCount = 0;
 	drawIdx = drawDataIndices[gl_DrawIDARB];
-
-	memoryBarrierShared();
 
 	mat4 model_matrix = drawData[drawDataIndices[gl_DrawIDARB]].Transform;
 	
@@ -76,24 +72,14 @@ void main()
 	vec3 bv_center_world_space = (globals.View * model_matrix * vec4(bv.center, 1.0)).xyz;
 
 	// Camera position in View space is at the origin
-	vec4 cam_pos = vec4(0,0,0,0);
+	vec3 cam_pos = vec3(0,0,0);
 
 	bool notOutOfBounds = gl_GlobalInvocationID.x < drawData[drawDataIndices[gl_DrawIDARB]].taskCount;
 
-	bool visible = notOutOfBounds && !coneCull(cone, bv_center_world_space.xyz, cam_pos.xyz, bv.diameter / 2.0);
+	bool visible = notOutOfBounds && !coneCull(cone, bv_center_world_space.xyz, cam_pos, bv.diameter / 2.0);
 
-	bool is_inside_VF = true;
-	//if (visible)
-	//	is_inside_VF = is_inside_view_frustum(mi);
-
-	if(visible && is_inside_VF)
-	{
-		uint index = atomicAdd(meshletCount, 1);
-
-		meshletIndices[index] = mi;
-	}
-
-	memoryBarrierShared();
+	uvec4 vote = subgroupBallot(visible);
+	uint meshletCount = subgroupBallotBitCount(vote);
 
 	if (ti == 0)
 	{
@@ -102,4 +88,8 @@ void main()
 
 		gl_TaskCountNV = taskCount;
 	}
+
+	uint index = subgroupBallotExclusiveBitCount(vote);
+	if(visible)
+		meshletIndices[index] = mi;
 }
