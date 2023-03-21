@@ -340,7 +340,6 @@ namespace imp
 
             utils::OptimizeMesh(req.vertices, req.indices);
 
-            std::vector<Meshlet> meshlets = utils::GenerateMeshlets(req.vertices, req.indices);
 
             // These subbuffers will be used to index and offset into the one bound Vertex and Index buffer
             VulkanSubBuffer vtxSub = VulkanSubBuffer(vOffset, static_cast<uint32_t>(req.vertices.size()));
@@ -353,8 +352,17 @@ namespace imp
             static constexpr uint32_t numDesiredLODs = kMaxLODCount - 1;
             utils::GenerateMeshLODS(req.vertices, req.indices, &ivb.indices[1], numDesiredLODs, 0.33, 0.5);
 
+            ms_MeshData ms_md;
+            std::vector<Meshlet> meshlets = utils::GenerateMeshlets(req.vertices, req.indices, ivb, ms_md);
+            ms_md.boundingVolume = req.boundingVolume;
+            ms_md.firstTask = 0;
+            
+            for (auto i = 0; i < kMaxLODCount; i++)
+                ms_md.LODData[i].meshletBufferOffset += meshletBufferOffset;
+
             for (auto i = 0; i < kMaxLODCount; i++)
                 ivb.indices[i].m_Offset += iOffset;
+
 
             verts.insert(verts.end(), req.vertices.begin(), req.vertices.end());
             idxs.insert(idxs.end(), req.indices.begin(), req.indices.end());
@@ -371,11 +379,8 @@ namespace imp
             }
             mds.emplace_back(md);
 
-            ms_MeshData ms_md;
-            // TODO mesh: deduplicate bouding volume data
-            ms_md.boundingVolume = req.boundingVolume;
-            ms_md.taskCount = meshlets.size();
-            ms_md.firstTask = 0;
+
+
             ms_mds.emplace_back(ms_md);
 
             for (auto& meshlet : meshlets)

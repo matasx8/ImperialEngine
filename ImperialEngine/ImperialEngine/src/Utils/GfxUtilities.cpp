@@ -171,7 +171,7 @@ namespace imp
 			meshopt_optimizeVertexFetch(vertices.data(), indices.data(), indices.size(), vertices.data(), vertices.size(), sizeof(Vertex));
 		}
 
-		std::vector<Meshlet> GenerateMeshlets(std::vector<Vertex>& verts, std::vector<uint32_t>& indices)
+		std::vector<Meshlet> GenerateMeshlets(std::vector<Vertex>& verts, std::vector<uint32_t>& indices, const Comp::MeshGeometry& geometry, ms_MeshData& meshData)
 		{
 			std::vector<Meshlet> meshletsDst;
 			const size_t max_vertices = 64;
@@ -187,39 +187,65 @@ namespace imp
 			// this is an index buffer, but this library likes to name it as triangles
 			std::vector<unsigned char> triangles(meshletBound * max_triangles * 3);
 
-			size_t meshletCount = meshopt_buildMeshlets(meshlets.data(), vertices.data(), triangles.data(), indices.data(), indices.size(), (float*)verts.data(), verts.size(), sizeof(Vertex), max_vertices, max_triangles, cone_weight);
-			
-			for (size_t i = 0; i < meshletCount; i++)
+			size_t currMeshletCount = 0;
+			uint32_t meshletBufferOffset = 0;
+
+			for (uint32_t lodIdx = 0; lodIdx < kMaxLODCount; lodIdx++)
 			{
-				Meshlet meshlet = {};
+				const uint32_t* indicesWithLODOfsset = &indices[geometry.indices[lodIdx].m_Offset];
+				const size_t indexCount = geometry.indices[lodIdx].m_Count;
 
-				for (unsigned int j = 0; j < meshlets[i].vertex_count; j++)
-					meshlet.vertices[j] = vertices[j + meshlets[i].vertex_offset];
+				size_t meshletCount = meshopt_buildMeshlets(meshlets.data(), vertices.data(), triangles.data(), indicesWithLODOfsset, indexCount, (float*)verts.data(), verts.size(), sizeof(Vertex), max_vertices, max_triangles, cone_weight);
 
-				for (unsigned int j = 0; j < meshlets[i].triangle_count * 3; j++)
+				if (currMeshletCount == meshletCount)
 				{
-					meshlet.indices[j] = static_cast<uint8_t>(triangles[j + meshlets[i].triangle_offset]);
+					for (uint32_t cli = lodIdx; cli < kMaxLODCount; cli++)
+					{
+						meshData.LODData[cli].meshletBufferOffset = meshletBufferOffset;
+						meshData.LODData[lodIdx].taskCount = currMeshletCount;
+					}
+				}
+				else
+				{
+					currMeshletCount = meshletCount;
+					meshData.LODData[lodIdx].meshletBufferOffset = meshletBufferOffset;
+					meshData.LODData[lodIdx].taskCount = meshletCount;
+					meshletBufferOffset += currMeshletCount;
+
 				}
 
+				for (size_t i = 0; i < meshletCount; i++)
+				{
+					Meshlet meshlet = {};
 
-				meshlet.triangleCount = static_cast<uint8_t>(meshlets[i].triangle_count);
-				meshlet.vertexCount = static_cast<uint8_t>(meshlets[i].vertex_count);
+					for (unsigned int j = 0; j < meshlets[i].vertex_count; j++)
+						meshlet.vertices[j] = vertices[j + meshlets[i].vertex_offset];
 
-				meshopt_Bounds bounds = meshopt_computeMeshletBounds(meshlet.vertices, meshlet.indices, meshlet.triangleCount, (float*)verts.data(), verts.size(), sizeof(Vertex));
-				//static_assert(sizeof(meshlet.cone) == sizeof(bounds.cone_axis_s8) + sizeof(bounds.cone_cutoff_s8));
-				// Getting a warning for "reading invalid data". Is it not okay to read like this? (look at above assert)
-				//std::memcpy(meshlet.cone, bounds.cone_axis_s8, sizeof(meshlet.cone));
-				meshlet.cone[0] = bounds.cone_axis_s8[0];
-				meshlet.cone[1] = bounds.cone_axis_s8[1];
-				meshlet.cone[2] = bounds.cone_axis_s8[2];
-				meshlet.cone[3] = bounds.cone_cutoff_s8;
+					for (unsigned int j = 0; j < meshlets[i].triangle_count * 3; j++)
+					{
+						meshlet.indices[j] = static_cast<uint8_t>(triangles[j + meshlets[i].triangle_offset]);
+					}
 
-				static_assert(sizeof(meshlet.BV.center) == sizeof(meshlet.BV.center));
-				std::memcpy(&meshlet.BV.center.x, bounds.center, sizeof(meshlet.BV.center));
 
-				meshlet.BV.diameter = bounds.radius * 2.0f;
+					meshlet.triangleCount = static_cast<uint8_t>(meshlets[i].triangle_count);
+					meshlet.vertexCount = static_cast<uint8_t>(meshlets[i].vertex_count);
 
-				meshletsDst.push_back(meshlet);
+					meshopt_Bounds bounds = meshopt_computeMeshletBounds(meshlet.vertices, meshlet.indices, meshlet.triangleCount, (float*)verts.data(), verts.size(), sizeof(Vertex));
+					//static_assert(sizeof(meshlet.cone) == sizeof(bounds.cone_axis_s8) + sizeof(bounds.cone_cutoff_s8));
+					// Getting a warning for "reading invalid data". Is it not okay to read like this? (look at above assert)
+					//std::memcpy(meshlet.cone, bounds.cone_axis_s8, sizeof(meshlet.cone));
+					meshlet.cone[0] = bounds.cone_axis_s8[0];
+					meshlet.cone[1] = bounds.cone_axis_s8[1];
+					meshlet.cone[2] = bounds.cone_axis_s8[2];
+					meshlet.cone[3] = bounds.cone_cutoff_s8;
+
+					static_assert(sizeof(meshlet.BV.center) == sizeof(meshlet.BV.center));
+					std::memcpy(&meshlet.BV.center.x, bounds.center, sizeof(meshlet.BV.center));
+
+					meshlet.BV.diameter = bounds.radius * 2.0f;
+
+					meshletsDst.push_back(meshlet);
+				}
 			}
 
 			return meshletsDst;

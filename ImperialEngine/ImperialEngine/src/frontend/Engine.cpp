@@ -128,7 +128,7 @@ namespace imp
 		if (count)
 			MarkDrawDataDirty();
 
-		static constexpr uint32_t numMeshes = 3u;
+		static constexpr uint32_t numMeshes = 2u;
 
 		auto& reg = m_Entities;
 		for (auto i = 0; i < count; i++)
@@ -248,8 +248,8 @@ namespace imp
 		m_Entities.emplace<Comp::Transform>(previewCamera, glm::translate(defaultCameraTransform, glm::vec3(0.0f, 0.0f, 100.0f)));
 		m_Entities.emplace<Comp::Camera>(previewCamera, proj, glm::mat4x4(), kCamOutColor, true, true, false);
 
-		AddDemoEntity(5000);
-		//AddDemoEntity(kMaxDrawCount - 1);
+		//AddDemoEntity(5000);
+		AddDemoEntity(kMaxDrawCount - 1);
 	}
 
 	void Engine::RenderCameras()

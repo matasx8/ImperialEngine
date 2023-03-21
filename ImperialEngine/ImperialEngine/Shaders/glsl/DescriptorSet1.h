@@ -30,10 +30,11 @@ struct MeshLOD
     uint firstIndex;
 };
 
-//struct ms_MeshLOD
-//{
-//
-//};
+struct ms_MeshLOD
+{
+    uint meshletBufferOffset;
+    uint taskCount;
+};
 
 struct MeshData
 {
@@ -45,10 +46,10 @@ struct MeshData
 
 struct ms_MeshData
 {
-    //ms_MeshLOD LODData[4];
+    ms_MeshLOD LODData[4];
     BoundingVolume boundingVolume;
-    // VkDrawMeshTasksIndirectCommand
-    uint taskCount;
+
+    // VkDrawMeshTasksIndirectCommandNV
     uint firstTask;
     uint pad[2];
 };
@@ -62,6 +63,13 @@ struct Meshlet
     uint8_t triangleCount;
     uint8_t vertexCount;
 };
+
+/*
+struct Meshlet
+{
+    
+}
+*/
 
 layout(set = 1, binding = 0) readonly buffer Draws
 {

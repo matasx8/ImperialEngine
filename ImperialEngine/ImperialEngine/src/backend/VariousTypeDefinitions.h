@@ -21,6 +21,13 @@ namespace imp
 		uint32_t firstIndex;
 	};
 
+	struct ms_MeshLOD
+	{
+		uint32_t meshletBufferOffset;
+		uint32_t taskCount;
+	};
+
+	// TODO mesh: union
 	struct alignas(16) MeshData
 	{
 		MeshLOD LODData[kMaxLODCount];
@@ -31,9 +38,8 @@ namespace imp
 
 	struct alignas(16) ms_MeshData
 	{
-		//MeshLOD LODData[kMaxLODCount];
+		ms_MeshLOD LODData[kMaxLODCount];
 		BoundingVolumeSphere boundingVolume;
-		uint32_t taskCount;
 		uint32_t firstTask;
 		uint32_t pad[2];
 	};

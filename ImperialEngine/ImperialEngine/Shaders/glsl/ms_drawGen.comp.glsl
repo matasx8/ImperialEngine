@@ -24,8 +24,21 @@ void copy_draw_command(uint idx, uint newIdx)
     drawDataIndices[newIdx] = idx;
     
     ms_MeshData meshdata = ms_md[drawsSrc[idx].meshDataIndex];
+
+    uint lodIdx = 0;
+    if(distFromCamera >= 250)
+        lodIdx = 3;
+    else if(distFromCamera >= 100)
+        lodIdx = 2;
+    else if(distFromCamera >= 25)
+        lodIdx = 1;
     
-    ms_DrawDst[newIdx].taskCount = (meshdata.taskCount + 31) / 32;
+    ms_MeshLOD lod = meshdata.LODData[lodIdx];
+
+    drawData[idx].meshletBufferOffset = lod.meshletBufferOffset;
+    drawData[idx].taskCount = lod.taskCount;
+    
+    ms_DrawDst[newIdx].taskCount = (lod.taskCount + 31) / 32;
     ms_DrawDst[newIdx].firstTask = 0;
 }
 
