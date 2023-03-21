@@ -175,7 +175,7 @@ namespace imp
 		{
 			std::vector<Meshlet> meshletsDst;
 			const size_t max_vertices = 64;
-			const size_t max_triangles = 126;
+			const size_t max_triangles = 124;
 			const size_t index_count = max_triangles * 3;
 			const float cone_weight = 0.5f;
 

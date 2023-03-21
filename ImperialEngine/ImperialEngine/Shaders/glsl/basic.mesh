@@ -8,7 +8,7 @@
 #extension GL_EXT_nonuniform_qualifier : require
 
 layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
-layout(triangles, max_vertices = 64, max_primitives = 126) out;
+layout(triangles, max_vertices = 64, max_primitives = 124) out;
 
 #include "prefix.h"
 #include "DescriptorSet0.h"
@@ -77,9 +77,9 @@ void main()
 		gl_MeshVerticesNV[i].gl_Position = globals.PV * model * vec4(pos, 1.0);
 	}
 
-	for (uint i = ti; i < indexCount; i += 32)
+	for (uint i = ti; i < (indexCount + 3) / 4; i += 32)
 	{
-		gl_PrimitiveIndicesNV[i] = uint(meshlets[mi].indices[i]);
+		writePackedPrimitiveIndices4x8NV(i * 4, meshlets[mi].indices[i]);
 	}
 
 	if (ti == 0)

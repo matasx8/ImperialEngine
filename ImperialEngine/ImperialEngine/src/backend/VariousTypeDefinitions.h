@@ -81,7 +81,7 @@ namespace imp
 		BoundingVolumeSphere BV;
 		int8_t cone[4];
 		uint32_t vertices[64];
-		uint8_t indices[126 * 3]; // up to 126 triangles
+		uint8_t indices[124 * 3]; // up to 126 triangles
 		uint8_t triangleCount;
 		uint8_t vertexCount;
 	};
