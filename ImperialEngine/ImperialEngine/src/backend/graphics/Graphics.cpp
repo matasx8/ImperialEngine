@@ -323,23 +323,30 @@ namespace imp
         uint32_t mdAllocSize = 0;
         uint32_t mldAllocSize = 0;
         uint32_t ms_mdAllocSize = 0;
+        uint32_t ms_vdAllocSize = 0;
+        uint32_t ms_tdAllocSize = 0;
         std::vector<Vertex> verts;
         std::vector<uint32_t> idxs;
         std::vector<MeshData> mds;
         std::vector<Meshlet> mlds;
         std::vector<ms_MeshData> ms_mds;
+        std::vector<uint32_t> ms_vd;// meshlet vertex data
+        std::vector<uint8_t> ms_td; // meshlet triangle data
         const uint32_t vertBufferOffset = m_VertexBuffer.GetOffset() / sizeof(Vertex);
         const uint32_t indBufferOffset = m_IndexBuffer.GetOffset() / sizeof(uint32_t);
         const uint32_t meshletBufferOffset = m_ShaderManager.GetMeshletDataBuffer().GetOffset() / sizeof(Meshlet);
+        const uint32_t meshletVertexDataBufferOffset = m_ShaderManager.GetMeshletVertexDataBuffer().GetOffset() / sizeof(uint32_t);
+        const uint32_t meshletTriangleVertexDataBufferOffset = m_ShaderManager.GetMeshletTriangleDataBuffer().GetOffset() / sizeof(uint8_t);
 
         for (auto& req : meshCreationData)
         {
             const auto vOffset = verts.size() + vertBufferOffset;
             const auto iOffset = idxs.size() + indBufferOffset;
             const auto mOffset = mlds.size() + meshletBufferOffset;
+            const auto mvdOffset = ms_vd.size() + meshletVertexDataBufferOffset;
+            const auto mtdOffset = ms_td.size() + meshletTriangleVertexDataBufferOffset;
 
             utils::OptimizeMesh(req.vertices, req.indices);
-
 
             // These subbuffers will be used to index and offset into the one bound Vertex and Index buffer
             VulkanSubBuffer vtxSub = VulkanSubBuffer(vOffset, static_cast<uint32_t>(req.vertices.size()));
@@ -353,16 +360,15 @@ namespace imp
             utils::GenerateMeshLODS(req.vertices, req.indices, &ivb.indices[1], numDesiredLODs, 0.33, 0.5);
 
             ms_MeshData ms_md;
-            std::vector<Meshlet> meshlets = utils::GenerateMeshlets(req.vertices, req.indices, ivb, ms_md);
+            std::vector<Meshlet> meshlets = utils::GenerateMeshlets(req.vertices, req.indices, ms_vd, ms_td, ivb, ms_md);
             ms_md.boundingVolume = req.boundingVolume;
             ms_md.firstTask = 0;
             
             for (auto i = 0; i < kMaxLODCount; i++)
-                ms_md.LODData[i].meshletBufferOffset += meshletBufferOffset;
+                ms_md.LODData[i].meshletBufferOffset += meshletBufferOffset; // TODO mesh: potential mistake here, probably wouldn't work with model with multiple meshes
 
             for (auto i = 0; i < kMaxLODCount; i++)
                 ivb.indices[i].m_Offset += iOffset;
-
 
             verts.insert(verts.end(), req.vertices.begin(), req.vertices.end());
             idxs.insert(idxs.end(), req.indices.begin(), req.indices.end());
@@ -379,18 +385,23 @@ namespace imp
             }
             mds.emplace_back(md);
 
-
-
             ms_mds.emplace_back(ms_md);
+
+            // offset meshlet vertex data
+            for (auto& v : ms_vd)
+                v += vOffset;
 
             for (auto& meshlet : meshlets)
             {
-                for (auto& v : meshlet.vertices)
-                    v += vOffset;
+                meshlet.vertexOffset += mvdOffset;
+                meshlet.triangleOffset += mtdOffset;
             }
+
             mlds.insert(mlds.end(), meshlets.begin(), meshlets.end());
 
             mldAllocSize += meshlets.size() * sizeof(Meshlet);
+            ms_vdAllocSize += ms_vd.size() * sizeof(uint32_t);
+            ms_tdAllocSize += ms_td.size() * sizeof(uint8_t);
 
             mdAllocSize += static_cast<uint32_t>(sizeof(MeshData));
             ms_mdAllocSize += static_cast<uint32_t>(sizeof(ms_MeshData));
@@ -424,6 +435,14 @@ namespace imp
         // upload mesh shading mesh data
         assert(ms_mdAllocSize);
         UploadVulkanBuffer(usageFlags, memoryFlags, m_ShaderManager.GetmsMeshDataBuffer(), cb, ms_mdAllocSize, ms_mds.data());
+
+        // upload meshlet vertex data
+        assert(ms_vdAllocSize);
+        UploadVulkanBuffer(usageFlags, memoryFlags, m_ShaderManager.GetMeshletVertexDataBuffer(), cb, ms_vdAllocSize, ms_vd.data());
+
+        // upload meshlet triangle data
+        assert(ms_tdAllocSize);
+        UploadVulkanBuffer(usageFlags, memoryFlags, m_ShaderManager.GetMeshletTriangleDataBuffer(), cb, ms_tdAllocSize, ms_td.data());
 
         cb.End();
 

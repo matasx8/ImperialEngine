@@ -49,15 +49,17 @@ void main()
 
     uint vertexCount = uint(meshlets[mi].vertexCount);
 	uint triangleCount = uint(meshlets[mi].triangleCount);
+	uint vertexOffset = meshlets[mi].vertexOffset;
+	uint triangleOffset = meshlets[mi].triangleOffset;
     uint indexCount = triangleCount * 3;
 
     for (uint i = ti; i < vertexCount; i += 32)
 	{
-		uint vi = meshlets[mi].vertices[i];
+		uint vi = vertexData[i + vertexOffset];
 
 		vec3 pos = vec3(vertices[vi].vx, vertices[vi].vy, vertices[vi].vz);
 		vec3 norm = vec3(vertices[vi].nx, vertices[vi].ny, vertices[vi].nz);
-		vec2 tex = vec2(vertices[vi].tu, vertices[vi].tv);
+		//vec2 tex = vec2(vertices[vi].tu, vertices[vi].tv);
 
 		vec3 lol = vec3(materialData[drawData[drawIdx].materialIdx].color);
 		mat4 model = drawData[drawIdx].Transform;
@@ -77,9 +79,9 @@ void main()
 		gl_MeshVerticesNV[i].gl_Position = globals.PV * model * vec4(pos, 1.0);
 	}
 
-	for (uint i = ti; i < (indexCount + 3) / 4; i += 32)
+	for (uint i = ti; i < (indexCount + 3 ) / 4; i += 32)
 	{
-		writePackedPrimitiveIndices4x8NV(i * 4, meshlets[mi].indices[i]);
+		writePackedPrimitiveIndices4x8NV(i * 4, triangleData[i + triangleOffset / 4]);
 	}
 
 	if (ti == 0)

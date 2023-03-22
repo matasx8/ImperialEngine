@@ -8,6 +8,8 @@
 namespace imp
 {
 	inline constexpr uint32_t kMaxLODCount = 4;
+	inline constexpr size_t kMaxMeshletVertices = 64;
+	inline constexpr size_t kMaxMeshletTriangles = 124;
 
 	struct BoundingVolumeSphere
 	{
@@ -75,16 +77,24 @@ namespace imp
 		uint32_t	meshDataIndex;
 	};
 
-	// TODO mesh: align
+	struct NormalCone
+	{
+		glm::vec3 apex;
+		int8_t cone[4];
+	};
+
+	// TODO mesh: If I put normal cones into seperate buffer I could get Meshlets down to 16bytes.
+	// If I have time try to do that and measure perf
 	struct alignas(16) Meshlet
 	{
-		BoundingVolumeSphere BV;
-		int8_t cone[4];
-		uint32_t vertices[64];
-		uint8_t indices[124 * 3]; // up to 126 triangles
+		NormalCone cone;
+		uint32_t triangleOffset;
+		uint32_t vertexOffset;
 		uint8_t triangleCount;
 		uint8_t vertexCount;
+		// 6 more bytes of extra space left
 	};
+	static_assert(sizeof(Meshlet) == 32);
 
 	struct MeshCreationRequest
 	{

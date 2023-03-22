@@ -21,7 +21,7 @@ namespace imp
 	inline constexpr uint32_t kBindingCount					= 5;
 	inline constexpr uint32_t kMaxMaterialCount				= 128;
 	inline constexpr uint32_t kMaxDrawCount					= 1'048'000; //Should be upper bound, lets see what happens with 2
-	inline constexpr uint32_t kMaxMeshCount					= kMaxDrawCount;
+	inline constexpr uint32_t kMaxMeshCount					= kMaxDrawCount / 2;
 	inline constexpr uint32_t kGlobalBufferBindingSlot		= 0;
 	inline constexpr uint32_t kGlobalBufferBindCount		= 1;
 	inline constexpr uint32_t kVertexBufferBindingSlot		= kGlobalBufferBindingSlot + kGlobalBufferBindCount;
@@ -33,7 +33,7 @@ namespace imp
 	inline constexpr uint32_t kDrawDataBufferBindingSlot	= kDrawDataIndicesBindingSlot + kDrawDataIndicesBindCount;
 	inline constexpr uint32_t kDefaultMaterialIndex			= 0;
 
-	inline constexpr uint32_t kComputeBindingCount			= 6;
+	inline constexpr uint32_t kComputeBindingCount			= 8;
 
 	struct GlobalData
 	{
@@ -82,6 +82,8 @@ namespace imp
 		VulkanBuffer& GetmsMeshDataBuffer();
 		VulkanBuffer& GetDrawCommandCountBuffer();
 		VulkanBuffer& GetMeshletDataBuffer();
+		VulkanBuffer& GetMeshletVertexDataBuffer();
+		VulkanBuffer& GetMeshletTriangleDataBuffer();
 
 		void CreateVulkanShaderSet(VkDevice device, const MaterialCreationRequest& req);
 		void CreateComputePrograms(VkDevice device, PipelineManager& pipeManager, const ComputeProgramCreationRequest& req);
@@ -120,6 +122,8 @@ namespace imp
 
 		// Mesh Shading
 		VulkanBuffer m_MeshletData;
+		VulkanBuffer m_MeshletVertexData;
+		VulkanBuffer m_MeshletTriangleData;
 
 		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_DescriptorSets;
 		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_ComputeDescriptorSets;

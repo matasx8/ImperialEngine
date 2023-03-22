@@ -54,22 +54,20 @@ struct ms_MeshData
     uint pad[2];
 };
 
+struct NormalCone
+{
+    vec3 apex;
+    int8_t cone[4];
+};
+
 struct Meshlet
 {
-    BoundingVolume boundingVolume;
-    int8_t cone[4];
-    uint vertices[64];
-    uint indices[124 * 3/4]; // up to 126 triangles
+    NormalCone cone;
+    uint triangleOffset;
+    uint vertexOffset;
     uint8_t triangleCount;
     uint8_t vertexCount;
 };
-
-/*
-struct Meshlet
-{
-    
-}
-*/
 
 layout(set = 1, binding = 0) readonly buffer Draws
 {
@@ -104,4 +102,14 @@ layout(set = 1, binding = 4) buffer Meshlets
 layout(set = 1, binding = 5) readonly buffer ms_MeshDatas
 {
     ms_MeshData ms_md[];
+};
+
+layout(set = 1, binding = 6) readonly buffer ms_MeshletVertexData
+{
+    uint vertexData[];
+};
+
+layout(set = 1, binding = 7) readonly buffer ms_MeshletTriangleData
+{
+    uint triangleData[];
 };

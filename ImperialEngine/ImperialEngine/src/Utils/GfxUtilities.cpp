@@ -171,21 +171,19 @@ namespace imp
 			meshopt_optimizeVertexFetch(vertices.data(), indices.data(), indices.size(), vertices.data(), vertices.size(), sizeof(Vertex));
 		}
 
-		std::vector<Meshlet> GenerateMeshlets(std::vector<Vertex>& verts, std::vector<uint32_t>& indices, const Comp::MeshGeometry& geometry, ms_MeshData& meshData)
+		std::vector<Meshlet> GenerateMeshlets(std::vector<Vertex>& verts, std::vector<uint32_t>& indices, std::vector<uint32_t>& meshletVertexData, std::vector<uint8_t>& meshletTriangleData, const Comp::MeshGeometry& geometry, ms_MeshData& meshData)
 		{
 			std::vector<Meshlet> meshletsDst;
-			const size_t max_vertices = 64;
-			const size_t max_triangles = 124;
-			const size_t index_count = max_triangles * 3;
+			const size_t index_count = kMaxMeshletTriangles * 3;
 			const float cone_weight = 0.5f;
 
-			size_t meshletBound = meshopt_buildMeshletsBound(indices.size(), max_vertices, max_triangles);
+			size_t meshletBound = meshopt_buildMeshletsBound(indices.size(), kMaxMeshletVertices, kMaxMeshletTriangles);
 			assert(meshletBound);
 
 			std::vector<meshopt_Meshlet> meshlets(meshletBound);
-			std::vector<unsigned int> vertices(meshletBound * max_vertices);
+			std::vector<unsigned int> vertices(meshletBound * kMaxMeshletVertices);
 			// this is an index buffer, but this library likes to name it as triangles
-			std::vector<unsigned char> triangles(meshletBound * max_triangles * 3);
+			std::vector<unsigned char> triangles(meshletBound * kMaxMeshletTriangles * 3);
 
 			size_t currMeshletCount = 0;
 			uint32_t meshletBufferOffset = 0;
@@ -195,7 +193,7 @@ namespace imp
 				const uint32_t* indicesWithLODOfsset = &indices[geometry.indices[lodIdx].m_Offset];
 				const size_t indexCount = geometry.indices[lodIdx].m_Count;
 
-				size_t meshletCount = meshopt_buildMeshlets(meshlets.data(), vertices.data(), triangles.data(), indicesWithLODOfsset, indexCount, (float*)verts.data(), verts.size(), sizeof(Vertex), max_vertices, max_triangles, cone_weight);
+				size_t meshletCount = meshopt_buildMeshlets(meshlets.data(), vertices.data(), triangles.data(), indicesWithLODOfsset, indexCount, (float*)verts.data(), verts.size(), sizeof(Vertex), kMaxMeshletVertices, kMaxMeshletTriangles, cone_weight);
 
 				if (currMeshletCount == meshletCount)
 				{
@@ -218,31 +216,54 @@ namespace imp
 				{
 					Meshlet meshlet = {};
 
-					for (unsigned int j = 0; j < meshlets[i].vertex_count; j++)
-						meshlet.vertices[j] = vertices[j + meshlets[i].vertex_offset];
 
+
+					meshlet.vertexOffset = meshletVertexData.size();
+					meshlet.triangleOffset = meshletTriangleData.size();
+
+					for (unsigned int j = 0; j < meshlets[i].vertex_count; j++)
+						meshletVertexData.push_back(vertices[j + meshlets[i].vertex_offset]);
+					
 					for (unsigned int j = 0; j < meshlets[i].triangle_count * 3; j++)
 					{
-						meshlet.indices[j] = static_cast<uint8_t>(triangles[j + meshlets[i].triangle_offset]);
+						meshletTriangleData.push_back(static_cast<uint8_t>(triangles[j + meshlets[i].triangle_offset]));
 					}
 
+					if (meshletTriangleData.size() % 4 != 0)
+					{
+						auto sizee = meshletTriangleData.size();
+						auto numFilers = 0;
+
+						while (sizee % 4 != 0)
+						{
+							numFilers++;
+							sizee++;
+						}
+
+						assert(numFilers < 4);
+						for (auto j = 0; j < numFilers; j++)
+							meshletTriangleData.push_back(0);
+					}
+
+					//meshletVertexData.insert(meshletVertexData.end(), vertices.begin() + meshlets[i].vertex_offset, vertices.begin() + meshlets[i].vertex_count + meshlets[i].vertex_offset);
+					//meshletTriangleData.insert(meshletTriangleData.end(), triangles.begin() + meshlets[i].triangle_offset, triangles.begin() + meshlets[i].triangle_count * 3 + meshlets[i].triangle_offset);
 
 					meshlet.triangleCount = static_cast<uint8_t>(meshlets[i].triangle_count);
 					meshlet.vertexCount = static_cast<uint8_t>(meshlets[i].vertex_count);
 
-					meshopt_Bounds bounds = meshopt_computeMeshletBounds(meshlet.vertices, meshlet.indices, meshlet.triangleCount, (float*)verts.data(), verts.size(), sizeof(Vertex));
-					//static_assert(sizeof(meshlet.cone) == sizeof(bounds.cone_axis_s8) + sizeof(bounds.cone_cutoff_s8));
-					// Getting a warning for "reading invalid data". Is it not okay to read like this? (look at above assert)
-					//std::memcpy(meshlet.cone, bounds.cone_axis_s8, sizeof(meshlet.cone));
-					meshlet.cone[0] = bounds.cone_axis_s8[0];
-					meshlet.cone[1] = bounds.cone_axis_s8[1];
-					meshlet.cone[2] = bounds.cone_axis_s8[2];
-					meshlet.cone[3] = bounds.cone_cutoff_s8;
+					const uint32_t* meshletVertexPtr = &vertices[meshlets[i].vertex_offset];
+					const uint8_t* meshletTrianglePtr = &triangles[meshlets[i].triangle_offset];
+					meshopt_Bounds bounds = meshopt_computeMeshletBounds(meshletVertexPtr, meshletTrianglePtr, meshlet.triangleCount, (float*)verts.data(), verts.size(), sizeof(Vertex));
 
-					static_assert(sizeof(meshlet.BV.center) == sizeof(meshlet.BV.center));
-					std::memcpy(&meshlet.BV.center.x, bounds.center, sizeof(meshlet.BV.center));
+					meshlet.cone.cone[0] = bounds.cone_axis_s8[0];
+					meshlet.cone.cone[1] = bounds.cone_axis_s8[1];
+					meshlet.cone.cone[2] = bounds.cone_axis_s8[2];
+					meshlet.cone.cone[3] = bounds.cone_cutoff_s8;
 
-					meshlet.BV.diameter = bounds.radius * 2.0f;
+					// I chose not to do per-meshlet VF culling so I wont be needing meshlet BV so it makes a lot more sense to use
+					// cone apex instead of BV for cone culling
+					static_assert(sizeof(meshlet.cone.apex) == sizeof(bounds.cone_apex));
+					std::memcpy(&meshlet.cone.apex.x, bounds.cone_apex, sizeof(meshlet.cone.apex));
 
 					meshletsDst.push_back(meshlet);
 				}
