@@ -34,12 +34,12 @@ void copy_draw_command(uint idx, uint newIdx)
         lodIdx = 1;
     
     ms_MeshLOD lod = meshdata.LODData[lodIdx];
-
-    drawData[idx].meshletBufferOffset = lod.meshletBufferOffset;
-    drawData[idx].taskCount = lod.taskCount;
     
     ms_DrawDst[newIdx].taskCount = (lod.taskCount + 31) / 32;
     ms_DrawDst[newIdx].firstTask = 0;
+
+    ms_DrawDst[newIdx].meshletBufferOffset = lod.meshletBufferOffset;
+    ms_DrawDst[newIdx].meshTaskCount = lod.taskCount;
 }
 
 bool is_inside_view_frustum(uint idx)

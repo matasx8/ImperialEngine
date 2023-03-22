@@ -37,6 +37,4 @@ layout(set = 0, binding = 131) buffer DrawData
 	mat4 Transform;
 	uint materialIdx;
 	uint vertexBufferOffset;
-	uint meshletBufferOffset;
-	uint taskCount;
 } drawData[];

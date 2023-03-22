@@ -61,8 +61,8 @@ namespace imp
 		for (auto i = 0; i < settings.swapchainImageCount; i++)
 		{
 			// TODO: change to device local memory and use transfer queue to update data
-			m_GlobalBuffers[i] = memory.GetBuffer(device, kGlobalBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, kHostVisisbleCoherentFlags, memProps);
-			m_MaterialDataBuffers[i] = memory.GetBuffer(device, kMaterialBufferSize, kStorageDstFlags, kHostVisisbleCoherentFlags, memProps);
+			m_GlobalBuffers[i] = memory.GetBuffer(device, kGlobalBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, kHostVisisbleCoherentFlags | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memProps);
+			m_MaterialDataBuffers[i] = memory.GetBuffer(device, kMaterialBufferSize, kStorageDstFlags, kHostVisisbleCoherentFlags | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memProps);
 			m_DrawDataBuffers[i] = memory.GetBuffer(device, kDrawDataBufferSize, kStorageDstFlags, kHostVisisbleCoherentFlags | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memProps);
 			m_DrawDataBuffers[i].MapWholeBuffer(device);
 
@@ -231,7 +231,6 @@ namespace imp
 			dat.transform = draw.Transform;
 			dat.materialIndex = kDefaultMaterialIndex;
 			dat.vertexOffset = geometryData.at(draw.VertexBufferId).vertices.GetOffset();
-			dat.meshletOffset = geometryData.at(draw.VertexBufferId).meshletOffset;
 
 			shaderData.push_back(dat);
 		}
@@ -347,7 +346,7 @@ namespace imp
 	void VulkanShaderManager::CreateComputeDescriptorSetLayout(VkDevice device)
 	{
 		const auto drawCommandStagingBufferBinding = CreateDescriptorBinding(0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT);
-		const auto drawCommandBufferBinding = CreateDescriptorBinding(1, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT);
+		const auto drawCommandBufferBinding = CreateDescriptorBinding(1, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_TASK_BIT_EXT);
 		const auto boundingVolumeBinding = CreateDescriptorBinding(2, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT);
 		const auto drawCommandCountBufferBinding = CreateDescriptorBinding(3, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT);
 		// TODO mesh: figure out proper stages

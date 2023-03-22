@@ -9,8 +9,12 @@ struct IndirectDrawCommand
 
 struct ms_IndirectDrawCommand
 {
+    // Read by Command Processor
     uint    taskCount;
     uint    firstTask;
+    // Used in Mesh shader
+    uint    meshletBufferOffset;
+    uint    meshTaskCount;
 };
 
 struct IndirectDraw
@@ -74,11 +78,13 @@ layout(set = 1, binding = 0) readonly buffer Draws
     IndirectDraw drawsSrc[];
 };
 
+#ifndef MESH_PIPELINE
 layout(set = 1, binding = 1) writeonly buffer DrawCommands
 {
-#ifndef MESH_PIPELINE
     IndirectDrawCommand drawsDst[];
 #else
+layout(set = 1, binding = 1) buffer DrawCommands
+{
     //ms_IndirectDrawCommand is smaller in size so using the same buffer for this is ok
     ms_IndirectDrawCommand ms_DrawDst[];
 #endif

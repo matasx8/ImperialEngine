@@ -8,7 +8,7 @@
 #extension GL_EXT_nonuniform_qualifier : require
 #extension GL_KHR_shader_subgroup_ballot: require
 
-//#include "prefix.h"
+#define MESH_PIPELINE
 #include "DescriptorSet0.h"
 #include "DescriptorSet1.h"
 
@@ -27,12 +27,15 @@ bool coneCull(vec4 cone, vec3 apex, vec3 cam_pos)
 
 void main()
 {
-	uint ti = gl_LocalInvocationID.x;
-	uint mi = gl_GlobalInvocationID.x + drawData[drawDataIndices[gl_DrawIDARB]].meshletBufferOffset;
-
 	drawIdx = drawDataIndices[gl_DrawIDARB];
 
-	mat4 model_matrix = drawData[drawDataIndices[gl_DrawIDARB]].Transform;
+	uint meshletBufferOffset = ms_DrawDst[gl_DrawIDARB].meshletBufferOffset;
+	uint meshTaskCount = ms_DrawDst[gl_DrawIDARB].meshTaskCount;
+
+	uint ti = gl_LocalInvocationID.x;
+	uint mi = gl_GlobalInvocationID.x + meshletBufferOffset;
+
+	mat4 model_matrix = drawData[drawIdx].Transform;
 	
 	vec4 decoded_cone = vec4(int(normalCone[meshlets[mi].normalConeOffset].cone[0]), int(normalCone[meshlets[mi].normalConeOffset].cone[1]), int(normalCone[meshlets[mi].normalConeOffset].cone[2]), int(normalCone[meshlets[mi].normalConeOffset].cone[3])) / 127.0;
 	mat4 rotmat = globals.View * model_matrix;
@@ -45,7 +48,7 @@ void main()
 	// Camera position in View space is at the origin
 	vec3 cam_pos = vec3(0,0,0);
 	
-	bool notOutOfBounds = gl_GlobalInvocationID.x < drawData[drawDataIndices[gl_DrawIDARB]].taskCount;
+	bool notOutOfBounds = gl_GlobalInvocationID.x < meshTaskCount;
 
 	bool visible = notOutOfBounds && !coneCull(cone, apex_view_space, cam_pos);
 
@@ -54,8 +57,8 @@ void main()
 
 	if (ti == 0)
 	{
-		uint drawDataIndex = drawDataIndices[gl_DrawIDARB];
-		uint taskCount = min(meshletCount, drawData[drawDataIndex].taskCount - gl_WorkGroupID.x * 32);
+		uint drawDataIndex = drawIdx;
+		uint taskCount = min(meshletCount, meshTaskCount - gl_WorkGroupID.x * 32);
 
 		gl_TaskCountNV = taskCount;
 	}

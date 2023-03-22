@@ -63,7 +63,8 @@ namespace imp
 			vkCmdDrawIndexedIndirectCount(cb, gfx.m_DrawBuffer.GetBuffer(), 0, gfx.GetDrawCommandCountBuffer().GetBuffer(), 0, gfx.m_NumDraws, sizeof(VkDrawIndexedIndirectCommand));
 			break;
 		case kEngineRenderModeGPUDrivenMeshShading:
-			vkCmdDrawMeshTasksIndirectCountNV(cb, gfx.m_DrawBuffer.GetBuffer(), 0, gfx.GetDrawCommandCountBuffer().GetBuffer(), 0, gfx.m_NumDraws, sizeof(VkDrawMeshTasksIndirectCommandNV));
+			static constexpr size_t DrawMeshTasksIndirectCountSize = sizeof(VkDrawMeshTasksIndirectCommandNV) +sizeof(uint32_t) * 2; // DescriptorSet1.h
+			vkCmdDrawMeshTasksIndirectCountNV(cb, gfx.m_DrawBuffer.GetBuffer(), 0, gfx.GetDrawCommandCountBuffer().GetBuffer(), 0, gfx.m_NumDraws, DrawMeshTasksIndirectCountSize);
 			break;
 		}
 
