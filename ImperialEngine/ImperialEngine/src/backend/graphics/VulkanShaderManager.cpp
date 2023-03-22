@@ -63,7 +63,7 @@ namespace imp
 			// TODO: change to device local memory and use transfer queue to update data
 			m_GlobalBuffers[i] = memory.GetBuffer(device, kGlobalBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, kHostVisisbleCoherentFlags, memProps);
 			m_MaterialDataBuffers[i] = memory.GetBuffer(device, kMaterialBufferSize, kStorageDstFlags, kHostVisisbleCoherentFlags, memProps);
-			m_DrawDataBuffers[i] = memory.GetBuffer(device, kDrawDataBufferSize, kStorageDstFlags, kHostVisisbleCoherentFlags, memProps);
+			m_DrawDataBuffers[i] = memory.GetBuffer(device, kDrawDataBufferSize, kStorageDstFlags, kHostVisisbleCoherentFlags | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memProps);
 			m_DrawDataBuffers[i].MapWholeBuffer(device);
 
 			hostMemUsed += kGlobalBufferSize + kMaterialBufferSize + kDrawDataBufferSize;
@@ -306,10 +306,10 @@ namespace imp
 		std::array<uint32_t, kBindingCount> descriptorCounts = { kMaxDrawCount, kMaxDrawCount, kMaxDrawCount };
 		variable_info.pDescriptorCounts = descriptorCounts.data();
 
-		std::array<VkDescriptorSetLayout, kEngineSwapchainExclusiveMax - 1> layouts = { m_DescriptorSetLayout, m_DescriptorSetLayout, m_DescriptorSetLayout };
+		std::array<VkDescriptorSetLayout, kEngineSwapchainExclusiveMax - 1> layouts = { m_DescriptorSetLayout, m_DescriptorSetLayout};
 		AllocateDescriptorSets(device, m_DescriptorSets.data(), m_DescriptorPool, m_DescriptorSets.size(), layouts.data(), &variable_info);
 
-		std::array<VkDescriptorSetLayout, kEngineSwapchainExclusiveMax - 1> computeLayouts = { m_ComputeDescriptorSetLayout, m_ComputeDescriptorSetLayout, m_ComputeDescriptorSetLayout };
+		std::array<VkDescriptorSetLayout, kEngineSwapchainExclusiveMax - 1> computeLayouts = { m_ComputeDescriptorSetLayout, m_ComputeDescriptorSetLayout};
 		AllocateDescriptorSets(device, m_ComputeDescriptorSets.data(), m_DescriptorPool, m_ComputeDescriptorSets.size(), computeLayouts.data(), nullptr);
 	}
 
@@ -391,7 +391,7 @@ namespace imp
 		return descriptorSetLayoutBinding;
 	}
 
-	void VulkanShaderManager::WriteUpdateDescriptorSets(VkDevice device, VkDescriptorSet* dSets, VkDescriptorType type, std::array<VulkanBuffer, 3>& buffers, size_t descriptorDataSize, uint32_t bindSlot, uint32_t descriptorCount, uint32_t dSetCount)
+	void VulkanShaderManager::WriteUpdateDescriptorSets(VkDevice device, VkDescriptorSet* dSets, VkDescriptorType type, std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1>& buffers, size_t descriptorDataSize, uint32_t bindSlot, uint32_t descriptorCount, uint32_t dSetCount)
 	{
 		// I'm almost certain we should just vkUpdateDescriptorSets upfront for the whole buffer
 		for (auto i = 0; i < dSetCount; i++)

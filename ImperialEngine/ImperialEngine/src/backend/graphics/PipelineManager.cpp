@@ -132,9 +132,6 @@ namespace imp
 	{
 		constexpr int inputAttributes = 0;
 		std::vector<VkVertexInputAttributeDescription> descs(inputAttributes);
-		//descs[0] = MakeVertexAttrDesc(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos));
-		//descs[1] = MakeVertexAttrDesc(0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, norm));
-		//descs[2] = MakeVertexAttrDesc(0, 2, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, tex));
 		return descs;
 	}
 
