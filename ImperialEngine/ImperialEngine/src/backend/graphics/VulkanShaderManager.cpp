@@ -19,6 +19,7 @@ namespace imp
 		m_MeshletData(),
 		m_MeshletVertexData(),
 		m_MeshletTriangleData(),
+		m_MeshletNormalConeData(),
 		m_DescriptorSets(),
 		m_ComputeDescriptorSets(),
 		m_DescriptorSetLayout(),
@@ -39,9 +40,12 @@ namespace imp
 		static constexpr uint32_t kmsMeshDataBufferSize = sizeof(ms_MeshData) * kMaxMeshCount;
 		static constexpr uint32_t kDrawCommandCountBufferSize = sizeof(uint32_t);
 
+		// these allocations related to meshlets are probably not correct if we're trying to allocate max allowed
+		// (this means we have max unique meshes then they can have only 1 meshlet each)
 		static constexpr uint32_t kMeshletDataBufferSize = sizeof(Meshlet) * kMaxMeshCount;
 		static constexpr uint32_t kMeshletVertexDataBufferSize = sizeof(uint32_t) * kMaxMeshCount * kMaxMeshletVertices;
 		static constexpr uint32_t kMeshletTriangleDataBufferSize = sizeof(uint8_t) * kMaxMeshCount * kMaxMeshletTriangles;
+		static constexpr uint32_t kMeshletNormalConeDataBufferSize = sizeof(NormalCone) * kMaxMeshCount;
 
 		static constexpr auto kHostVisisbleCoherentFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 		static constexpr auto kStorageDstFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
@@ -76,8 +80,9 @@ namespace imp
 		m_MeshletData = memory.GetBuffer(device, kMeshletDataBufferSize, kStorageDstFlags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memProps);
 		m_MeshletVertexData = memory.GetBuffer(device, kMeshletVertexDataBufferSize, kStorageDstFlags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memProps);
 		m_MeshletTriangleData = memory.GetBuffer(device, kMeshletTriangleDataBufferSize, kStorageDstFlags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memProps);
+		m_MeshletNormalConeData = memory.GetBuffer(device, kMeshletNormalConeDataBufferSize, kStorageDstFlags, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memProps);
 
-		deviceMemUsed += kMeshDataBufferSize + kDrawDataIndicesBufferSize + kDrawCommandCountBufferSize + kMeshletDataBufferSize + kmsMeshDataBufferSize + kMeshletVertexDataBufferSize + kMeshletTriangleDataBufferSize;
+		deviceMemUsed += kMeshDataBufferSize + kDrawDataIndicesBufferSize + kDrawCommandCountBufferSize + kMeshletDataBufferSize + kmsMeshDataBufferSize + kMeshletVertexDataBufferSize + kMeshletTriangleDataBufferSize + kMeshletNormalConeDataBufferSize;
 
 		CreateMegaDescriptorSets(device);
 
@@ -97,6 +102,7 @@ namespace imp
 		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_msMeshData, kmsMeshDataBufferSize, 5, 1, kEngineSwapchainExclusiveMax - 1);
 		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MeshletVertexData, kMeshletVertexDataBufferSize, 6, 1, kEngineSwapchainExclusiveMax - 1);
 		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MeshletTriangleData, kMeshletTriangleDataBufferSize, 7, 1, kEngineSwapchainExclusiveMax - 1);
+		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MeshletNormalConeData, kMeshletNormalConeDataBufferSize, 8, 1, kEngineSwapchainExclusiveMax - 1);
 
 		CreateDefaultMaterial(device);
 
@@ -169,6 +175,11 @@ namespace imp
 	VulkanBuffer& VulkanShaderManager::GetMeshletTriangleDataBuffer()
 	{
 		return m_MeshletTriangleData;
+	}
+
+	VulkanBuffer& VulkanShaderManager::GetMeshletNormalConeDataBuffer()
+	{
+		return m_MeshletNormalConeData;
 	}
 
 	VulkanBuffer& VulkanShaderManager::GetGlobalDataBuffer(uint32_t idx)
@@ -344,12 +355,13 @@ namespace imp
 		const auto msMeshDataBufferBinding = CreateDescriptorBinding(5, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_MESH_BIT_EXT);
 		const auto meshletVertexDataBufferBinding = CreateDescriptorBinding(6, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_TASK_BIT_EXT);
 		const auto meshletTriangleDataBufferBinding = CreateDescriptorBinding(7, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_TASK_BIT_EXT);
+		const auto meshletNormalConeDataBufferBinding = CreateDescriptorBinding(8, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_TASK_BIT_EXT);
 
-		std::array<VkDescriptorSetLayoutBinding, kComputeBindingCount> bindings = { drawCommandStagingBufferBinding, drawCommandBufferBinding, boundingVolumeBinding, drawCommandCountBufferBinding, meshletBufferBinding, msMeshDataBufferBinding, meshletVertexDataBufferBinding, meshletTriangleDataBufferBinding };
+		std::array<VkDescriptorSetLayoutBinding, kComputeBindingCount> bindings = { drawCommandStagingBufferBinding, drawCommandBufferBinding, boundingVolumeBinding, drawCommandCountBufferBinding, meshletBufferBinding, msMeshDataBufferBinding, meshletVertexDataBufferBinding, meshletTriangleDataBufferBinding, meshletNormalConeDataBufferBinding };
 
 		static constexpr VkDescriptorBindingFlags nonVariableBindingFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT;
 
-		std::array<VkDescriptorBindingFlags, kComputeBindingCount> multipleFlags = { nonVariableBindingFlags, nonVariableBindingFlags, nonVariableBindingFlags, nonVariableBindingFlags, nonVariableBindingFlags, nonVariableBindingFlags, nonVariableBindingFlags, nonVariableBindingFlags };
+		std::array<VkDescriptorBindingFlags, kComputeBindingCount> multipleFlags = { nonVariableBindingFlags, nonVariableBindingFlags, nonVariableBindingFlags, nonVariableBindingFlags, nonVariableBindingFlags, nonVariableBindingFlags, nonVariableBindingFlags, nonVariableBindingFlags, nonVariableBindingFlags };
 
 		VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlags = {};
 		bindingFlags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;

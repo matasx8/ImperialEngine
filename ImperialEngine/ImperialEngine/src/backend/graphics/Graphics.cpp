@@ -325,6 +325,7 @@ namespace imp
         uint32_t ms_mdAllocSize = 0;
         uint32_t ms_vdAllocSize = 0;
         uint32_t ms_tdAllocSize = 0;
+        uint32_t ms_ncAllocSize = 0;
         std::vector<Vertex> verts;
         std::vector<uint32_t> idxs;
         std::vector<MeshData> mds;
@@ -332,11 +333,13 @@ namespace imp
         std::vector<ms_MeshData> ms_mds;
         std::vector<uint32_t> ms_vd;// meshlet vertex data
         std::vector<uint8_t> ms_td; // meshlet triangle data
+        std::vector<NormalCone> ms_nc;
         const uint32_t vertBufferOffset = m_VertexBuffer.GetOffset() / sizeof(Vertex);
         const uint32_t indBufferOffset = m_IndexBuffer.GetOffset() / sizeof(uint32_t);
         const uint32_t meshletBufferOffset = m_ShaderManager.GetMeshletDataBuffer().GetOffset() / sizeof(Meshlet);
         const uint32_t meshletVertexDataBufferOffset = m_ShaderManager.GetMeshletVertexDataBuffer().GetOffset() / sizeof(uint32_t);
         const uint32_t meshletTriangleVertexDataBufferOffset = m_ShaderManager.GetMeshletTriangleDataBuffer().GetOffset() / sizeof(uint8_t);
+        const uint32_t meshletNormalConeDataBufferOffset = m_ShaderManager.GetMeshletNormalConeDataBuffer().GetOffset() / sizeof(NormalCone);
 
         for (auto& req : meshCreationData)
         {
@@ -345,6 +348,7 @@ namespace imp
             const auto mOffset = mlds.size() + meshletBufferOffset;
             const auto mvdOffset = ms_vd.size() + meshletVertexDataBufferOffset;
             const auto mtdOffset = ms_td.size() + meshletTriangleVertexDataBufferOffset;
+            const auto ncdOffset = ms_nc.size() + meshletNormalConeDataBufferOffset;
 
             utils::OptimizeMesh(req.vertices, req.indices);
 
@@ -360,7 +364,7 @@ namespace imp
             utils::GenerateMeshLODS(req.vertices, req.indices, &ivb.indices[1], numDesiredLODs, 0.33, 0.5);
 
             ms_MeshData ms_md;
-            std::vector<Meshlet> meshlets = utils::GenerateMeshlets(req.vertices, req.indices, ms_vd, ms_td, ivb, ms_md);
+            std::vector<Meshlet> meshlets = utils::GenerateMeshlets(req.vertices, req.indices, ms_vd, ms_td, ms_nc, ivb, ms_md);
             ms_md.boundingVolume = req.boundingVolume;
             ms_md.firstTask = 0;
             
@@ -395,6 +399,7 @@ namespace imp
             {
                 meshlet.vertexOffset += mvdOffset;
                 meshlet.triangleOffset += mtdOffset;
+                meshlet.coneOffset += ncdOffset;
             }
 
             mlds.insert(mlds.end(), meshlets.begin(), meshlets.end());
@@ -402,6 +407,7 @@ namespace imp
             mldAllocSize += meshlets.size() * sizeof(Meshlet);
             ms_vdAllocSize += ms_vd.size() * sizeof(uint32_t);
             ms_tdAllocSize += ms_td.size() * sizeof(uint8_t);
+            ms_ncAllocSize += ms_nc.size() * sizeof(NormalCone);
 
             mdAllocSize += static_cast<uint32_t>(sizeof(MeshData));
             ms_mdAllocSize += static_cast<uint32_t>(sizeof(ms_MeshData));
@@ -443,6 +449,10 @@ namespace imp
         // upload meshlet triangle data
         assert(ms_tdAllocSize);
         UploadVulkanBuffer(usageFlags, memoryFlags, m_ShaderManager.GetMeshletTriangleDataBuffer(), cb, ms_tdAllocSize, ms_td.data());
+
+        // upload meshlet normal cone data
+        assert(ms_ncAllocSize);
+        UploadVulkanBuffer(usageFlags, memoryFlags, m_ShaderManager.GetMeshletNormalConeDataBuffer(), cb, ms_ncAllocSize, ms_nc.data());
 
         cb.End();
 

@@ -171,7 +171,7 @@ namespace imp
 			meshopt_optimizeVertexFetch(vertices.data(), indices.data(), indices.size(), vertices.data(), vertices.size(), sizeof(Vertex));
 		}
 
-		std::vector<Meshlet> GenerateMeshlets(std::vector<Vertex>& verts, std::vector<uint32_t>& indices, std::vector<uint32_t>& meshletVertexData, std::vector<uint8_t>& meshletTriangleData, const Comp::MeshGeometry& geometry, ms_MeshData& meshData)
+		std::vector<Meshlet> GenerateMeshlets(std::vector<Vertex>& verts, std::vector<uint32_t>& indices, std::vector<uint32_t>& meshletVertexData, std::vector<uint8_t>& meshletTriangleData, std::vector<NormalCone>& normalCones, const Comp::MeshGeometry& geometry, ms_MeshData& meshData)
 		{
 			std::vector<Meshlet> meshletsDst;
 			const size_t index_count = kMaxMeshletTriangles * 3;
@@ -216,8 +216,7 @@ namespace imp
 				{
 					Meshlet meshlet = {};
 
-
-
+					meshlet.coneOffset = normalCones.size();
 					meshlet.vertexOffset = meshletVertexData.size();
 					meshlet.triangleOffset = meshletTriangleData.size();
 
@@ -225,9 +224,7 @@ namespace imp
 						meshletVertexData.push_back(vertices[j + meshlets[i].vertex_offset]);
 					
 					for (unsigned int j = 0; j < meshlets[i].triangle_count * 3; j++)
-					{
 						meshletTriangleData.push_back(static_cast<uint8_t>(triangles[j + meshlets[i].triangle_offset]));
-					}
 
 					if (meshletTriangleData.size() % 4 != 0)
 					{
@@ -245,9 +242,6 @@ namespace imp
 							meshletTriangleData.push_back(0);
 					}
 
-					//meshletVertexData.insert(meshletVertexData.end(), vertices.begin() + meshlets[i].vertex_offset, vertices.begin() + meshlets[i].vertex_count + meshlets[i].vertex_offset);
-					//meshletTriangleData.insert(meshletTriangleData.end(), triangles.begin() + meshlets[i].triangle_offset, triangles.begin() + meshlets[i].triangle_count * 3 + meshlets[i].triangle_offset);
-
 					meshlet.triangleCount = static_cast<uint8_t>(meshlets[i].triangle_count);
 					meshlet.vertexCount = static_cast<uint8_t>(meshlets[i].vertex_count);
 
@@ -255,15 +249,17 @@ namespace imp
 					const uint8_t* meshletTrianglePtr = &triangles[meshlets[i].triangle_offset];
 					meshopt_Bounds bounds = meshopt_computeMeshletBounds(meshletVertexPtr, meshletTrianglePtr, meshlet.triangleCount, (float*)verts.data(), verts.size(), sizeof(Vertex));
 
-					meshlet.cone.cone[0] = bounds.cone_axis_s8[0];
-					meshlet.cone.cone[1] = bounds.cone_axis_s8[1];
-					meshlet.cone.cone[2] = bounds.cone_axis_s8[2];
-					meshlet.cone.cone[3] = bounds.cone_cutoff_s8;
+					NormalCone cone;
+					cone.cone[0] = bounds.cone_axis_s8[0];
+					cone.cone[1] = bounds.cone_axis_s8[1];
+					cone.cone[2] = bounds.cone_axis_s8[2];
+					cone.cone[3] = bounds.cone_cutoff_s8;
 
 					// I chose not to do per-meshlet VF culling so I wont be needing meshlet BV so it makes a lot more sense to use
 					// cone apex instead of BV for cone culling
-					static_assert(sizeof(meshlet.cone.apex) == sizeof(bounds.cone_apex));
-					std::memcpy(&meshlet.cone.apex.x, bounds.cone_apex, sizeof(meshlet.cone.apex));
+					static_assert(sizeof(cone.apex) == sizeof(bounds.cone_apex));
+					std::memcpy(&cone.apex.x, bounds.cone_apex, sizeof(cone.apex));
+					normalCones.push_back(cone);
 
 					meshletsDst.push_back(meshlet);
 				}

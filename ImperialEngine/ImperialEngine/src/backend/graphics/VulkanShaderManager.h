@@ -33,7 +33,7 @@ namespace imp
 	inline constexpr uint32_t kDrawDataBufferBindingSlot	= kDrawDataIndicesBindingSlot + kDrawDataIndicesBindCount;
 	inline constexpr uint32_t kDefaultMaterialIndex			= 0;
 
-	inline constexpr uint32_t kComputeBindingCount			= 8;
+	inline constexpr uint32_t kComputeBindingCount			= 9;
 
 	struct GlobalData
 	{
@@ -84,6 +84,7 @@ namespace imp
 		VulkanBuffer& GetMeshletDataBuffer();
 		VulkanBuffer& GetMeshletVertexDataBuffer();
 		VulkanBuffer& GetMeshletTriangleDataBuffer();
+		VulkanBuffer& GetMeshletNormalConeDataBuffer();
 
 		void CreateVulkanShaderSet(VkDevice device, const MaterialCreationRequest& req);
 		void CreateComputePrograms(VkDevice device, PipelineManager& pipeManager, const ComputeProgramCreationRequest& req);
@@ -124,6 +125,7 @@ namespace imp
 		VulkanBuffer m_MeshletData;
 		VulkanBuffer m_MeshletVertexData;
 		VulkanBuffer m_MeshletTriangleData;
+		VulkanBuffer m_MeshletNormalConeData;
 
 		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_DescriptorSets;
 		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_ComputeDescriptorSets;

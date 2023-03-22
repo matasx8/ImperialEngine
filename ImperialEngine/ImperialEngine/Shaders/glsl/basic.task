@@ -34,13 +34,13 @@ void main()
 
 	mat4 model_matrix = drawData[drawDataIndices[gl_DrawIDARB]].Transform;
 	
-	vec4 decoded_cone = vec4(int(meshlets[mi].cone.cone[0]), int(meshlets[mi].cone.cone[1]), int(meshlets[mi].cone.cone[2]), int(meshlets[mi].cone.cone[3])) / 127.0;
+	vec4 decoded_cone = vec4(int(normalCone[meshlets[mi].normalConeOffset].cone[0]), int(normalCone[meshlets[mi].normalConeOffset].cone[1]), int(normalCone[meshlets[mi].normalConeOffset].cone[2]), int(normalCone[meshlets[mi].normalConeOffset].cone[3])) / 127.0;
 	mat4 rotmat = globals.View * model_matrix;
 	rotmat[3] = vec4(0,0,0,1);
 	vec4 cone = vec4((rotmat * vec4(decoded_cone.xyz, 1)).xyz, decoded_cone.w);
 	
 	// Transform Cone Apex to view space
-	vec3 apex_view_space = (globals.View * model_matrix * vec4(meshlets[mi].cone.apex, 1.0)).xyz;
+	vec3 apex_view_space = (globals.View * model_matrix * vec4(normalCone[meshlets[mi].normalConeOffset].apex, 1.0)).xyz;
 	
 	// Camera position in View space is at the origin
 	vec3 cam_pos = vec3(0,0,0);

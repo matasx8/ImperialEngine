@@ -62,7 +62,7 @@ struct NormalCone
 
 struct Meshlet
 {
-    NormalCone cone;
+    uint normalConeOffset;
     uint triangleOffset;
     uint vertexOffset;
     uint8_t triangleCount;
@@ -112,4 +112,9 @@ layout(set = 1, binding = 6) readonly buffer ms_MeshletVertexData
 layout(set = 1, binding = 7) readonly buffer ms_MeshletTriangleData
 {
     uint triangleData[];
+};
+
+layout(set = 1, binding = 8) readonly buffer ms_MeshletConeData
+{
+    NormalCone normalCone[];
 };

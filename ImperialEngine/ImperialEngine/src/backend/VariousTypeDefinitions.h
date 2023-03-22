@@ -83,18 +83,16 @@ namespace imp
 		int8_t cone[4];
 	};
 
-	// TODO mesh: If I put normal cones into seperate buffer I could get Meshlets down to 16bytes.
-	// If I have time try to do that and measure perf
 	struct alignas(16) Meshlet
 	{
-		NormalCone cone;
+		uint32_t coneOffset;
 		uint32_t triangleOffset;
 		uint32_t vertexOffset;
 		uint8_t triangleCount;
 		uint8_t vertexCount;
-		// 6 more bytes of extra space left
+		// 2 more bytes of extra space left
 	};
-	static_assert(sizeof(Meshlet) == 32);
+	static_assert(sizeof(Meshlet) == 16);
 
 	struct MeshCreationRequest
 	{
