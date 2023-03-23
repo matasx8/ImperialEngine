@@ -7,11 +7,13 @@ Vulkan real-time rendering engine named after my cat Marcus Aurelius
 * Producer-Consumer multi-threading architecture
 * Data Oriented EnTT ECS
 * Dear ImGUI
-* Bindless Rendering
+* Bindless Rendering*
 * GPU-driven Rendering
 * View Frustum Culling
 * Async Transfer Queue
 * Simple automatic Mesh LOD system based on distance from camera
+* Mesh Shading
+* Meshlet Backface Cone Culling
 
 ## How to Build and Run
 * Must have VS22, Vulkan SDK, C++ 20
