@@ -42,6 +42,12 @@ namespace Comp
 		uint32_t meshId;
 	};
 
+	struct GLTFEntity
+	{
+		Transform transform;
+		Mesh mesh;
+	};
+
 	// child component points to main entity - allows to have multiple components
 	struct ChildComponent
 	{

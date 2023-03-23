@@ -28,7 +28,6 @@ namespace imp
 		InitImgui();
 		InitWindow();
 		InitGraphics();
-		InitAssetImporter();
 
 		// unfortunately we must wait until imgui is initialized on the backend
 		m_SyncPoint->arrive_and_wait();
@@ -202,11 +201,6 @@ namespace imp
 		// Get required VK extensions
 		m_EngineSettings.gfxSettings.requiredExtensions = m_Window.GetRequiredExtensions();
 		m_Q->add(std::mem_fn(&Engine::Cmd_InitGraphics), std::make_shared<Window>(m_Window));
-	}
-
-	void Engine::InitAssetImporter()
-	{
-		m_AssetImporter.Initialize();
 	}
 
 	void Engine::CleanUpThreading()

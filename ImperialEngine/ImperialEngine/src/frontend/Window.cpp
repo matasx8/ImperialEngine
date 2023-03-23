@@ -3,7 +3,7 @@
 #include "extern/GLFW/glfw3.h"
 #include "Debug.h"
 #include "extern/IMGUI/backends/imgui_impl_glfw.h"
-#define STB_IMAGE_IMPLEMENTATION
+//#define STB_IMAGE_IMPLEMENTATION
 #include "extern/STB/stb_image.h"
 
 imp::Window::Window()

@@ -4,20 +4,23 @@
 #include "backend/VariousTypeDefinitions.h"
 #include "frontend/Engine.h"
 #include "frontend/Components/Components.h"
-#include <extern/ASSIMP/Importer.hpp>
-#include <extern/ASSIMP/scene.h>
-#include <extern/ASSIMP/postprocess.h>
-#include <extern/GLM/mat4x4.hpp>
-#include <MESHOPTIMIZER/meshoptimizer.h>
+#define TINYGLTF_USE_CPP14
+#define TINYGLTF_NO_INCLUDE_STB_IMAGE
+#include "extern/STB/stb_image.h"
+#include "extern/TINY_GLTF/tiny_gltf.h"
+#include "extern/ASSIMP/Importer.hpp"
+#include "extern/ASSIMP/scene.h"
+#include "extern/ASSIMP/postprocess.h"
+#include "GLM/gtc/type_ptr.hpp"
+#include "extern/GLM/mat4x4.hpp"
+#include "MESHOPTIMIZER/meshoptimizer.h"
 
 namespace imp
 {
-	AssetImporter::AssetImporter(Engine& engine)
-		: m_Engine(engine)
-	{
-	}
+	static std::atomic_uint32_t temporaryMeshCounter = 0;
 
-	void AssetImporter::Initialize()
+	AssetImporter::AssetImporter(Engine& engine)
+		: m_Engine(engine), m_Loader(new tinygltf::TinyGLTF())
 	{
 	}
 
@@ -73,6 +76,165 @@ namespace imp
 		printf("[Asset Importer] Successfully loaded compute programs from '%s' with %i total shaders\n", path.c_str(), static_cast<int>(paths.size()));
 	}
 
+	void AssetImporter::LoadGLTFScene(const std::filesystem::path& path)
+	{
+		assert(path.extension().string() == ".gltf");
+		tinygltf::Model model;
+		std::string err;
+		std::string warn;
+
+		// TODO gltf: implement failure path
+		m_Loader->LoadASCIIFromFile(&model, &err, &warn, path.string());
+
+		if (err.size()) printf("[Asset Importer] Error: %s\n", err.c_str());
+		if (warn.size()) printf("[Asset Importer] Warning: %s\n", warn.c_str());
+
+		assert(model.scenes.size() == 1);
+		// large potential for parallel for
+		std::vector<MeshCreationRequest> reqs;
+		std::vector<Comp::GLTFEntity> entities;
+		for (const auto& nodeIdx : model.scenes.front().nodes)
+		{
+			const auto& node = model.nodes[nodeIdx];
+			LoadGLTFNode(node, model, reqs, entities);
+		}
+
+		for (const auto& ent : entities)
+		{
+			auto& reg = m_Engine.m_Entities;
+			const entt::entity mainEntity = reg.create();
+			reg.emplace<Comp::Transform>(mainEntity, ent.transform.transform);
+
+			const auto childEntity = reg.create();
+			reg.emplace<Comp::Mesh>(childEntity, ent.mesh.meshId);
+			reg.emplace<Comp::Material>(childEntity, kDefaultMaterialIndex);
+			reg.emplace<Comp::ChildComponent>(childEntity, mainEntity);
+		}
+
+		m_Engine.m_Q->add(std::mem_fn(&Engine::Cmd_UploadMeshes), std::make_shared<std::vector<imp::MeshCreationRequest>>(reqs));
+	}
+
+	void AssetImporter::LoadGLTFNode(const tinygltf::Node& node, const tinygltf::Model& model, std::vector<MeshCreationRequest>& reqs, std::vector<Comp::GLTFEntity>& entities)
+	{
+		auto transform = glm::mat4x4(1.0f);
+
+		if (node.matrix.size())
+			transform = glm::make_mat4x4(node.matrix.data());
+		else
+		{
+			if (node.translation.size())
+				transform = glm::translate(transform, glm::vec3(glm::make_vec3(node.translation.data())));
+
+			if (node.rotation.size())
+				transform *= glm::mat4((glm::quat)glm::make_quat(node.rotation.data()));
+
+			if (node.scale.size()) // TODO: probably VF culling wont work since I don't scale diameter
+				transform = glm::scale(transform, glm::vec3(glm::make_vec3(node.scale.data())));
+		}
+
+		for (const auto child : node.children)
+			LoadGLTFNode(model.nodes[child], model, reqs, entities);
+
+		if (node.mesh > -1)
+		{
+			MeshCreationRequest req;
+			req.id = temporaryMeshCounter.fetch_add(1);
+
+			const auto& mesh = model.meshes[node.mesh];
+
+			for (const auto& prim : mesh.primitives)
+			{
+				const float* positionBuffer = nullptr;
+				const float* normalsBuffer = nullptr;
+				const float* texCoordsBuffer = nullptr;
+				size_t vertexCount = 0;
+
+				// TODO nice-to-have: reduce code size by making this a function
+				if (prim.attributes.find("POSITION") != prim.attributes.end()) {
+					const auto& accessor = model.accessors[prim.attributes.find("POSITION")->second];
+					const auto& view = model.bufferViews[accessor.bufferView];
+					positionBuffer = reinterpret_cast<const float*>(&(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
+					vertexCount = accessor.count;
+				}
+
+				if (prim.attributes.find("NORMAL") != prim.attributes.end()) {
+					const auto& accessor = model.accessors[prim.attributes.find("NORMAL")->second];
+					const auto& view = model.bufferViews[accessor.bufferView];
+					normalsBuffer = reinterpret_cast<const float*>(&(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
+				}
+
+				if (prim.attributes.find("TEXCOORD_0") != prim.attributes.end()) {
+					const auto& accessor = model.accessors[prim.attributes.find("TEXCOORD_0")->second];
+					const auto& view = model.bufferViews[accessor.bufferView];
+					texCoordsBuffer = reinterpret_cast<const float*>(&(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
+				}
+
+				assert(vertexCount);
+				for (size_t i = 0; i < vertexCount; i++)
+				{
+					Vertex vertex;
+					std::memcpy(&vertex.vx, &positionBuffer[i * 3], sizeof(float) * 3);
+
+					vertex.nx = meshopt_quantizeHalf(normalsBuffer[i * 3]);
+					vertex.ny = meshopt_quantizeHalf(normalsBuffer[i * 3 + 1]);
+					vertex.nz = meshopt_quantizeHalf(normalsBuffer[i * 3 + 2]);
+					vertex.nw = 0.0f;
+
+					vertex.tu = meshopt_quantizeHalf(texCoordsBuffer[i * 2]);
+					vertex.tv = meshopt_quantizeHalf(texCoordsBuffer[i * 2 + 1]);
+
+					req.vertices.push_back(vertex);
+				}
+
+				const auto& accessor = model.accessors[prim.indices];
+				const auto& bufferView = model.bufferViews[accessor.bufferView];
+				const auto& buffer = model.buffers[bufferView.buffer];
+
+				const auto indexCount = accessor.count;
+
+				const auto FillIndices = [&](const auto& buf)
+				{
+					for (size_t index = 0; index < accessor.count; index++)
+					{
+						req.indices.push_back(buf[index]);
+					}
+				};
+				switch (accessor.componentType) {
+				case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: 
+				{
+					const uint32_t* buf = reinterpret_cast<const uint32_t*>(&buffer.data[accessor.byteOffset + bufferView.byteOffset]);
+					FillIndices(buf);
+					break;
+				}
+				case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: 
+				{
+					const uint16_t* buf = reinterpret_cast<const uint16_t*>(&buffer.data[accessor.byteOffset + bufferView.byteOffset]);
+					FillIndices(buf);
+					break;
+				}
+				case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: 
+				{
+					const uint8_t* buf = reinterpret_cast<const uint8_t*>(&buffer.data[accessor.byteOffset + bufferView.byteOffset]);
+					FillIndices(buf);
+					break;
+				}
+				default:
+					printf("[Asset Importer] Error: Index component type %i not supported!\n", accessor.componentType);
+					return;
+				}
+
+				req.boundingVolume = utils::FindSphereBoundingVolume(req.vertices.data(), req.vertices.size());
+
+				Comp::GLTFEntity ent;
+				ent.transform = { transform };
+				ent.mesh = { req.id };
+
+				entities.push_back(ent);
+				reqs.push_back(req);
+			}
+		}
+	}
+
 	void AssetImporter::LoadFile(Assimp::Importer& imp, const std::filesystem::path& path)
 	{
 		// TODO: currently we load every obj file in Scenes folder and also create an entity for it
@@ -88,7 +250,6 @@ namespace imp
 			const entt::entity mainEntity = reg.create();
 			reg.emplace<Comp::Transform>(mainEntity, glm::mat4x4(1.0f));
 
-			static uint32_t temporaryMeshCounter = 0;
 			std::vector<imp::MeshCreationRequest> reqs;
 			LoadModel(reqs, imp, path);
 
@@ -121,6 +282,10 @@ namespace imp
 
 			// TODO: put this somewhere higher in the callstack so we upload all the meshes at the same time
 			m_Engine.m_Q->add(std::mem_fn(&Engine::Cmd_UploadMeshes), std::make_shared<std::vector<imp::MeshCreationRequest>>(reqs));
+		}
+		else if (extension == ".gltf")
+		{
+			LoadGLTFScene(path);
 		}
 	}
 

@@ -52,7 +52,6 @@ namespace imp
 		void InitImgui();
 		void InitWindow();
 		void InitGraphics();
-		void InitAssetImporter();
 		void CleanUpThreading();
 		void CleanUpWindow();
 		void CleanUpGraphics();
