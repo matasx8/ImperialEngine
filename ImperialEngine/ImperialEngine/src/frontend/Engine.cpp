@@ -255,7 +255,7 @@ namespace imp
 		m_Entities.emplace<Comp::Camera>(previewCamera, proj, glm::mat4x4(), kCamOutColor, true, true, false);
 
 		//AddDemoEntity(5000);
-		AddDemoEntity(kMaxDrawCount - 1);
+		//AddDemoEntity(kMaxDrawCount - 1);
 	}
 
 	void Engine::RenderCameras()
