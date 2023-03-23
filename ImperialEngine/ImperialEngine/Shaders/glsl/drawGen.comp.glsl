@@ -1,68 +1,16 @@
 #version 450
 #extension GL_EXT_nonuniform_qualifier : require
 #extension GL_GOOGLE_include_directive: require
+#extension GL_EXT_shader_16bit_storage: require
+#extension GL_EXT_shader_8bit_storage: require
 
-layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
-
-struct IndirectDrawCommand
-{
-    uint    indexCount;
-    uint    instanceCount;
-    uint    firstIndex;
-    int     vertexOffset;
-    uint    firstInstance;
-};
-
-struct IndirectDraw
-{
-    uint meshDataIndex;
-};
-
-struct BoundingVolume
-{
-    vec3 center;
-    float diameter;
-};
-
-struct MeshLOD
-{
-	uint indexCount;
-	uint firstIndex;
-};
-
-struct MeshData
-{
-	MeshLOD LODData[4];
-	BoundingVolume boundingVolume;
-	int     vertexOffset;
-	int     pad;
-};
+layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
 
 #include "DescriptorSet0.h"
-
-layout(set = 1, binding = 0) readonly buffer Draws
-{
-	IndirectDraw drawsSrc[];
-};
-
-layout(set = 1, binding = 1) writeonly buffer DrawCommands
-{
-	IndirectDrawCommand drawsDst[];
-};
-
-layout(set = 1, binding = 2) readonly buffer MeshDatas
-{
-    MeshData md[];
-};
-
-layout(set = 1, binding = 3) buffer DrawCommandCount
-{
-    uint drawCommandCount;
-};
+#include "DescriptorSet1.h"
 
 layout(push_constant) uniform ViewFrustum
 {
-    vec4 frustum[6];
     uint numDraws;
 };
 
@@ -105,7 +53,7 @@ bool is_inside_view_frustum(uint idx)
         // Compute signed distance of center of BV from plane.
         // Plane equation: Ax + By + Cy + d = 0
         // Inserting our point into equation gives us the signed distance for wCenter
-        float signedDistance = dot(frustum[i], wCenter);
+        float signedDistance = dot(globals.frustum[i], wCenter);
 
         // Negative result already lets us know that point is in negative half space of plane
         // If it's less than 0 + (-diameter) then BV is outside VF
@@ -121,7 +69,7 @@ bool is_inside_view_frustum(uint idx)
 
 void main()
 {
-	uint drawIdx = gl_WorkGroupID.x * 64 + gl_LocalInvocationID.x;
+	uint drawIdx = gl_WorkGroupID.x * 32 + gl_LocalInvocationID.x;
 
     if(drawIdx >= numDraws)
         return;

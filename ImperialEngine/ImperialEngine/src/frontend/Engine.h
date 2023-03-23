@@ -12,6 +12,8 @@
 
 // No Vulkan stuff here
 
+namespace BS { class thread_pool; }
+
 namespace imp
 {
 	class Engine : NonCopyable
@@ -29,6 +31,7 @@ namespace imp
 		void SyncGameThread();
 
 		bool IsCurrentRenderMode(EngineRenderMode mode) const;
+		EngineRenderMode GetCurrentRenderMode() const;
 
 		const Timings& GetFrameTimings() { return m_OldTimer; }
 		const Timings& GetGfxFrameTimings() { return m_Gfx.GetFrameTimings(); }
@@ -91,6 +94,8 @@ namespace imp
 		// window stuff
 		Window m_Window;
 		UI m_UI;
+
+		BS::thread_pool* m_ThreadPool;
 
 		Timings m_Timer;
 		SimpleTimer m_SyncTime;

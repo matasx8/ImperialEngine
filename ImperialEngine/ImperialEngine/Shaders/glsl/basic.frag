@@ -1,4 +1,6 @@
 #version 450
+#extension GL_GOOGLE_include_directive: require
+#include "prefix.h"
  
 layout(location = 0) out vec4 outColour;
 
@@ -6,9 +8,15 @@ layout(location = 0) in float NdotL;
 layout(location = 1) in vec3  ReflectVec;
 layout(location = 2) in vec3  ViewVec;
 
+#if DEBUG_MESH
+layout(location = 3) in vec3 SurfaceColor;
+#endif
+
 void main()
 {
+#if !DEBUG_MESH
 	vec3  SurfaceColor = vec3(0.3, 0.3, 0.3);
+#endif
 	vec3  WarmColor    = vec3(0.7, 0.4, 0.0);
 	vec3  CoolColor    = vec3(0.2, 0.2, 0.7);
 	float DiffuseWarm =  0.7;

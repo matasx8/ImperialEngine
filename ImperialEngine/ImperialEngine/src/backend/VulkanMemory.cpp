@@ -28,6 +28,13 @@ namespace imp
 		bufferInfo.flags = 0;
 
 		auto res = vkCreateBuffer(device, &bufferInfo, nullptr, &buffer);
+		
+		if (res != VK_SUCCESS && bufferUsageFlags == (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT))
+		{
+			printf("[Shader Memory] Device did not have enough DEVICE_LOCAL + HOST_VISIBLE memory. Falling back to only HOST_VISIBLE\n");
+			bufferInfo.usage = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+			res = vkCreateBuffer(device, &bufferInfo, nullptr, &buffer);
+		}
 		assert(res == VK_SUCCESS);
 
 		VkMemoryRequirements memRequirements;

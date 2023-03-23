@@ -1,5 +1,5 @@
 #pragma once
-#include <vulkan.h>
+#include "volk.h"
 #include <vector>
 #include <extern/GLM/vec2.hpp>
 #include <extern/GLM/vec3.hpp>
@@ -40,16 +40,17 @@ namespace imp
 		GraphicsCaps();
 
 		bool ValidationLayersSupported();
-		// Check if device has required queue families and device features.
-		// TODO: supply needed features, currently what's needed is hardcoded
-		// TODO: cache stuff I'm querying here
 		bool IsDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface);
-		bool CheckDeviceExtensionSupport(VkPhysicalDevice device, const std::vector<const char*>& requiredExtens);
+		std::vector<const char*> CheckDeviceExtensionSupport(VkPhysicalDevice device, const std::vector<const char*>& requestedExtens) const;
 		bool CheckDeviceHasAnySwapchainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);
 		const PhysicalDeviceSurfaceCaps& GetPhysicalDeviceSurfaceCaps() const;
 		QueueFamilyIndices GetQueueFamilies() const;
 
+		void CollectSupportedFeatures(VkPhysicalDevice device, const std::vector<const char*>& extensionsUsed);
+
 		void SetQueueFamilies(QueueFamilyIndices& fams);
+
+		bool IsMeshShadingSupported() const;
 
 		static QueueFamilyIndices GetQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);
 		static VkSurfaceFormatKHR ChooseBestSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
@@ -62,6 +63,7 @@ namespace imp
 
 		PhysicalDeviceSurfaceCaps m_DeviceSurfaceCaps;
 		QueueFamilyIndices m_QueueFamilyIndices;
+		bool m_MeshShadingSupported;
 	};
 
 

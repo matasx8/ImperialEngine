@@ -1,3 +1,4 @@
+#pragma once
 #include "frontend/Engine.h"
 
 namespace imp

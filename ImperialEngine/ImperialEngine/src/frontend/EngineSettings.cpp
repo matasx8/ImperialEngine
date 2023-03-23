@@ -1,5 +1,5 @@
 #include "EngineSettings.h"
-#include <vulkan_core.h>
+#include "volk.h"
 
 EngineSettings::EngineSettings()
 	: threadingMode(kEngineSingleThreaded)
@@ -29,11 +29,12 @@ EngineSettings::EngineSettings(EngineSettingsTemplate settingsTemplate)
 	// common
 	gfxSettings.requiredDeviceExtensions = 
 	{
-	VK_KHR_SWAPCHAIN_EXTENSION_NAME//,
+	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+	VK_NV_MESH_SHADER_EXTENSION_NAME
 	//VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME,	// TODO: Add some system that removes nsight if not available because when launching renderdoc it crashes my app because it doesnt have these extensions for some reason
 	//VK_NV_DEVICE_DIAGNOSTICS_CONFIG_EXTENSION_NAME
 	};
-	gfxSettings.swapchainImageCount = kEngineSwapchainTripleBuffering;
+	gfxSettings.swapchainImageCount = kEngineSwapchainDoubleBuffering;
 	// TODO nice-to-have: add dropdown to select presentation mode in ui in runtime
 	gfxSettings.preferredPresentModes = { /*kEnginePresentMailbox, */kEnginePresentFifo};
 	gfxSettings.renderMode = static_cast<EngineRenderMode>(kDefaultEngineRenderMode);

@@ -8,6 +8,8 @@
 namespace imp
 {
 	inline constexpr uint32_t kMaxLODCount = 4;
+	inline constexpr size_t kMaxMeshletVertices = 64;
+	inline constexpr size_t kMaxMeshletTriangles = 124;
 
 	struct BoundingVolumeSphere
 	{
@@ -21,19 +23,34 @@ namespace imp
 		uint32_t firstIndex;
 	};
 
+	struct ms_MeshLOD
+	{
+		uint32_t meshletBufferOffset;
+		uint32_t taskCount;
+	};
+
+	// TODO mesh: union
 	struct alignas(16) MeshData
 	{
 		MeshLOD LODData[kMaxLODCount];
 		BoundingVolumeSphere boundingVolume;
 		int32_t     vertexOffset;
-		int32_t     pad;
+		int32_t     pad; // TODO mesh: is this needed?
+	};
+
+	struct alignas(16) ms_MeshData
+	{
+		ms_MeshLOD LODData[kMaxLODCount];
+		BoundingVolumeSphere boundingVolume;
+		uint32_t firstTask;
+		uint32_t pad[2];
 	};
 
 	struct Vertex
 	{
-		glm::vec3 pos;
-		glm::vec2 tex; // tex coords (u, v)
-		glm::vec3 norm;
+		float vx, vy, vz;
+		uint16_t nx, ny, nz, nw;
+		uint16_t tu, tv;
 	};
 
 	struct alignas(16) DrawDataSingle
@@ -47,6 +64,7 @@ namespace imp
 	{
 		glm::mat4x4 Projection;
 		glm::mat4x4 View;
+		glm::mat4x4 Model;
 		uint32_t camOutputType;
 		uint32_t cameraID;
 		bool dirty;
@@ -58,6 +76,23 @@ namespace imp
 	{
 		uint32_t	meshDataIndex;
 	};
+
+	struct NormalCone
+	{
+		glm::vec3 apex;
+		int8_t cone[4];
+	};
+
+	struct alignas(16) Meshlet
+	{
+		uint32_t coneOffset;
+		uint32_t triangleOffset;
+		uint32_t vertexOffset;
+		uint8_t triangleCount;
+		uint8_t vertexCount;
+		// 2 more bytes of extra space left
+	};
+	static_assert(sizeof(Meshlet) == 16);
 
 	struct MeshCreationRequest
 	{
@@ -74,6 +109,9 @@ namespace imp
 		std::shared_ptr<std::string> vertexSpv;
 		// Indirect variant
 		std::shared_ptr<std::string> vertexIndSpv;
+		// Mesh variant
+		std::shared_ptr<std::string> meshSpv;
+		std::shared_ptr<std::string> taskSpv;
 		std::shared_ptr<std::string> fragmentSpv;
 	};
 

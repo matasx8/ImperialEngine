@@ -13,9 +13,15 @@ namespace imp
 	Pipeline PipelineManager::CreatePipeline(VkDevice device, const RenderPass& rp, const PipelineConfig& config)
 	{
 		// TODO: have a 'base' pipeline that I can use to create pipeline derivatives?
-		VkPipelineShaderStageCreateInfo shaderStages[2];
-		shaderStages[0] = MakeShaderStageCI(config.vertModule, VK_SHADER_STAGE_VERTEX_BIT);
+
+		const bool meshPipeline = config.meshModule != VK_NULL_HANDLE;
+		const auto shaderStageCount = meshPipeline ? 3 : 2;
+
+		VkPipelineShaderStageCreateInfo shaderStages[3];
+		shaderStages[0] = MakeShaderStageCI(meshPipeline ? config.meshModule : config.vertModule, meshPipeline ? VK_SHADER_STAGE_MESH_BIT_EXT : VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = MakeShaderStageCI(config.fragModule, VK_SHADER_STAGE_FRAGMENT_BIT);
+		if (meshPipeline)
+			shaderStages[2] = MakeShaderStageCI(config.taskModule, VK_SHADER_STAGE_TASK_BIT_EXT);
 
 		const auto vertInputBindingDesc = MakeVertexBindingDesc();
 		const auto vertInputAttrDesc = MakeVertexAttrDescs();
@@ -43,13 +49,14 @@ namespace imp
 		VkPushConstantRange pushRange;
 		pushRange.size = sizeof(uint32_t); // index into draw data
 		pushRange.offset = 0;
-		pushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		pushRange.stageFlags = VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_VERTEX_BIT;
 		std::vector<VkDescriptorSetLayout> layouts = { config.descriptorSetLayout };
+		if (meshPipeline) layouts.push_back(config.descriptorSetLayout2);
 
 		const auto pipelineLayoutCI = MakePipelineLayoutCI(&pushRange, layouts);
 		const auto pipelineLayout = MakePipelineLayout(device, pipelineLayoutCI);
 
-		const auto pipelineCI = MakePipelineCI(shaderStages, &vertInputState, &inputAssembly, &viewportState, nullptr, &rasterizationState, &msaaState, &colorBlendState, &depthStencilState, pipelineLayout, rp.GetVkRenderPass(), 0);
+		const auto pipelineCI = MakePipelineCI(shaderStages, shaderStageCount, &vertInputState, &inputAssembly, &viewportState, nullptr, &rasterizationState, &msaaState, &colorBlendState, &depthStencilState, pipelineLayout, rp.GetVkRenderPass(), 0);
 		const auto pipeline = MakePipeline(device, pipelineCI);
 
 		return Pipeline(pipeline, pipelineLayout);
@@ -81,6 +88,7 @@ namespace imp
 
 		std::vector<VkDescriptorSetLayout> dsetLayouts = { config.descriptorSetLayout, config.descriptorSetLayout2 };
 
+		// TODO mesh: is this needed anymore?
 		VkPushConstantRange pushRange;
 		pushRange.size = sizeof(glm::vec4) * 6 + sizeof(uint32_t);
 		pushRange.offset = 0;
@@ -122,11 +130,8 @@ namespace imp
 	}
 	std::vector<VkVertexInputAttributeDescription> PipelineManager::MakeVertexAttrDescs() const
 	{
-		constexpr int inputAttributes = 3;
+		constexpr int inputAttributes = 0;
 		std::vector<VkVertexInputAttributeDescription> descs(inputAttributes);
-		descs[0] = MakeVertexAttrDesc(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos));
-		descs[1] = MakeVertexAttrDesc(0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, norm));
-		descs[2] = MakeVertexAttrDesc(0, 2, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, tex));
 		return descs;
 	}
 
@@ -144,10 +149,10 @@ namespace imp
 	{
 		VkPipelineVertexInputStateCreateInfo ci;
 		ci.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		ci.vertexBindingDescriptionCount = 1;
-		ci.pVertexBindingDescriptions = &vertInputBindingDesc;
-		ci.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertInputAttrDesc.size());
-		ci.pVertexAttributeDescriptions = vertInputAttrDesc.data();
+		ci.vertexBindingDescriptionCount = 0;
+		ci.pVertexBindingDescriptions = nullptr;
+		ci.vertexAttributeDescriptionCount = 0;// static_cast<uint32_t>(vertInputAttrDesc.size());
+		ci.pVertexAttributeDescriptions = nullptr;// vertInputAttrDesc.data();
 		ci.pNext = nullptr;
 		ci.flags = 0;
 		return ci;
@@ -237,17 +242,16 @@ namespace imp
 		return layout;
 	}
 
-	VkGraphicsPipelineCreateInfo PipelineManager::MakePipelineCI(const VkPipelineShaderStageCreateInfo* shaderStages, const VkPipelineVertexInputStateCreateInfo* vertexInputCreateInfo, const
+	VkGraphicsPipelineCreateInfo PipelineManager::MakePipelineCI(const VkPipelineShaderStageCreateInfo* shaderStages, uint32_t stageCount, const VkPipelineVertexInputStateCreateInfo* vertexInputCreateInfo, const
 		VkPipelineInputAssemblyStateCreateInfo* inputAssembly, const VkPipelineViewportStateCreateInfo* viewportStateCreateInfo, const
 		VkPipelineDynamicStateCreateInfo* dynamicState, const VkPipelineRasterizationStateCreateInfo* rasterizerCreateInfo, const
 		VkPipelineMultisampleStateCreateInfo* multisamplingCreateInfo, const VkPipelineColorBlendStateCreateInfo* colourBlendingCreateInfo, const
 		VkPipelineDepthStencilStateCreateInfo* depthStencilCreateInfo, const VkPipelineLayout pipelineLayout, const
 		VkRenderPass renderPass, VkPipelineCreateFlags flags) const
 	{
-		const auto stage = shaderStages[1];
 		VkGraphicsPipelineCreateInfo ci = {};
 		ci.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		ci.stageCount = 2;
+		ci.stageCount = stageCount;
 		ci.pStages = shaderStages;
 		ci.pVertexInputState = vertexInputCreateInfo;
 		ci.pInputAssemblyState = inputAssembly;

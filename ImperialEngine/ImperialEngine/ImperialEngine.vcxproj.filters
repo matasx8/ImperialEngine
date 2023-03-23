@@ -141,6 +141,9 @@
     <ClCompile Include="src\extern\AFTERMATH\NsightAftermathShaderDatabase.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="extern\VOLK\volk.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\frontend\Engine.h">
@@ -315,6 +318,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\backend\VariousTypeDefinitions.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\VOLK\volk.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -3,6 +3,7 @@
 #include "Utils/NonCopyable.h"
 #include <queue>
 #include <functional>
+#include <memory>
 
 namespace imp
 {

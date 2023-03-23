@@ -1,4 +1,6 @@
 #pragma once
+//#define VK_USE_PLATFORM_WIN32_KHR
+//#define VOLK_IMPLEMENTATION
 #include "backend/graphics/RenderPassGeneratorBase.h"
 #include "backend/graphics/CommandBufferManager.h"
 #include "backend/graphics/VulkanShaderManager.h"
@@ -19,6 +21,8 @@
 #include <barrier>
 
 #include "extern/AFTERMATH/NsightAftermathGpuCrashTracker.h"
+
+namespace BS { class thread_pool; }
 
 namespace imp
 {
@@ -44,12 +48,13 @@ namespace imp
 		void CreateComputePrograms(const std::vector<ComputeProgramCreationRequest>& computeProgramRequests);
 
 		// Will return ref to VulkanBuffer used for uploading new draw commands.
+		// Actual data is indices to "MeshData" that compute can use to generate actual commands.
 		// Waits for fence associated with buffer to make sure it's not used by the GPU anymore.
 		IGPUBuffer& GetDrawCommandStagingBuffer();
 		// Will return ref to VulkanBuffer used for uploading new descriptor draw data
 		IGPUBuffer& GetDrawDataBuffer();
 
-		const Comp::IndexedVertexBuffers& GetMeshData(uint32_t index) const;
+		const Comp::MeshGeometry& GetMeshData(uint32_t index) const;
 
 		Timings& GetFrameTimings() { return m_Timer; }
 		Timings& GetOldFrameTimings() { return m_OldTimer; }
@@ -57,6 +62,7 @@ namespace imp
 		SimpleTimer& GetOldSyncTimings() { return m_SyncTimer; }
 
 		EngineGraphicsSettings& GetGraphicsSettings();
+		const GraphicsCaps& GetGfxCaps() const;
 
 		void Destroy();
 
@@ -89,7 +95,7 @@ namespace imp
 
 		const VulkanBuffer& GetDrawCommandCountBuffer();
 		
-		bool CheckExtensionsSupported(std::vector<const char*> extensions);
+		bool CheckExtensionsSupported(std::vector<const char*>& extensions) const;
 
 		EngineGraphicsSettings m_Settings;
 		GraphicsCaps m_GfxCaps;
@@ -125,6 +131,8 @@ namespace imp
 		PrimitivePool<Semaphore, SemaphoreFactory> m_SemaphorePool;
 		PrimitivePool<Fence, FenceFactory> m_FencePool;
 
+		BS::thread_pool* m_JobSystem;
+
 		VkWindow m_Window;
 		VulkanMemory m_MemoryManager;
 		MemoryProps m_DeviceMemoryProps;
@@ -143,7 +151,7 @@ namespace imp
 		GpuCrashTracker m_AfterMathTracker;
 
 	public:
-		std::unordered_map<uint32_t, Comp::IndexedVertexBuffers> m_VertexBuffers;
+		std::unordered_map<uint32_t, Comp::MeshGeometry> m_VertexBuffers;
 
 		std::unordered_map<uint32_t, BoundingVolumeSphere> m_BVs;
 

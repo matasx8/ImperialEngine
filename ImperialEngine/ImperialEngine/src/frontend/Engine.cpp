@@ -2,17 +2,19 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "Engine.h"
 #include "Utils/GfxUtilities.h"
-#include <barrier>
-#include <extern/IMGUI/imgui.h>
 #include "Components/Components.h"
-#include <extern/GLM/ext/matrix_transform.hpp>
-#include <extern/GLM/ext/matrix_clip_space.hpp>
-#include <extern/GLM/gtx/quaternion.hpp>
+#include "extern/IMGUI/imgui.h"
+#include "extern/THREAD-POOL/BS_thread_pool.hpp"
+#include "extern/GLM/ext/matrix_transform.hpp"
+#include "extern/GLM/ext/matrix_clip_space.hpp"
+#include "extern/GLM/gtx/quaternion.hpp"
+#include <barrier>
+#include <execution>
 
 namespace imp
 {
 	Engine::Engine()
-		: m_Entities(), m_DrawDataDirty(false), m_Q(nullptr), m_Worker(nullptr), m_SyncPoint(nullptr), m_EngineSettings(), m_Window(), m_UI(), m_Gfx(), m_CulledDrawData()/*, m_BVs()*/, m_AssetImporter(*this)
+		: m_Entities(), m_DrawDataDirty(false), m_Q(nullptr), m_Worker(nullptr), m_SyncPoint(nullptr), m_EngineSettings(), m_Window(), m_UI(), m_ThreadPool(nullptr), m_Gfx(), m_CulledDrawData()/*, m_BVs()*/, m_AssetImporter(*this)
 	{
 	}
 
@@ -104,10 +106,23 @@ namespace imp
 		return m_EngineSettings.gfxSettings.renderMode == mode;
 	}
 
+	EngineRenderMode Engine::GetCurrentRenderMode() const
+	{
+		return m_EngineSettings.gfxSettings.renderMode;
+	}
+
 	void Engine::SwitchRenderingMode(EngineRenderMode newRenderMode)
 	{
+		if (newRenderMode == kEngineRenderModeGPUDrivenMeshShading)
+		{
+			const auto& caps = m_Gfx.GetGfxCaps();
+			if (!caps.IsMeshShadingSupported())
+				newRenderMode = kEngineRenderModeGPUDriven;
+		}
+
 		m_EngineSettings.gfxSettings.renderMode = newRenderMode;
 		m_Q->add(std::mem_fn(&Engine::Cmd_ChangeRenderMode), std::make_shared<EngineRenderMode>(newRenderMode));
+		MarkDrawDataDirty();
 	}
 
 	void Engine::AddDemoEntity(uint32_t count)
@@ -115,7 +130,7 @@ namespace imp
 		if (count)
 			MarkDrawDataDirty();
 
-		static constexpr uint32_t numMeshes = 2u; // lets say we have 2 meshes
+		static constexpr uint32_t numMeshes = 2u;
 
 		auto& reg = m_Entities;
 		for (auto i = 0; i < count; i++)
@@ -130,7 +145,8 @@ namespace imp
 			
 			const auto child = reg.create();
 			reg.emplace<Comp::ChildComponent>(child, monkey);
-			reg.emplace<Comp::Mesh>(child, (uint32_t)rand() % 2);
+			reg.emplace<Comp::Mesh>(child, (uint32_t)rand() % numMeshes);
+			//reg.emplace<Comp::Mesh>(child, (uint32_t)0);
 			reg.emplace<Comp::Material>(child, kDefaultMaterialIndex);
 		}
 	}
@@ -154,6 +170,7 @@ namespace imp
 		switch (mode)
 		{
 		case kEngineSingleThreaded:
+			// TODO: I may have to abandon this..
 			// single-threaded so we only need the single-threaded version of the queue that executes task on add.
 			m_Q = new prl::WorkQ_ST<Engine>(*this);
 
@@ -164,6 +181,7 @@ namespace imp
 			m_Q = new prl::WorkQ<Engine>();
 			m_Worker = new prl::ConsumerThread<Engine>(*this, *m_Q);
 			m_SyncPoint = new std::barrier(numThreads, func);
+			m_ThreadPool = new BS::thread_pool(std::thread::hardware_concurrency() / 2);
 			break;
 		}
 	}
@@ -198,8 +216,10 @@ namespace imp
 			m_Worker->End();				// signal to stop working
 			m_SyncPoint->arrive_and_wait();
 			m_Worker->Join();
+			m_ThreadPool->wait_for_tasks();
 			delete m_Worker;
 			delete m_SyncPoint;
+			delete m_ThreadPool;
 		}
 		delete m_Q;
 	}
@@ -234,8 +254,8 @@ namespace imp
 		m_Entities.emplace<Comp::Transform>(previewCamera, glm::translate(defaultCameraTransform, glm::vec3(0.0f, 0.0f, 100.0f)));
 		m_Entities.emplace<Comp::Camera>(previewCamera, proj, glm::mat4x4(), kCamOutColor, true, true, false);
 
-		AddDemoEntity(999);
-		//AddDemoEntity(kMaxDrawCount - 1);
+		//AddDemoEntity(5000);
+		AddDemoEntity(kMaxDrawCount - 1);
 	}
 
 	void Engine::RenderCameras()
@@ -292,8 +312,8 @@ namespace imp
 
 	void Engine::Cull()
 	{
+		AUTO_TIMER("[CPU CULL]: ");
 		assert(IsCurrentRenderMode(kEngineRenderModeTraditional));
-		m_CulledDrawData.resize(0);
 
 		const auto cameras = m_Entities.view<Comp::Transform, Comp::Camera>();
 		const auto& cam = cameras.get<Comp::Camera>(cameras.back());
@@ -301,43 +321,64 @@ namespace imp
 
 		const auto frustumPlanes = utils::FindViewFrustumPlanes(VP);
 
-		const auto renderableChildren = m_Entities.view<Comp::ChildComponent, Comp::Mesh, Comp::Material>();
 		const auto transforms = m_Entities.view<Comp::Transform>();
 		uint32_t totalMeshes = 0;
-		for (auto ent : renderableChildren)
+
+		const auto group = m_Entities.group<Comp::ChildComponent, Comp::Mesh, Comp::Material>();
+		const auto groupSize = group.size();
+		m_CulledDrawData.resize(groupSize);
+
+		std::atomic_uint32_t drawDataIndex;
+
+		const auto gfxPtr = &m_Gfx;
+		const auto ddPtr = &m_CulledDrawData;
+
+		const auto loop = [&group, &transforms, gfxPtr, &frustumPlanes, &VP, &drawDataIndex, ddPtr](const auto st, const auto end)
 		{
-			totalMeshes++;
-			const auto& mesh = renderableChildren.get<Comp::Mesh>(ent);
-			const auto& parent = renderableChildren.get<Comp::ChildComponent>(ent).parent;
-			const auto& transform = transforms.get<Comp::Transform>(parent);
-			const auto& BV = m_Gfx.m_BVs.at(mesh.meshId);
-
-			glm::vec4 mCenter = glm::vec4(BV.center, 1.0f);
-			glm::vec4 wCenter = transform.transform * glm::vec4(BV.center, 1.0f);
-
-			bool isVisible = true;
-			for (auto i = 0; i < 6; i++)
+			for (auto i = st; i < end; i++)
 			{
-				float dotProd = glm::dot(frustumPlanes[i], wCenter);
-				if (dotProd < -BV.diameter)
+				const auto ent = group[i];
+				const auto& mesh = group.get<Comp::Mesh>(ent);
+				const auto& parent = group.get<Comp::ChildComponent>(ent).parent;
+				const auto& transform = transforms.get<Comp::Transform>(parent);
+				const auto& BV = gfxPtr->m_BVs.at(mesh.meshId);
+
+				glm::vec4 mCenter = glm::vec4(BV.center, 1.0f);
+				glm::vec4 wCenter = transform.transform * glm::vec4(BV.center, 1.0f);
+
+				bool isVisible = true;
+				for (auto i = 0; i < 6; i++)
 				{
-					isVisible = false;
-					break;
+					float dotProd = glm::dot(frustumPlanes[i], wCenter);
+					if (dotProd < -BV.diameter)
+					{
+						isVisible = false;
+						break;
+					}
+				}
+
+				if (isVisible)
+				{
+					auto lodIdx = utils::ChooseMeshLODByNearPlaneDistance(transform.transform, BV, VP);
+
+					const auto idx = drawDataIndex.fetch_add(1);
+
+					DrawDataSingle dds;
+					dds.Transform = transform.transform;
+					dds.VertexBufferId = mesh.meshId;
+					dds.LodIdx = lodIdx;
+					(*ddPtr)[idx] = std::move(dds);
 				}
 			}
-			
-			if (isVisible)
-			{
-				auto lodIdx = utils::ChooseMeshLODByNearPlaneDistance(transform.transform, BV, VP);
+		};
 
-				m_CulledDrawData.emplace_back(transform.transform, mesh.meshId, lodIdx);
-			}
-		}
+		m_ThreadPool->parallelize_loop(groupSize, loop).wait();
+		m_CulledDrawData.resize(drawDataIndex);
 
 		//printf("[CPU CULL] Total Renderable Meshes: %u; Renderable Meshes after culling: %llu\n", totalMeshes, m_CulledDrawData.size());
 	}
 
-	inline void GenerateIndirectDrawCommand(IGPUBuffer& dstBuffer, const Comp::IndexedVertexBuffers& meshData, uint32_t meshId)
+	inline void GenerateIndirectDrawCommand(IGPUBuffer& dstBuffer, const Comp::MeshGeometry& meshData, uint32_t meshId)
 	{
 		IndirectDrawCmd cmd;
 		cmd.meshDataIndex = meshId;
@@ -356,7 +397,11 @@ namespace imp
 		m_SyncTime.start();
 		m_Window.UpdateDeltaTime();
 
-		if (IsCurrentRenderMode(kEngineRenderModeTraditional))
+		const auto renderMode = GetCurrentRenderMode();
+
+		switch (renderMode)
+		{
+		case kEngineRenderModeTraditional:
 		{
 			auto& srcDrawData = m_CulledDrawData;
 			auto& dstDrawData = m_Gfx.m_DrawData;
@@ -364,15 +409,18 @@ namespace imp
 
 			// We already composed the draw data in Engine::Cull, can just copy it in
 			dstDrawData.insert(dstDrawData.end(), srcDrawData.begin(), srcDrawData.end());
+			break;
 		}
-		else if (IsCurrentRenderMode(kEngineRenderModeGPUDriven))
+		case kEngineRenderModeGPUDriven:
+		case kEngineRenderModeGPUDrivenMeshShading:
 		{
+			AUTO_TIMER("[ENGINE SYNC - GPU-Driven part]: ");
 			// This can stall because it may wait on timeline semaphore
 			IGPUBuffer& drawCmdBuffer = m_Gfx.GetDrawCommandStagingBuffer();
-			drawCmdBuffer.resize(0);
+			drawCmdBuffer.resize(0, 0);
 
 			IGPUBuffer& drawDataBuffer = m_Gfx.GetDrawDataBuffer();
-			drawDataBuffer.resize(0);
+			drawDataBuffer.resize(0, 0);
 
 			const auto renderableChildren = m_Entities.view<Comp::ChildComponent, Comp::Mesh, Comp::Material>();
 			const auto transforms = m_Entities.view<Comp::Transform>();
@@ -380,22 +428,22 @@ namespace imp
 			{
 				const auto& mesh = renderableChildren.get<Comp::Mesh>(ent);
 				const auto& parent = renderableChildren.get<Comp::ChildComponent>(ent).parent;
-				const auto& transform = transforms.get<Comp::Transform>(parent);
+			    const auto& transform = transforms.get<Comp::Transform>(parent);
 
+				const auto& meshData = m_Gfx.GetMeshData(mesh.meshId);
 				if (IsDrawDataDirty())
 				{
 					// Needed for GPU-driven
-					// TODO nice-to-have: only do what's necessary for either rendering modes
-					const auto& meshData = m_Gfx.GetMeshData(mesh.meshId);
 					GenerateIndirectDrawCommand(drawCmdBuffer, meshData, mesh.meshId);
 				}
 
 				// Also update shader draw data. Also contains mesh id, that CPU-driven can use to generate draw commands
-				DrawDataSingle dds;
-				dds.Transform = transform.transform;
-				dds.VertexBufferId = mesh.meshId;
+				ShaderDrawData sdd;
+				sdd.transform = transform.transform;
+				sdd.materialIndex = kDefaultMaterialIndex;
+				sdd.vertexOffset = 0;
 				// This seems to be quite slow, might be faster if I'd templatize the VulkanBuffer container
-				drawDataBuffer.push_back(&dds, sizeof(dds));
+				drawDataBuffer.push_back(&sdd, sizeof(sdd));
 			}
 			if (IsDrawDataDirty())
 			{
@@ -404,6 +452,8 @@ namespace imp
 				m_Q->add(std::mem_fn(&Engine::Cmd_UpdateDraws), std::shared_ptr<void>());
 				m_DrawDataDirty = false;
 			}
+			break;
+		}
 		}
 
 		const auto cameras = m_Entities.view<Comp::Transform, Comp::Camera>();
@@ -415,9 +465,9 @@ namespace imp
 			// Supporting only 1 camera and 1 "fake offset" camera
 			static constexpr uint32_t cameraID = 0;
 			if (cam.preview)
-				m_Gfx.m_PreviewCamera = { cam.projection, cam.view, cam.camOutputType, cameraID, cam.dirty, cam.preview, cam.isRenderCamera };
+				m_Gfx.m_PreviewCamera = { cam.projection, cam.view, transform.transform, cam.camOutputType, cameraID, cam.dirty, cam.preview, cam.isRenderCamera };
 			else
-				m_Gfx.m_MainCamera = { cam.projection, cam.view, cam.camOutputType, cameraID, cam.dirty, cam.preview, cam.isRenderCamera };
+				m_Gfx.m_MainCamera = { cam.projection, cam.view, transform.transform, cam.camOutputType, cameraID, cam.dirty, cam.preview, cam.isRenderCamera };
 
 			cam.dirty = false;
 		}

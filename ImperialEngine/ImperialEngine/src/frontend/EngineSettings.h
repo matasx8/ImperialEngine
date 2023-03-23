@@ -18,7 +18,7 @@ enum EngineThreadingMode
 enum EngineSwapchainImageCount
 {
 	kEngineSwapchainDoubleBuffering = 2,
-	kEngineSwapchainTripleBuffering,
+	//kEngineSwapchainTripleBuffering,
 	kEngineSwapchainExclusiveMax		// convenience for arrays
 };
 

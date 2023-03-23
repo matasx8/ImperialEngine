@@ -1,0 +1,89 @@
+#version 450
+
+#extension GL_EXT_shader_16bit_storage: require
+#extension GL_EXT_shader_8bit_storage: require
+#extension GL_NV_mesh_shader: require
+#extension GL_GOOGLE_include_directive: require
+#extension GL_ARB_shader_draw_parameters: require
+#extension GL_EXT_nonuniform_qualifier : require
+
+layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
+layout(triangles, max_vertices = 64, max_primitives = 124) out;
+
+#include "prefix.h"
+#include "DescriptorSet0.h"
+#include "DescriptorSet1.h"
+
+layout(location = 0) out float NdotL[];
+layout(location = 1) out vec3  ReflectVec[];
+layout(location = 2) out vec3  ViewVec[];
+#if DEBUG_MESH
+layout(location = 3) out vec3 SurfaceColor[];
+#endif
+
+layout(push_constant) uniform PushModel{
+	uint idx;
+} pushModel;
+
+uint hash(uint a)
+{
+   a = (a+0x7ed55d16) + (a<<12);
+   a = (a^0xc761c23c) ^ (a>>19);
+   a = (a+0x165667b1) + (a<<5);
+   a = (a+0xd3a2646c) ^ (a<<9);
+   a = (a+0xfd7046c5) + (a<<3);
+   a = (a^0xb55a4f09) ^ (a>>16);
+   return a;
+}
+
+in taskNV block
+{
+	uint meshletIndices[32];
+	uint drawIdx;
+};
+
+void main()
+{
+	uint mi = meshletIndices[gl_WorkGroupID.x];
+	uint ti = gl_LocalInvocationID.x;
+
+    uint vertexCount = uint(meshlets[mi].vertexCount);
+	uint triangleCount = uint(meshlets[mi].triangleCount);
+	uint vertexOffset = meshlets[mi].vertexOffset;
+	uint triangleOffset = meshlets[mi].triangleOffset;
+    uint indexCount = triangleCount * 3;
+
+    for (uint i = ti; i < vertexCount; i += 32)
+	{
+		uint vi = vertexData[i + vertexOffset];
+
+		vec3 pos = vec3(vertices[vi].vx, vertices[vi].vy, vertices[vi].vz);
+		vec3 norm = vec3(vertices[vi].nx, vertices[vi].ny, vertices[vi].nz);
+		//vec2 tex = vec2(vertices[vi].tu, vertices[vi].tv);
+
+		vec3 lol = vec3(materialData[drawData[drawIdx].materialIdx].color);
+		mat4 model = drawData[drawIdx].Transform;
+		vec3 ecPos			= vec3(model * vec4(pos, 1.0));
+        vec3 tnorm			= norm;
+        vec3 lightVec		= normalize(lol  - ecPos);
+        ReflectVec[i]       = normalize(reflect(-lightVec, tnorm));
+        ViewVec[i]          = normalize(-ecPos);
+        NdotL[i]            = (dot(lightVec, tnorm) + 1.0) * 0.5;
+
+#if DEBUG_MESH
+		uint mhash = hash(mi);
+		vec3 mcolor = vec3(float(mhash & 255), float((mhash >> 8) & 255), float((mhash >> 16) & 255)) / 255.0;
+		SurfaceColor[i] = mcolor;
+#endif
+
+		gl_MeshVerticesNV[i].gl_Position = globals.PV * model * vec4(pos, 1.0);
+	}
+
+	for (uint i = ti; i < (indexCount + 3 ) / 4; i += 32)
+	{
+		writePackedPrimitiveIndices4x8NV(i * 4, triangleData[i + triangleOffset / 4]);
+	}
+
+	if (ti == 0)
+		gl_PrimitiveCountNV = uint(meshlets[mi].triangleCount);
+}

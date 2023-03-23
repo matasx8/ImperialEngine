@@ -5,11 +5,15 @@
 
 namespace imp
 {
+	// TODO mesh: figure out how to merge these configs or something, because this is getting bloated
 	struct PipelineConfig
 	{
 		VkShaderModule vertModule;
+		VkShaderModule meshModule;
+		VkShaderModule taskModule;
 		VkShaderModule fragModule;
 		VkDescriptorSetLayout descriptorSetLayout;
+		VkDescriptorSetLayout descriptorSetLayout2;
 		auto operator<=>(const PipelineConfig&) const = default;
 	};
 

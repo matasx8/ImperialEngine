@@ -54,22 +54,22 @@ namespace imp
 
 		BoundingVolumeSphere FindSphereBoundingVolume(const Vertex* vertices, size_t numVertices)
 		{
-			glm::vec3 minX = vertices->pos;
-			glm::vec3 maxX = vertices->pos;
-			glm::vec3 minY = vertices->pos;
-			glm::vec3 maxY = vertices->pos;
-			glm::vec3 minZ = vertices->pos;
-			glm::vec3 maxZ = vertices->pos;
+			glm::vec3 pos = glm::vec3(vertices->vx, vertices->vy, vertices->vz);
+			glm::vec3 minX = pos;
+			glm::vec3 maxX = pos;
+			glm::vec3 minY = pos;
+			glm::vec3 maxY = pos;
+			glm::vec3 minZ = pos;
+			glm::vec3 maxZ = pos;
 
 			for (auto i = 0; i < numVertices; i++)
 			{
-				const auto& vert = vertices[i].pos;
-				if (vert.x < minX.x) minX = vert;
-				if (vert.x > maxX.x) maxX = vert;
-				if (vert.y < minY.y) minY = vert;
-				if (vert.y > maxY.y) maxY = vert;
-				if (vert.z < minZ.z) minZ = vert;
-				if (vert.z > maxZ.z) maxZ = vert;
+				if (vertices[i].vx < minX.x) minX = glm::vec3(vertices[i].vx, vertices[i].vy, vertices[i].vz);
+				if (vertices[i].vx > maxX.x) maxX = glm::vec3(vertices[i].vx, vertices[i].vy, vertices[i].vz);
+				if (vertices[i].vy < minY.y) minY = glm::vec3(vertices[i].vx, vertices[i].vy, vertices[i].vz);
+				if (vertices[i].vy > maxY.y) maxY = glm::vec3(vertices[i].vx, vertices[i].vy, vertices[i].vz);
+				if (vertices[i].vz < minZ.z) minZ = glm::vec3(vertices[i].vx, vertices[i].vy, vertices[i].vz);
+				if (vertices[i].vz > maxZ.z) maxZ = glm::vec3(vertices[i].vx, vertices[i].vy, vertices[i].vz);
 			}
 
 			glm::vec3 diag = (maxX - minX) + (maxY - minY) + (maxZ - minZ);
@@ -138,7 +138,7 @@ namespace imp
 			{
 				size_t indicesTarget = (size_t)((double)currIndexCount * factor);
 				float err;
-				size_t newIndexCount = meshopt_simplify(dst, currIndices, currIndexCount, (float*)(&vertices.front().pos), vertices.size(), sizeof(Vertex), indicesTarget, error, 0, &err);
+				size_t newIndexCount = meshopt_simplify(dst, currIndices, currIndexCount, (float*)(&vertices.front().vx), vertices.size(), sizeof(Vertex), indicesTarget, error, 0, &err);
 
 				// Didn't change the number of indices, means won't go anymore.
 				// Setting rest of LODs to last successful
@@ -169,6 +169,103 @@ namespace imp
 			meshopt_optimizeVertexCache(indices.data(), indices.data(), indices.size(), vertices.size());
 
 			meshopt_optimizeVertexFetch(vertices.data(), indices.data(), indices.size(), vertices.data(), vertices.size(), sizeof(Vertex));
+		}
+
+		std::vector<Meshlet> GenerateMeshlets(std::vector<Vertex>& verts, std::vector<uint32_t>& indices, std::vector<uint32_t>& meshletVertexData, std::vector<uint8_t>& meshletTriangleData, std::vector<NormalCone>& normalCones, const Comp::MeshGeometry& geometry, ms_MeshData& meshData)
+		{
+			std::vector<Meshlet> meshletsDst;
+			const size_t index_count = kMaxMeshletTriangles * 3;
+			const float cone_weight = 0.5f;
+
+			size_t meshletBound = meshopt_buildMeshletsBound(indices.size(), kMaxMeshletVertices, kMaxMeshletTriangles);
+			assert(meshletBound);
+
+			std::vector<meshopt_Meshlet> meshlets(meshletBound);
+			std::vector<unsigned int> vertices(meshletBound * kMaxMeshletVertices);
+			// this is an index buffer, but this library likes to name it as triangles
+			std::vector<unsigned char> triangles(meshletBound * kMaxMeshletTriangles * 3);
+
+			size_t currMeshletCount = 0;
+			uint32_t meshletBufferOffset = 0;
+
+			for (uint32_t lodIdx = 0; lodIdx < kMaxLODCount; lodIdx++)
+			{
+				const uint32_t* indicesWithLODOfsset = &indices[geometry.indices[lodIdx].m_Offset];
+				const size_t indexCount = geometry.indices[lodIdx].m_Count;
+
+				size_t meshletCount = meshopt_buildMeshlets(meshlets.data(), vertices.data(), triangles.data(), indicesWithLODOfsset, indexCount, (float*)verts.data(), verts.size(), sizeof(Vertex), kMaxMeshletVertices, kMaxMeshletTriangles, cone_weight);
+
+				if (currMeshletCount == meshletCount)
+				{
+					for (uint32_t cli = lodIdx; cli < kMaxLODCount; cli++)
+					{
+						meshData.LODData[cli].meshletBufferOffset = meshletBufferOffset;
+						meshData.LODData[lodIdx].taskCount = currMeshletCount;
+					}
+				}
+				else
+				{
+					currMeshletCount = meshletCount;
+					meshData.LODData[lodIdx].meshletBufferOffset = meshletBufferOffset;
+					meshData.LODData[lodIdx].taskCount = meshletCount;
+					meshletBufferOffset += currMeshletCount;
+
+				}
+
+				for (size_t i = 0; i < meshletCount; i++)
+				{
+					Meshlet meshlet = {};
+
+					meshlet.coneOffset = normalCones.size();
+					meshlet.vertexOffset = meshletVertexData.size();
+					meshlet.triangleOffset = meshletTriangleData.size();
+
+					for (unsigned int j = 0; j < meshlets[i].vertex_count; j++)
+						meshletVertexData.push_back(vertices[j + meshlets[i].vertex_offset]);
+					
+					for (unsigned int j = 0; j < meshlets[i].triangle_count * 3; j++)
+						meshletTriangleData.push_back(static_cast<uint8_t>(triangles[j + meshlets[i].triangle_offset]));
+
+					if (meshletTriangleData.size() % 4 != 0)
+					{
+						auto sizee = meshletTriangleData.size();
+						auto numFilers = 0;
+
+						while (sizee % 4 != 0)
+						{
+							numFilers++;
+							sizee++;
+						}
+
+						assert(numFilers < 4);
+						for (auto j = 0; j < numFilers; j++)
+							meshletTriangleData.push_back(0);
+					}
+
+					meshlet.triangleCount = static_cast<uint8_t>(meshlets[i].triangle_count);
+					meshlet.vertexCount = static_cast<uint8_t>(meshlets[i].vertex_count);
+
+					const uint32_t* meshletVertexPtr = &vertices[meshlets[i].vertex_offset];
+					const uint8_t* meshletTrianglePtr = &triangles[meshlets[i].triangle_offset];
+					meshopt_Bounds bounds = meshopt_computeMeshletBounds(meshletVertexPtr, meshletTrianglePtr, meshlet.triangleCount, (float*)verts.data(), verts.size(), sizeof(Vertex));
+
+					NormalCone cone;
+					cone.cone[0] = bounds.cone_axis_s8[0];
+					cone.cone[1] = bounds.cone_axis_s8[1];
+					cone.cone[2] = bounds.cone_axis_s8[2];
+					cone.cone[3] = bounds.cone_cutoff_s8;
+
+					// I chose not to do per-meshlet VF culling so I wont be needing meshlet BV so it makes a lot more sense to use
+					// cone apex instead of BV for cone culling
+					static_assert(sizeof(cone.apex) == sizeof(bounds.cone_apex));
+					std::memcpy(&cone.apex.x, bounds.cone_apex, sizeof(cone.apex));
+					normalCones.push_back(cone);
+
+					meshletsDst.push_back(meshlet);
+				}
+			}
+
+			return meshletsDst;
 		}
 	}
 }

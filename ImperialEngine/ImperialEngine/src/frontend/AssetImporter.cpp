@@ -8,6 +8,7 @@
 #include <extern/ASSIMP/scene.h>
 #include <extern/ASSIMP/postprocess.h>
 #include <extern/GLM/mat4x4.hpp>
+#include <MESHOPTIMIZER/meshoptimizer.h>
 
 namespace imp
 {
@@ -134,22 +135,31 @@ namespace imp
 			//resize vertex list to hold all vertices for mesh
 			req.vertices.resize(mesh->mNumVertices);
 
+			static_assert(sizeof(Vertex) == 24);
+
 			for (size_t j = 0; j < mesh->mNumVertices; j++)
 			{
 				// set position
-				req.vertices[j].pos = { mesh->mVertices[j].x, mesh->mVertices[j].y, mesh->mVertices[j].z };
+				req.vertices[j].vx = mesh->mVertices[j].x;
+				req.vertices[j].vy = mesh->mVertices[j].y;
+				req.vertices[j].vz = mesh->mVertices[j].z;
 
 				// set tex coords (if they exist)
 				if (mesh->mTextureCoords[0])
 				{
-					req.vertices[j].tex = { mesh->mTextureCoords[0][j].x, mesh->mTextureCoords[0][j].y };
+					req.vertices[j].tu = meshopt_quantizeHalf(mesh->mTextureCoords[0][j].x);
+					req.vertices[j].tv = meshopt_quantizeHalf(mesh->mTextureCoords[0][j].y);
 				}
 				else
 				{
-					req.vertices[j].tex = { 0.0f, 0.0f };
-				}
+					req.vertices[j].tu = 0;
+				 	req.vertices[j].tv = 0;
+				}	
 
-				req.vertices[j].norm = { mesh->mNormals[j].x, mesh->mNormals[j].y, mesh->mNormals[j].z };
+				req.vertices[j].nx = meshopt_quantizeHalf(mesh->mNormals[j].x);
+				req.vertices[j].ny = meshopt_quantizeHalf(mesh->mNormals[j].y);
+				req.vertices[j].nz = meshopt_quantizeHalf(mesh->mNormals[j].z);
+				req.vertices[j].nw = 0;
 			}
 
 			// iterate over indices through faces and copy across
@@ -191,8 +201,7 @@ namespace imp
 	std::vector<MaterialCreationRequest> AssetImporter::LoadShaders(const std::vector<std::filesystem::path>& shaders)
 	{
 		std::unordered_set<std::string> shaderSet;
-		// Not likely we will have anything more than a vertex and fragment shader anytime soon.
-		// Easy way to find unique values only using shader file name without extension
+
 		for (const auto& shader : shaders)
 		{
 			// skip compute
@@ -214,19 +223,22 @@ namespace imp
 		// Easy way to get just the shader name
 		std::filesystem::path shaderPath(shader);
 		const auto vertexShaderPath = shader + ".vert.spv";
-		// For now I'll require that each fragment shader has an indirect shader variant
 		const auto vertexIndirectShaderPath = shader + ".ind.vert.spv";
+		const auto meshShaderPath = shader + ".mesh.spv";
+		const auto taskShaderPath = shader + ".task.spv";
 		const auto fragmentShaderPath = shader + ".frag.spv";
-
-		// TODO: use reflection to compose material creation request
 
 		MaterialCreationRequest req;
 		req.shaderName = shaderPath.stem().string();
 		req.vertexSpv = OS::ReadFileContents(vertexShaderPath);
 		req.vertexIndSpv = OS::ReadFileContents(vertexIndirectShaderPath);
+		req.meshSpv = OS::ReadFileContents(meshShaderPath);
+		req.taskSpv = OS::ReadFileContents(taskShaderPath);
 		req.fragmentSpv = OS::ReadFileContents(fragmentShaderPath);
 		assert(req.vertexSpv.get());
 		assert(req.vertexIndSpv.get());
+		assert(req.meshSpv.get());
+		assert(req.taskSpv.get());
 		assert(req.fragmentSpv.get());
 		return req;
 	}
