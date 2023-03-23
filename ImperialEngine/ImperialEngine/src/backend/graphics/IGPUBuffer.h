@@ -11,10 +11,12 @@ namespace imp
 	public:
 		IGPUBuffer() : m_NumElements(), m_MemoryPtr(), m_WritePointer() {}
 
-		void resize(size_t size)
+		// sets the number of elements and moves the write pointer to next write (next index is size)
+		void resize(size_t size, size_t elementSize)
 		{
 			m_NumElements = size;
 			m_WritePointer = static_cast<char*>(m_MemoryPtr);
+			m_WritePointer += size * elementSize;
 		}
 
 		void push_back(const void* data, size_t size)
@@ -24,6 +26,15 @@ namespace imp
 			std::memcpy(m_WritePointer, data, size);
 			m_WritePointer += size;
 			m_NumElements++;
+		}
+
+		void insert(size_t index, const void* data, size_t elementSize)
+		{
+			assert(data);
+			assert(elementSize);
+			auto wptr = static_cast<char*>(m_MemoryPtr);
+			wptr += index * elementSize;
+			std::memcpy(wptr, data, elementSize);
 		}
 
 		size_t size() const

@@ -1,6 +1,9 @@
 #include "VulkanShaderManager.h"
 #include "backend/graphics/Graphics.h"
+#include "extern/THREAD-POOL/BS_thread_pool.hpp"
 #include <optional>
+#include <execution>
+#include <algorithm>
 
 namespace imp
 {
@@ -20,6 +23,7 @@ namespace imp
 		m_MeshletVertexData(),
 		m_MeshletTriangleData(),
 		m_MeshletNormalConeData(),
+		m_JobSystem(),
 		m_DescriptorSets(),
 		m_ComputeDescriptorSets(),
 		m_DescriptorSetLayout(),
@@ -27,8 +31,10 @@ namespace imp
 	{
 	}
 
-	void VulkanShaderManager::Initialize(VkDevice device, VulkanMemory& memory, const EngineGraphicsSettings& settings, const MemoryProps& memProps, VulkanBuffer& drawCommands, VulkanBuffer& vertices)
+	void VulkanShaderManager::Initialize(VkDevice device, VulkanMemory& memory, const EngineGraphicsSettings& settings, BS::thread_pool* jobSystem, const MemoryProps& memProps, VulkanBuffer& drawCommands, VulkanBuffer& vertices)
 	{
+		m_JobSystem = jobSystem;
+
 		static constexpr uint32_t kGlobalBufferSize = sizeof(GlobalData) * kGlobalBufferBindCount;
 		static constexpr uint32_t kVertexBufferSize = 4 * 1024 * 1024; // TODO: get proper size
 		static constexpr uint32_t kMaterialBufferSize = sizeof(ShaderDrawData) * kMaterialBufferBindCount;
@@ -224,19 +230,23 @@ namespace imp
 
 	void VulkanShaderManager::UpdateDrawData(VkDevice device, uint32_t descriptorSetIdx, const std::vector<DrawDataSingle>& drawData, std::unordered_map<uint32_t, Comp::MeshGeometry>& geometryData)
 	{
+		AUTO_TIMER("[CPU UPDATE DRAW DATA]: ");
 		std::vector<ShaderDrawData> shaderData;
-		for (const auto& draw : drawData)
-		{
-			ShaderDrawData dat;
-			dat.transform = draw.Transform;
-			dat.materialIndex = kDefaultMaterialIndex;
-			dat.vertexOffset = geometryData.at(draw.VertexBufferId).vertices.GetOffset();
+		shaderData.resize(drawData.size());
+		m_DrawDataBuffers[descriptorSetIdx].resize(drawData.size(), sizeof(ShaderDrawData));
 
-			shaderData.push_back(dat);
-		}
+		m_JobSystem->parallelize_loop(drawData.size(), [&](const auto st, const auto en)
+			{
+				for (auto i = st; i < en; i++)
+				{
+					ShaderDrawData dat;
+					dat.transform = drawData[i].Transform;
+					dat.materialIndex = kDefaultMaterialIndex;
+					dat.vertexOffset = geometryData.at(drawData[i].VertexBufferId).vertices.GetOffset();
 
-		void* dataMap = m_DrawDataBuffers[descriptorSetIdx].GetRawMappedBufferPointer();
-		memcpy(dataMap, shaderData.data(), drawData.size() * sizeof(ShaderDrawData));
+					m_DrawDataBuffers[descriptorSetIdx].insert(i, &dat, sizeof(ShaderDrawData));
+				}
+			}).wait();
 	}
 
 	VkDescriptorPool VulkanShaderManager::CreateDescriptorPool(VkDevice device)

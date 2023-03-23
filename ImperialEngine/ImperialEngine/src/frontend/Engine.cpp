@@ -2,17 +2,19 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "Engine.h"
 #include "Utils/GfxUtilities.h"
-#include <barrier>
-#include <extern/IMGUI/imgui.h>
 #include "Components/Components.h"
-#include <extern/GLM/ext/matrix_transform.hpp>
-#include <extern/GLM/ext/matrix_clip_space.hpp>
-#include <extern/GLM/gtx/quaternion.hpp>
+#include "extern/IMGUI/imgui.h"
+#include "extern/THREAD-POOL/BS_thread_pool.hpp"
+#include "extern/GLM/ext/matrix_transform.hpp"
+#include "extern/GLM/ext/matrix_clip_space.hpp"
+#include "extern/GLM/gtx/quaternion.hpp"
+#include <barrier>
+#include <execution>
 
 namespace imp
 {
 	Engine::Engine()
-		: m_Entities(), m_DrawDataDirty(false), m_Q(nullptr), m_Worker(nullptr), m_SyncPoint(nullptr), m_EngineSettings(), m_Window(), m_UI(), m_Gfx(), m_CulledDrawData()/*, m_BVs()*/, m_AssetImporter(*this)
+		: m_Entities(), m_DrawDataDirty(false), m_Q(nullptr), m_Worker(nullptr), m_SyncPoint(nullptr), m_EngineSettings(), m_Window(), m_UI(), m_ThreadPool(nullptr), m_Gfx(), m_CulledDrawData()/*, m_BVs()*/, m_AssetImporter(*this)
 	{
 	}
 
@@ -168,6 +170,7 @@ namespace imp
 		switch (mode)
 		{
 		case kEngineSingleThreaded:
+			// TODO: I may have to abandon this..
 			// single-threaded so we only need the single-threaded version of the queue that executes task on add.
 			m_Q = new prl::WorkQ_ST<Engine>(*this);
 
@@ -178,6 +181,7 @@ namespace imp
 			m_Q = new prl::WorkQ<Engine>();
 			m_Worker = new prl::ConsumerThread<Engine>(*this, *m_Q);
 			m_SyncPoint = new std::barrier(numThreads, func);
+			m_ThreadPool = new BS::thread_pool(std::thread::hardware_concurrency() / 2);
 			break;
 		}
 	}
@@ -212,8 +216,10 @@ namespace imp
 			m_Worker->End();				// signal to stop working
 			m_SyncPoint->arrive_and_wait();
 			m_Worker->Join();
+			m_ThreadPool->wait_for_tasks();
 			delete m_Worker;
 			delete m_SyncPoint;
+			delete m_ThreadPool;
 		}
 		delete m_Q;
 	}
@@ -306,9 +312,8 @@ namespace imp
 
 	void Engine::Cull()
 	{
-		// TODO mesh: reenable this
-		//assert(IsCurrentRenderMode(kEngineRenderModeTraditional));
-		m_CulledDrawData.resize(0);
+		AUTO_TIMER("[CPU CULL]: ");
+		assert(IsCurrentRenderMode(kEngineRenderModeTraditional));
 
 		const auto cameras = m_Entities.view<Comp::Transform, Comp::Camera>();
 		const auto& cam = cameras.get<Comp::Camera>(cameras.back());
@@ -316,38 +321,59 @@ namespace imp
 
 		const auto frustumPlanes = utils::FindViewFrustumPlanes(VP);
 
-		const auto renderableChildren = m_Entities.view<Comp::ChildComponent, Comp::Mesh, Comp::Material>();
 		const auto transforms = m_Entities.view<Comp::Transform>();
 		uint32_t totalMeshes = 0;
-		for (auto ent : renderableChildren)
+
+		const auto group = m_Entities.group<Comp::ChildComponent, Comp::Mesh, Comp::Material>();
+		const auto groupSize = group.size();
+		m_CulledDrawData.resize(groupSize);
+
+		std::atomic_uint32_t drawDataIndex;
+
+		const auto gfxPtr = &m_Gfx;
+		const auto ddPtr = &m_CulledDrawData;
+
+		const auto loop = [&group, &transforms, gfxPtr, &frustumPlanes, &VP, &drawDataIndex, ddPtr](const auto st, const auto end)
 		{
-			totalMeshes++;
-			const auto& mesh = renderableChildren.get<Comp::Mesh>(ent);
-			const auto& parent = renderableChildren.get<Comp::ChildComponent>(ent).parent;
-			const auto& transform = transforms.get<Comp::Transform>(parent);
-			const auto& BV = m_Gfx.m_BVs.at(mesh.meshId);
-
-			glm::vec4 mCenter = glm::vec4(BV.center, 1.0f);
-			glm::vec4 wCenter = transform.transform * glm::vec4(BV.center, 1.0f);
-
-			bool isVisible = true;
-			for (auto i = 0; i < 6; i++)
+			for (auto i = st; i < end; i++)
 			{
-				float dotProd = glm::dot(frustumPlanes[i], wCenter);
-				if (dotProd < -BV.diameter)
+				const auto ent = group[i];
+				const auto& mesh = group.get<Comp::Mesh>(ent);
+				const auto& parent = group.get<Comp::ChildComponent>(ent).parent;
+				const auto& transform = transforms.get<Comp::Transform>(parent);
+				const auto& BV = gfxPtr->m_BVs.at(mesh.meshId);
+
+				glm::vec4 mCenter = glm::vec4(BV.center, 1.0f);
+				glm::vec4 wCenter = transform.transform * glm::vec4(BV.center, 1.0f);
+
+				bool isVisible = true;
+				for (auto i = 0; i < 6; i++)
 				{
-					isVisible = false;
-					break;
+					float dotProd = glm::dot(frustumPlanes[i], wCenter);
+					if (dotProd < -BV.diameter)
+					{
+						isVisible = false;
+						break;
+					}
+				}
+
+				if (isVisible)
+				{
+					auto lodIdx = utils::ChooseMeshLODByNearPlaneDistance(transform.transform, BV, VP);
+
+					const auto idx = drawDataIndex.fetch_add(1);
+
+					DrawDataSingle dds;
+					dds.Transform = transform.transform;
+					dds.VertexBufferId = mesh.meshId;
+					dds.LodIdx = lodIdx;
+					(*ddPtr)[idx] = std::move(dds);
 				}
 			}
-			
-			if (isVisible)
-			{
-				auto lodIdx = utils::ChooseMeshLODByNearPlaneDistance(transform.transform, BV, VP);
+		};
 
-				m_CulledDrawData.emplace_back(transform.transform, mesh.meshId, lodIdx);
-			}
-		}
+		m_ThreadPool->parallelize_loop(groupSize, loop).wait();
+		m_CulledDrawData.resize(drawDataIndex);
 
 		//printf("[CPU CULL] Total Renderable Meshes: %u; Renderable Meshes after culling: %llu\n", totalMeshes, m_CulledDrawData.size());
 	}
@@ -391,10 +417,10 @@ namespace imp
 			AUTO_TIMER("[ENGINE SYNC - GPU-Driven part]: ");
 			// This can stall because it may wait on timeline semaphore
 			IGPUBuffer& drawCmdBuffer = m_Gfx.GetDrawCommandStagingBuffer();
-			drawCmdBuffer.resize(0);
+			drawCmdBuffer.resize(0, 0);
 
 			IGPUBuffer& drawDataBuffer = m_Gfx.GetDrawDataBuffer();
-			drawDataBuffer.resize(0);
+			drawDataBuffer.resize(0, 0);
 
 			const auto renderableChildren = m_Entities.view<Comp::ChildComponent, Comp::Mesh, Comp::Material>();
 			const auto transforms = m_Entities.view<Comp::Transform>();

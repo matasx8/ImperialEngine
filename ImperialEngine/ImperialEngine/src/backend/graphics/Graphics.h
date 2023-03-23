@@ -22,6 +22,8 @@
 
 #include "extern/AFTERMATH/NsightAftermathGpuCrashTracker.h"
 
+namespace BS { class thread_pool; }
+
 namespace imp
 {
 	class Window;
@@ -128,6 +130,8 @@ namespace imp
 		// Pools
 		PrimitivePool<Semaphore, SemaphoreFactory> m_SemaphorePool;
 		PrimitivePool<Fence, FenceFactory> m_FencePool;
+
+		BS::thread_pool* m_JobSystem;
 
 		VkWindow m_Window;
 		VulkanMemory m_MemoryManager;

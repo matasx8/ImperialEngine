@@ -16,6 +16,11 @@ namespace Comp
 	struct MeshGeometry;
 }
 
+namespace BS
+{
+	class thread_pool;
+}
+
 namespace imp
 {
 	inline constexpr uint32_t kBindingCount					= 5;
@@ -65,7 +70,7 @@ namespace imp
 	public:
 		VulkanShaderManager();
 
-		void Initialize(VkDevice device, VulkanMemory& memory, const EngineGraphicsSettings& settings, const MemoryProps& memProps, VulkanBuffer& drawCommands, VulkanBuffer& vertices);
+		void Initialize(VkDevice device, VulkanMemory& memory, const EngineGraphicsSettings& settings, BS::thread_pool* jobSystem, const MemoryProps& memProps, VulkanBuffer& drawCommands, VulkanBuffer& vertices);
 
 		VulkanShader GetShader(const std::string& shaderName) const;
 		VkDescriptorSet GetDescriptorSet(uint32_t idx) const;
@@ -124,6 +129,8 @@ namespace imp
 		VulkanBuffer m_MeshletVertexData;
 		VulkanBuffer m_MeshletTriangleData;
 		VulkanBuffer m_MeshletNormalConeData;
+
+		BS::thread_pool* m_JobSystem;
 
 		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_DescriptorSets;
 		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_ComputeDescriptorSets;

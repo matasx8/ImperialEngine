@@ -5,6 +5,7 @@
 #include "frontend/Window.h"
 #include "Utils/GfxUtilities.h"
 #include "Utils/Finalizer.h"
+#include "extern/THREAD-POOL/BS_thread_pool.hpp"
 #include <vector>
 #include <stdexcept>
 #include <set>
@@ -42,6 +43,7 @@ namespace imp
         m_OldSyncTimer(),
         m_SemaphorePool(SemaphoreFactory()),
         m_FencePool(FenceFactory()),
+        m_JobSystem(),
         m_Window(),
         m_MemoryManager(),
         m_DeviceMemoryProps(),
@@ -84,8 +86,10 @@ namespace imp
         CreateGarbageCollector();
         CreateRenderPassGenerator();
 
+        m_JobSystem = new BS::thread_pool(std::thread::hardware_concurrency() / 2);
+
         InitializeVulkanMemory();
-        m_ShaderManager.Initialize(m_LogicalDevice, m_MemoryManager, m_Settings, m_DeviceMemoryProps, m_DrawBuffer, m_VertexBuffer);
+        m_ShaderManager.Initialize(m_LogicalDevice, m_MemoryManager, m_Settings, m_JobSystem, m_DeviceMemoryProps, m_DrawBuffer, m_VertexBuffer);
 
         // Until we haven't made custom vulkan backend for imgui we can't fully have dynamic RenderPassGenerator
         // since CreateImGUI needs a renderpass
@@ -513,6 +517,8 @@ namespace imp
         AUTO_TIMER("[Destroy]: ");
         vkDeviceWaitIdle(m_LogicalDevice);
 
+        delete m_JobSystem;
+
         // prototyping stuff ---
         renderpassgui->Destroy(m_LogicalDevice);
         // prototyping stuff ---
@@ -816,7 +822,6 @@ namespace imp
         static constexpr VkDeviceSize allocSize = 4 * 1024 * 1024;
         static constexpr VkDeviceSize drawAllocSize = (kMaxDrawCount + 31) * sizeof(VkDrawIndexedIndirectCommand);
         static constexpr VkDeviceSize stagingDrawSize = sizeof(IndirectDrawCmd) * (kMaxDrawCount + 31);
-        //static constexpr VkDeviceSize stagingDrawDataSize = sizeof(DrawDataSingle) * kMaxDrawCount;
 
         m_VertexBuffer          = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
         m_IndexBuffer           = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
