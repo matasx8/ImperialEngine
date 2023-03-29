@@ -36,7 +36,7 @@ namespace imp
 		m_JobSystem = jobSystem;
 
 		static constexpr uint32_t kGlobalBufferSize = sizeof(GlobalData) * kGlobalBufferBindCount;
-		static constexpr uint32_t kVertexBufferSize = 128 * 1024 * 1024; // TODO: get proper size
+		static constexpr uint32_t kVertexBufferSize = 1024 * 1024 * 1024; // TODO: get proper size
 		static constexpr uint32_t kMaterialBufferSize = sizeof(ShaderDrawData) * kMaterialBufferBindCount;
 		static constexpr uint32_t kDrawDataIndicesBufferSize = sizeof(uint32_t) * kMaxDrawCount;
 		static constexpr uint32_t kDrawDataBufferSize = sizeof(ShaderDrawData) * kMaxDrawCount;

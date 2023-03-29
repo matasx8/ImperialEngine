@@ -46,7 +46,9 @@ bool is_inside_view_frustum(uint idx)
     vec4 mCenter = vec4(bv.center, 1.0); // BV center in Model space
     vec4 wCenter = drawData[idx].Transform * mCenter;           // BV center in World space
 
-    float diameter = bv.diameter;
+    float scale = length(drawData[idx].Transform[0].xyz);
+
+    float diameter = bv.diameter * scale;
 
     for (int i = 0; i < 6; i++)
     {

@@ -831,7 +831,8 @@ namespace imp
 
     void Graphics::InitializeVulkanMemory()
     {
-        static constexpr VkDeviceSize allocSize = 128 * 1024 * 1024;
+        static constexpr VkDeviceSize allocSize = 1024 * 1024 * 1024;
+        static constexpr VkDeviceSize idxBuffAllocSize = allocSize / sizeof(Vertex);
         static constexpr VkDeviceSize drawAllocSize = (kMaxDrawCount + 31) * sizeof(VkDrawIndexedIndirectCommand);
         static constexpr VkDeviceSize stagingDrawSize = sizeof(IndirectDrawCmd) * (kMaxDrawCount + 31);
 

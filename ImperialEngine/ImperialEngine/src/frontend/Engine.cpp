@@ -340,11 +340,13 @@ namespace imp
 				glm::vec4 mCenter = glm::vec4(BV.center, 1.0f);
 				glm::vec4 wCenter = transform.transform * glm::vec4(BV.center, 1.0f);
 
+				float scale = glm::length(glm::vec3(transform.transform[0].x, transform.transform[0].y, transform.transform[0].z));
+
 				bool isVisible = true;
 				for (auto i = 0; i < 6; i++)
 				{
 					float dotProd = glm::dot(frustumPlanes[i], wCenter);
-					if (dotProd < -BV.diameter)
+					if (dotProd < -BV.diameter * scale)
 					{
 						isVisible = false;
 						break;
