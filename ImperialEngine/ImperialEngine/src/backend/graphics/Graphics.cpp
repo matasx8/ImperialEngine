@@ -347,6 +347,10 @@ namespace imp
 
         for (auto& req : meshCreationData)
         {
+            // this is a linked mesh
+            if (req.indices.size() == 0)
+                continue;
+
             const auto vOffset = verts.size() + vertBufferOffset;
             const auto iOffset = idxs.size() + indBufferOffset;
             const auto mOffset = mlds.size() + meshletBufferOffset;
@@ -368,12 +372,17 @@ namespace imp
             utils::GenerateMeshLODS(req.vertices, req.indices, &ivb.indices[1], numDesiredLODs, 0.33, 0.5);
 
             ms_MeshData ms_md;
-            std::vector<Meshlet> meshlets = utils::GenerateMeshlets(req.vertices, req.indices, ms_vd, ms_td, ms_nc, ivb, ms_md);
+            std::vector<uint32_t> meshletVertexData;// meshlet vertex data
+            std::vector<uint8_t> meshletTriangleData; // meshlet triangle data
+            std::vector<NormalCone> meshletNormalConeData;
+            std::vector<Meshlet> meshlets = utils::GenerateMeshlets(req.vertices, req.indices, meshletVertexData, meshletTriangleData, meshletNormalConeData, ivb, ms_md);
             ms_md.boundingVolume = req.boundingVolume;
             ms_md.firstTask = 0;
+
+            m_BVs[req.id] = req.boundingVolume;
             
             for (auto i = 0; i < kMaxLODCount; i++)
-                ms_md.LODData[i].meshletBufferOffset += meshletBufferOffset; // TODO mesh: potential mistake here, probably wouldn't work with model with multiple meshes
+                ms_md.LODData[i].meshletBufferOffset += mOffset;
 
             for (auto i = 0; i < kMaxLODCount; i++)
                 ivb.indices[i].m_Offset += iOffset;
@@ -396,7 +405,7 @@ namespace imp
             ms_mds.emplace_back(ms_md);
 
             // offset meshlet vertex data
-            for (auto& v : ms_vd)
+            for (auto& v : meshletVertexData)
                 v += vOffset;
 
             for (auto& meshlet : meshlets)
@@ -406,12 +415,15 @@ namespace imp
                 meshlet.coneOffset += ncdOffset;
             }
 
+            ms_vd.insert(ms_vd.end(), meshletVertexData.begin(), meshletVertexData.end());
+            ms_td.insert(ms_td.end(), meshletTriangleData.begin(), meshletTriangleData.end());
+            ms_nc.insert(ms_nc.end(), meshletNormalConeData.begin(), meshletNormalConeData.end());
             mlds.insert(mlds.end(), meshlets.begin(), meshlets.end());
 
             mldAllocSize += meshlets.size() * sizeof(Meshlet);
-            ms_vdAllocSize += ms_vd.size() * sizeof(uint32_t);
-            ms_tdAllocSize += ms_td.size() * sizeof(uint8_t);
-            ms_ncAllocSize += ms_nc.size() * sizeof(NormalCone);
+            ms_vdAllocSize += meshletVertexData.size() * sizeof(uint32_t);
+            ms_tdAllocSize += meshletTriangleData.size() * sizeof(uint8_t);
+            ms_ncAllocSize += meshletNormalConeData.size() * sizeof(NormalCone);
 
             mdAllocSize += static_cast<uint32_t>(sizeof(MeshData));
             ms_mdAllocSize += static_cast<uint32_t>(sizeof(ms_MeshData));
@@ -819,7 +831,7 @@ namespace imp
 
     void Graphics::InitializeVulkanMemory()
     {
-        static constexpr VkDeviceSize allocSize = 4 * 1024 * 1024;
+        static constexpr VkDeviceSize allocSize = 128 * 1024 * 1024;
         static constexpr VkDeviceSize drawAllocSize = (kMaxDrawCount + 31) * sizeof(VkDrawIndexedIndirectCommand);
         static constexpr VkDeviceSize stagingDrawSize = sizeof(IndirectDrawCmd) * (kMaxDrawCount + 31);
 

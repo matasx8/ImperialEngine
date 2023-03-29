@@ -14,6 +14,7 @@
 #include "GLM/gtc/type_ptr.hpp"
 #include "extern/GLM/mat4x4.hpp"
 #include "MESHOPTIMIZER/meshoptimizer.h"
+#include <unordered_map>
 
 namespace imp
 {
@@ -78,13 +79,16 @@ namespace imp
 
 	void AssetImporter::LoadGLTFScene(const std::filesystem::path& path)
 	{
-		assert(path.extension().string() == ".gltf");
+		assert(path.extension().string() == ".gltf" || path.extension().string() == ".glb");
 		tinygltf::Model model;
 		std::string err;
 		std::string warn;
 
 		// TODO gltf: implement failure path
-		m_Loader->LoadASCIIFromFile(&model, &err, &warn, path.string());
+		if(path.extension().string() == ".gltf")
+			m_Loader->LoadASCIIFromFile(&model, &err, &warn, path.string());
+		else
+			m_Loader->LoadBinaryFromFile(&model, &err, &warn, path.string());
 
 		if (err.size()) printf("[Asset Importer] Error: %s\n", err.c_str());
 		if (warn.size()) printf("[Asset Importer] Warning: %s\n", warn.c_str());
@@ -92,11 +96,12 @@ namespace imp
 		assert(model.scenes.size() == 1);
 		// large potential for parallel for
 		std::vector<MeshCreationRequest> reqs;
+		std::unordered_map<uint32_t, uint32_t> meshIdMap;
 		std::vector<Comp::GLTFEntity> entities;
 		for (const auto& nodeIdx : model.scenes.front().nodes)
 		{
 			const auto& node = model.nodes[nodeIdx];
-			LoadGLTFNode(node, model, reqs, entities);
+			LoadGLTFNode(node, model, reqs, entities, meshIdMap);
 		}
 
 		for (const auto& ent : entities)
@@ -114,7 +119,7 @@ namespace imp
 		m_Engine.m_Q->add(std::mem_fn(&Engine::Cmd_UploadMeshes), std::make_shared<std::vector<imp::MeshCreationRequest>>(reqs));
 	}
 
-	void AssetImporter::LoadGLTFNode(const tinygltf::Node& node, const tinygltf::Model& model, std::vector<MeshCreationRequest>& reqs, std::vector<Comp::GLTFEntity>& entities)
+	void AssetImporter::LoadGLTFNode(const tinygltf::Node& node, const tinygltf::Model& model, std::vector<MeshCreationRequest>& reqs, std::vector<Comp::GLTFEntity>& entities, std::unordered_map<uint32_t, uint32_t>& meshIdMap)
 	{
 		auto transform = glm::mat4x4(1.0f);
 
@@ -133,17 +138,34 @@ namespace imp
 		}
 
 		for (const auto child : node.children)
-			LoadGLTFNode(model.nodes[child], model, reqs, entities);
+			LoadGLTFNode(model.nodes[child], model, reqs, entities, meshIdMap);
+
+		if (meshIdMap.find(node.mesh) != meshIdMap.end())
+		{
+			MeshCreationRequest req;
+			req.id = meshIdMap[node.mesh];
+			reqs.push_back(req);
+
+			Comp::GLTFEntity ent;
+			ent.transform = { transform };
+			ent.mesh = { req.id };
+			entities.push_back(ent);
+
+			return;
+		}
 
 		if (node.mesh > -1)
 		{
-			MeshCreationRequest req;
-			req.id = temporaryMeshCounter.fetch_add(1);
 
 			const auto& mesh = model.meshes[node.mesh];
 
 			for (const auto& prim : mesh.primitives)
 			{
+				MeshCreationRequest req;
+				req.id = temporaryMeshCounter.fetch_add(1);
+
+				meshIdMap[node.mesh] = req.id; // can keep rewriting this
+
 				const float* positionBuffer = nullptr;
 				const float* normalsBuffer = nullptr;
 				const float* texCoordsBuffer = nullptr;
@@ -180,8 +202,8 @@ namespace imp
 					vertex.nz = meshopt_quantizeHalf(normalsBuffer[i * 3 + 2]);
 					vertex.nw = 0.0f;
 
-					vertex.tu = meshopt_quantizeHalf(texCoordsBuffer[i * 2]);
-					vertex.tv = meshopt_quantizeHalf(texCoordsBuffer[i * 2 + 1]);
+					vertex.tu = prim.attributes.find("TEXCOORD_0") != prim.attributes.end() ? meshopt_quantizeHalf(texCoordsBuffer[i * 2]) : 0.0f;
+					vertex.tv = prim.attributes.find("TEXCOORD_0") != prim.attributes.end() ? meshopt_quantizeHalf(texCoordsBuffer[i * 2 + 1]) : 0.0f;
 
 					req.vertices.push_back(vertex);
 				}
@@ -283,7 +305,7 @@ namespace imp
 			// TODO: put this somewhere higher in the callstack so we upload all the meshes at the same time
 			m_Engine.m_Q->add(std::mem_fn(&Engine::Cmd_UploadMeshes), std::make_shared<std::vector<imp::MeshCreationRequest>>(reqs));
 		}
-		else if (extension == ".gltf")
+		else if (extension == ".gltf" || extension == ".glb")
 		{
 			LoadGLTFScene(path);
 		}

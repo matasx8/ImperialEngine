@@ -142,7 +142,7 @@ namespace imp
 
 				// Didn't change the number of indices, means won't go anymore.
 				// Setting rest of LODs to last successful
-				if (newIndexCount == currIndexCount)
+				if (newIndexCount == currIndexCount || newIndexCount == 0)
 				{
 					FillRestOfBuffers(currIndexBuffOffset, i, (uint32_t)newIndexCount);
 					break;
@@ -193,9 +193,12 @@ namespace imp
 				const uint32_t* indicesWithLODOfsset = &indices[geometry.indices[lodIdx].m_Offset];
 				const size_t indexCount = geometry.indices[lodIdx].m_Count;
 
-				size_t meshletCount = meshopt_buildMeshlets(meshlets.data(), vertices.data(), triangles.data(), indicesWithLODOfsset, indexCount, (float*)verts.data(), verts.size(), sizeof(Vertex), kMaxMeshletVertices, kMaxMeshletTriangles, cone_weight);
+				size_t meshletCount = 0;
+				
+				if (indexCount != 0)
+					meshletCount = meshopt_buildMeshlets(meshlets.data(), vertices.data(), triangles.data(), indicesWithLODOfsset, indexCount, (float*)verts.data(), verts.size(), sizeof(Vertex), kMaxMeshletVertices, kMaxMeshletTriangles, cone_weight);
 
-				if (currMeshletCount == meshletCount)
+				if (currMeshletCount == meshletCount || meshletCount == 0)
 				{
 					for (uint32_t cli = lodIdx; cli < kMaxLODCount; cli++)
 					{
