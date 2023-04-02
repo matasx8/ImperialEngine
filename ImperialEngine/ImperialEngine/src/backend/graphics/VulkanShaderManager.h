@@ -105,7 +105,7 @@ namespace imp
 		void CreateComputeDescriptorSetLayout(VkDevice device);
 		VkDescriptorSetLayoutBinding CreateDescriptorBinding(uint32_t binding, uint32_t descriptorCount, VkDescriptorType type, VkShaderStageFlags stageFlags);
 
-		void WriteUpdateDescriptorSets(VkDevice device, VkDescriptorSet* dSets, VkDescriptorType type, std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1>& buffers, size_t descriptorDataSize, uint32_t bindSlot, uint32_t descriptorCount, uint32_t dSetCount);
+		void WriteUpdateDescriptorSets(VkDevice device, VkDescriptorSet* dSets, VkDescriptorType type, std::array<VulkanBuffer, kEngineSwapchainDoubleBuffering>& buffers, size_t descriptorDataSize, uint32_t bindSlot, uint32_t descriptorCount, uint32_t dSetCount);
 		void WriteUpdateDescriptorSetsSingleBuffer(VkDevice device, VkDescriptorSet* dSets, VkDescriptorType type, VulkanBuffer& buffer, size_t descriptorDataSize, uint32_t bindSlot, uint32_t descriptorCount, uint32_t dSetCount);
 		void UpdateDescriptorData(VkDevice device, VulkanBuffer& buffer, size_t size, uint32_t offset, const void* data);
 
@@ -115,10 +115,10 @@ namespace imp
 		std::unordered_map<std::string, VulkanShader> m_ShaderMap;
 		VkDescriptorPool m_DescriptorPool;
 
-		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_GlobalBuffers;
-		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_MaterialDataBuffers;
+		std::array<VulkanBuffer, kEngineSwapchainDoubleBuffering> m_GlobalBuffers;
+		std::array<VulkanBuffer, kEngineSwapchainDoubleBuffering> m_MaterialDataBuffers;
 		VulkanBuffer m_DrawDataIndices;
-		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_DrawDataBuffers;
+		std::array<VulkanBuffer, kEngineSwapchainDoubleBuffering> m_DrawDataBuffers;
 
 		// compute
 		VulkanBuffer m_DrawCommands;
@@ -134,8 +134,8 @@ namespace imp
 
 		BS::thread_pool* m_JobSystem;
 
-		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_DescriptorSets;
-		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_ComputeDescriptorSets;
+		std::array<VkDescriptorSet, kEngineSwapchainDoubleBuffering> m_DescriptorSets;
+		std::array<VkDescriptorSet, kEngineSwapchainDoubleBuffering> m_ComputeDescriptorSets;
 		VkDescriptorSetLayout m_DescriptorSetLayout;
 		VkDescriptorSetLayout m_ComputeDescriptorSetLayout;
 	};

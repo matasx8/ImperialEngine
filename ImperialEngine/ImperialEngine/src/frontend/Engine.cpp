@@ -23,7 +23,9 @@ namespace imp
 	{
 		m_EngineSettings = settings;
 		InitThreading(m_EngineSettings.threadingMode);
+#if !BENCHMARK_MODE
 		InitImgui();
+#endif
 		InitWindow();
 		InitGraphics();
 
@@ -53,7 +55,9 @@ namespace imp
 	void Engine::Update()
 	{
 		// not sure if this should be here
+#if !BENCHMARK_MODE
 		m_Window.UpdateImGUI();
+#endif
 		m_Window.Update();
 		UpdateRegistry();
 
@@ -66,7 +70,9 @@ namespace imp
 	void Engine::Render()
 	{
 		RenderCameras();
+#if !BENCHMARK_MODE
 		RenderImGUI();
+#endif
 	}
 
 	void Engine::EndFrame()
@@ -131,7 +137,7 @@ namespace imp
 		if (count)
 			MarkDrawDataDirty();
 
-		static constexpr uint32_t numMeshes = 2u;
+		static constexpr uint32_t numMeshes = 1u;
 
 		auto& reg = m_Entities;
 		for (auto i = 0; i < count; i++)
@@ -162,7 +168,9 @@ namespace imp
 		CleanUpThreading();
 		CleanUpWindow();
 		CleanUpGraphics();
+#if !BENCHMARK_MODE
 		CleanUpUI();
+#endif
 	}
 
 	void Engine::InitThreading(EngineThreadingMode mode)

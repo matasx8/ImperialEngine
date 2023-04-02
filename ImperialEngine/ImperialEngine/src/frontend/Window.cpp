@@ -1,10 +1,11 @@
 #include "frontend/Window.h"
-#include <assert.h>
 #include "extern/GLFW/glfw3.h"
 #include "Debug.h"
 #include "extern/IMGUI/backends/imgui_impl_glfw.h"
 //#define STB_IMAGE_IMPLEMENTATION
 #include "extern/STB/stb_image.h"
+#include "Utils/EngineStaticConfig.h"
+#include <assert.h>
 
 imp::Window::Window()
 	: m_Width(0), m_Height(0), m_WindowPtr()
@@ -37,7 +38,9 @@ int imp::Window::Initialize(const std::string& name, int width, int height)
 
 	LoadLogo(m_WindowPtr);
 
+#if !BENCHMARK_MODE
 	ImGui_ImplGlfw_InitForVulkan(m_WindowPtr, true);
+#endif
 	return 1;
 }
 

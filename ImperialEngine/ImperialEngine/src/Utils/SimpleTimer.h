@@ -1,9 +1,9 @@
 #pragma once
+#include "Utils/EngineStaticConfig.h"
 #include <chrono>
 
 namespace imp
 {
-#define LOG_TIMINGS 0
 #if LOG_TIMINGS
 #define AUTO_TIMER(message) SimpleAutoTimer timer(message); 
 #else

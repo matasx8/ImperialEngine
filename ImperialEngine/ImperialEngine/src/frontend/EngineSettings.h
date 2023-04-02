@@ -4,7 +4,7 @@
 
 enum class EngineSettingsTemplate
 {
-	kEngineSettingsDebug,
+	kEngineSettingsDebug, // abandoned
 	kEngineSettingsDevelopment, // debug and multithread
 	kEngineSettingsRelease
 };
@@ -18,8 +18,7 @@ enum EngineThreadingMode
 enum EngineSwapchainImageCount
 {
 	kEngineSwapchainDoubleBuffering = 2,
-	//kEngineSwapchainTripleBuffering,
-	kEngineSwapchainExclusiveMax		// convenience for arrays
+	kEngineSwapchainTripleBuffering
 };
 
 enum EnginePresentMode
@@ -53,6 +52,8 @@ struct EngineGraphicsSettings
 	EngineSwapchainImageCount swapchainImageCount;
 	EngineRenderMode renderMode;
 	bool validationLayersEnabled;
+
+	uint32_t numberOfFramesToBenchmark;
 };
 
 // engine settings used for initialization

@@ -10,3 +10,11 @@
 #ifndef BENCHMARK_MODE
 #define BENCHMARK_MODE 0
 #endif
+
+#ifndef USE_AFTERMATH
+#define USE_AFTERMATH 0
+#endif
+
+#ifndef LOG_TIMINGS
+#define LOG_TIMINGS 0
+#endif

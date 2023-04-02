@@ -92,23 +92,23 @@ namespace imp
 
 		CreateMegaDescriptorSets(device);
 
-		WriteUpdateDescriptorSets(device, m_DescriptorSets.data(), VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_GlobalBuffers, sizeof(GlobalData), kGlobalBufferBindingSlot, kGlobalBufferBindCount, kEngineSwapchainExclusiveMax - 1);
-		WriteUpdateDescriptorSetsSingleBuffer(device, m_DescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, vertices, kVertexBufferSize, kVertexBufferBindingSlot, kVertexBufferBindingCount, kEngineSwapchainExclusiveMax - 1);
-		WriteUpdateDescriptorSets(device, m_DescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MaterialDataBuffers, sizeof(MaterialData), kMaterialBufferBindingSlot, kMaterialBufferBindCount, kEngineSwapchainExclusiveMax - 1);
-		WriteUpdateDescriptorSetsSingleBuffer(device, m_DescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawDataIndices, kDrawDataIndicesBufferSize, kDrawDataIndicesBindingSlot, kDrawDataIndicesBindCount, kEngineSwapchainExclusiveMax - 1);
-		WriteUpdateDescriptorSets(device, m_DescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawDataBuffers, sizeof(ShaderDrawData), kDrawDataBufferBindingSlot, kMaxDrawCount, kEngineSwapchainExclusiveMax - 1);
+		WriteUpdateDescriptorSets(device, m_DescriptorSets.data(), VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_GlobalBuffers, sizeof(GlobalData), kGlobalBufferBindingSlot, kGlobalBufferBindCount, kEngineSwapchainDoubleBuffering);
+		WriteUpdateDescriptorSetsSingleBuffer(device, m_DescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, vertices, kVertexBufferSize, kVertexBufferBindingSlot, kVertexBufferBindingCount, kEngineSwapchainDoubleBuffering);
+		WriteUpdateDescriptorSets(device, m_DescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MaterialDataBuffers, sizeof(MaterialData), kMaterialBufferBindingSlot, kMaterialBufferBindCount, kEngineSwapchainDoubleBuffering);
+		WriteUpdateDescriptorSetsSingleBuffer(device, m_DescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawDataIndices, kDrawDataIndicesBufferSize, kDrawDataIndicesBindingSlot, kDrawDataIndicesBindCount, kEngineSwapchainDoubleBuffering);
+		WriteUpdateDescriptorSets(device, m_DescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawDataBuffers, sizeof(ShaderDrawData), kDrawDataBufferBindingSlot, kMaxDrawCount, kEngineSwapchainDoubleBuffering);
 
-		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawCommands, kHostDrawCommandBufferSize, 0, 1, kEngineSwapchainExclusiveMax - 1);
+		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawCommands, kHostDrawCommandBufferSize, 0, 1, kEngineSwapchainDoubleBuffering);
 		// TODO mesh: for mesh variant of my drawGen compute shader I'm using the same buffer, but interpreting it as mesh draw commands.
 		// figure out if that's all good.
-		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, drawCommands, kDrawCommandBufferSize, 1, 1, kEngineSwapchainExclusiveMax - 1);
-		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MeshData, kMeshDataBufferSize, 2, 1, kEngineSwapchainExclusiveMax - 1);
-		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawCommandCount, kDrawCommandCountBufferSize, 3, 1, kEngineSwapchainExclusiveMax - 1);
-		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MeshletData, kMeshletDataBufferSize, 4, 1, kEngineSwapchainExclusiveMax - 1);
-		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_msMeshData, kmsMeshDataBufferSize, 5, 1, kEngineSwapchainExclusiveMax - 1);
-		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MeshletVertexData, kMeshletVertexDataBufferSize, 6, 1, kEngineSwapchainExclusiveMax - 1);
-		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MeshletTriangleData, kMeshletTriangleDataBufferSize, 7, 1, kEngineSwapchainExclusiveMax - 1);
-		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MeshletNormalConeData, kMeshletNormalConeDataBufferSize, 8, 1, kEngineSwapchainExclusiveMax - 1);
+		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, drawCommands, kDrawCommandBufferSize, 1, 1, kEngineSwapchainDoubleBuffering);
+		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MeshData, kMeshDataBufferSize, 2, 1, kEngineSwapchainDoubleBuffering);
+		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawCommandCount, kDrawCommandCountBufferSize, 3, 1, kEngineSwapchainDoubleBuffering);
+		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MeshletData, kMeshletDataBufferSize, 4, 1, kEngineSwapchainDoubleBuffering);
+		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_msMeshData, kmsMeshDataBufferSize, 5, 1, kEngineSwapchainDoubleBuffering);
+		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MeshletVertexData, kMeshletVertexDataBufferSize, 6, 1, kEngineSwapchainDoubleBuffering);
+		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MeshletTriangleData, kMeshletTriangleDataBufferSize, 7, 1, kEngineSwapchainDoubleBuffering);
+		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MeshletNormalConeData, kMeshletNormalConeDataBufferSize, 8, 1, kEngineSwapchainDoubleBuffering);
 
 		CreateDefaultMaterial(device);
 
@@ -254,7 +254,7 @@ namespace imp
 		vkDestroyDescriptorSetLayout(device, m_DescriptorSetLayout, nullptr);
 		vkDestroyDescriptorSetLayout(device, m_ComputeDescriptorSetLayout, nullptr);
 
-		static constexpr uint32_t dSetCount = kEngineSwapchainExclusiveMax - 1;
+		static constexpr uint32_t dSetCount = kEngineSwapchainDoubleBuffering;
 		vkFreeDescriptorSets(device, m_DescriptorPool, dSetCount, m_DescriptorSets.data());
 		vkFreeDescriptorSets(device, m_DescriptorPool, dSetCount, m_ComputeDescriptorSets.data());
 
@@ -347,10 +347,10 @@ namespace imp
 		std::array<uint32_t, kBindingCount> descriptorCounts = { kMaxDrawCount, kMaxDrawCount, kMaxDrawCount };
 		variable_info.pDescriptorCounts = descriptorCounts.data();
 
-		std::array<VkDescriptorSetLayout, kEngineSwapchainExclusiveMax - 1> layouts = { m_DescriptorSetLayout, m_DescriptorSetLayout};
+		std::array<VkDescriptorSetLayout, kEngineSwapchainDoubleBuffering> layouts = { m_DescriptorSetLayout, m_DescriptorSetLayout};
 		AllocateDescriptorSets(device, m_DescriptorSets.data(), m_DescriptorPool, m_DescriptorSets.size(), layouts.data(), &variable_info);
 
-		std::array<VkDescriptorSetLayout, kEngineSwapchainExclusiveMax - 1> computeLayouts = { m_ComputeDescriptorSetLayout, m_ComputeDescriptorSetLayout};
+		std::array<VkDescriptorSetLayout, kEngineSwapchainDoubleBuffering> computeLayouts = { m_ComputeDescriptorSetLayout, m_ComputeDescriptorSetLayout};
 		AllocateDescriptorSets(device, m_ComputeDescriptorSets.data(), m_DescriptorPool, m_ComputeDescriptorSets.size(), computeLayouts.data(), nullptr);
 	}
 
@@ -432,7 +432,7 @@ namespace imp
 		return descriptorSetLayoutBinding;
 	}
 
-	void VulkanShaderManager::WriteUpdateDescriptorSets(VkDevice device, VkDescriptorSet* dSets, VkDescriptorType type, std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1>& buffers, size_t descriptorDataSize, uint32_t bindSlot, uint32_t descriptorCount, uint32_t dSetCount)
+	void VulkanShaderManager::WriteUpdateDescriptorSets(VkDevice device, VkDescriptorSet* dSets, VkDescriptorType type, std::array<VulkanBuffer, kEngineSwapchainDoubleBuffering>& buffers, size_t descriptorDataSize, uint32_t bindSlot, uint32_t descriptorCount, uint32_t dSetCount)
 	{
 		// I'm almost certain we should just vkUpdateDescriptorSets upfront for the whole buffer
 		for (auto i = 0; i < dSetCount; i++)
@@ -508,7 +508,7 @@ namespace imp
 		// 2. DescriptorPool can run out of descriptors
 		// -- For now simple enough to add and add more stuff, remove and leave hole?
 
-		for (auto i = 0; i < kEngineSwapchainExclusiveMax - 1; i++)
+		for (auto i = 0; i < kEngineSwapchainDoubleBuffering; i++)
 		{
 			// example data for material
 			const MaterialData data = { glm::vec4(0.75f, 0.99f, 0.99f, 1.0f) };

@@ -141,12 +141,12 @@ namespace imp
 		VulkanBuffer m_IndexBuffer;
 		VulkanBuffer m_MeshBuffer;
 		VulkanBuffer m_DrawBuffer;
-		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_StagingDrawBuffer;
+		std::array<VulkanBuffer, kEngineSwapchainDoubleBuffering> m_StagingDrawBuffer;
 		VulkanBuffer m_BoundingVolumeBuffer;
 		uint32_t m_NumDraws;
 
-		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_GlobalBuffers;
-		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_DescriptorSets;
+		std::array<VulkanBuffer, kEngineSwapchainDoubleBuffering> m_GlobalBuffers;
+		std::array<VkDescriptorSet, kEngineSwapchainDoubleBuffering> m_DescriptorSets;
 
 		GpuCrashTracker m_AfterMathTracker;
 

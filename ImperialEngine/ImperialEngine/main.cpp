@@ -1,11 +1,12 @@
 #include "frontend/Engine.h"
+#include "Utils/EngineStaticConfig.h"
 #include "extern/ARGH/argh.h"
 #include <iostream>
 #include <chrono>
 #include <thread>
 #include <windows.h>
 
-void ConfigureEngineWithArgs(char** argv, std::vector<std::string>& scenesToLoad);
+void ConfigureEngineWithArgs(char** argv, std::vector<std::string>& scenesToLoad, EngineSettings& settings);
 
 int main(int argc, char** argv)
 {
@@ -24,7 +25,7 @@ int main(int argc, char** argv)
 	imp::Engine engine;
 
 	std::vector<std::string> scenesToLoad;
-	ConfigureEngineWithArgs(argv, scenesToLoad);
+	ConfigureEngineWithArgs(argv, scenesToLoad, settings);
 
 	if (!engine.Initialize(settings))
 		return 1;
@@ -50,7 +51,7 @@ int main(int argc, char** argv)
 	return 0;
 }
 
-void ConfigureEngineWithArgs(char** argv, std::vector<std::string>& scenesToLoad)
+void ConfigureEngineWithArgs(char** argv, std::vector<std::string>& scenesToLoad, EngineSettings& settings)
 {
 	argh::parser cmdl(argv);
 
@@ -61,7 +62,9 @@ void ConfigureEngineWithArgs(char** argv, std::vector<std::string>& scenesToLoad
 		Sleep(1000 * 10);
 	}
 
-	std::cout << "Current path is " << std::filesystem::current_path() << '\n'; // (1)
+#if BENCHMARK_MODE
+	cmdl("--run-for") >> settings.gfxSettings.numberOfFramesToBenchmark;
+#endif
 
 	auto lfIdx = std::find(cmdl.args().begin(), cmdl.args().end(), "--load-files");
 	if (lfIdx != cmdl.args().end())

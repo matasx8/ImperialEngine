@@ -3,6 +3,7 @@
 #include "DefaultColorRP.h"
 #include "DefaultDepthRP.h"
 #include "backend/graphics/Graphics.h"
+#include "Utils/EngineStaticConfig.h"
 
 namespace imp
 {
@@ -29,7 +30,11 @@ namespace imp
 		std::array<SurfaceDesc, kMaxColorAttachmentCount> colorSurfaces = {};
 		colorSurfaces[0] = swapchain.GetSwapchainImageSurfaceDesc();
 		colorSurfaces[0].loadOp = kLoadOpClear; // get from camera data
+#if BENCHMARK_MODE
+		colorSurfaces[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+#else
 		colorSurfaces[0].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+#endif
 		std::array<SurfaceDesc, kMaxColorAttachmentCount> resolveSurfaces = {};
 		const SurfaceDesc depthDesc = {
 			colorSurfaces[0].width,

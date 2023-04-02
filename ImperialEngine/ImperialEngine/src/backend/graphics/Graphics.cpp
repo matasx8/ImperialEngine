@@ -5,6 +5,7 @@
 #include "frontend/Window.h"
 #include "Utils/GfxUtilities.h"
 #include "Utils/Finalizer.h"
+#include "Utils/EngineStaticConfig.h"
 #include "extern/THREAD-POOL/BS_thread_pool.hpp"
 #include <vector>
 #include <stdexcept>
@@ -13,8 +14,6 @@
 #include <extern/IMGUI/backends/imgui_impl_vulkan.h>
 #include <numeric>
 #include <GLM/gtx/transform.hpp>
-
-#define USE_AFTERMATH 0
 
 namespace imp
 {
@@ -91,6 +90,7 @@ namespace imp
         InitializeVulkanMemory();
         m_ShaderManager.Initialize(m_LogicalDevice, m_MemoryManager, m_Settings, m_JobSystem, m_DeviceMemoryProps, m_DrawBuffer, m_VertexBuffer);
 
+#if !BENCHMARK_MODE
         // Until we haven't made custom vulkan backend for imgui we can't fully have dynamic RenderPassGenerator
         // since CreateImGUI needs a renderpass
         // so as a temporary workaround we must create the imguiPass upfront and save it
@@ -98,6 +98,7 @@ namespace imp
         auto temp = CameraData();
         renderpassgui = m_RenderPassManager.GetImGUIPass(m_LogicalDevice, temp, m_Swapchain);
         CreateImGUI();
+#endif
     }
 
     void Graphics::DoTransfers(bool releaseAll)
@@ -534,8 +535,10 @@ namespace imp
 
         delete m_JobSystem;
 
+#if !BENCHMARK_MODE
         ImGui_ImplVulkan_Shutdown();
         renderpassgui->Destroy(device);
+#endif
 
         m_ShaderManager.Destroy(device);
 

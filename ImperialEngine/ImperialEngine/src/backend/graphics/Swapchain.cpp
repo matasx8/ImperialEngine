@@ -150,7 +150,7 @@ void imp::Swapchain::Destroy(VkDevice device)
 
 void imp::Swapchain::PopulateNewSwapchainImages(VkDevice device)
 {
-    std::array<VkImage, kEngineSwapchainExclusiveMax - 1> images;
+    std::array<VkImage, kEngineSwapchainDoubleBuffering> images;
     uint32_t count;
     VkResult result = vkGetSwapchainImagesKHR(device, m_Swapchain, &count, images.data());
     if(result != VK_SUCCESS && count != m_ImageCount)
