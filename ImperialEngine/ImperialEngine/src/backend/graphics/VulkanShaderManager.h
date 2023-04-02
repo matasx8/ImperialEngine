@@ -94,6 +94,8 @@ namespace imp
 		void UpdateGlobalData(VkDevice device, uint32_t descriptorSetIdx, const GlobalData& data);
 		void UpdateDrawData(VkDevice device, uint32_t descriptorSetIdx, const std::vector<DrawDataSingle>& drawData, std::unordered_map<uint32_t, Comp::MeshGeometry>& geometryData);
 
+		void Destroy(VkDevice device);
+
 	private:
 
 		VkDescriptorPool CreateDescriptorPool(VkDevice device);

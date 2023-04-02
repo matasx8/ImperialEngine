@@ -528,19 +528,32 @@ namespace imp
     void Graphics::Destroy()
     {
         AUTO_TIMER("[Destroy]: ");
-        vkDeviceWaitIdle(m_LogicalDevice);
+        auto device = m_LogicalDevice;
+
+        vkDeviceWaitIdle(device);
 
         delete m_JobSystem;
 
-        // prototyping stuff ---
-        renderpassgui->Destroy(m_LogicalDevice);
-        // prototyping stuff ---
+        ImGui_ImplVulkan_Shutdown();
+        renderpassgui->Destroy(device);
 
-        m_SurfaceManager.Destroy(m_LogicalDevice);
-        m_VulkanGarbageCollector.DestroyAllImmediate(m_LogicalDevice);
-        m_CbManager.Destroy(m_LogicalDevice);
-        m_Swapchain.Destroy(m_LogicalDevice);
-        vkDestroyDevice(m_LogicalDevice, nullptr);
+        m_ShaderManager.Destroy(device);
+
+        m_VertexBuffer.Destroy(device);
+        m_IndexBuffer.Destroy(device);
+        m_MeshBuffer.Destroy(device);
+        m_DrawBuffer.Destroy(device);
+        std::for_each(m_StagingDrawBuffer.begin(), m_StagingDrawBuffer.end(), [device] (auto& buff) { buff.Destroy(device); });
+
+        m_RenderPassManager.Destroy(device);
+        m_PipelineManager.Destroy(device);
+
+        m_SurfaceManager.Destroy(device);
+        m_VulkanGarbageCollector.DestroyAllImmediate(device);
+        m_CbManager.Destroy(device);
+        m_TransferCbManager.Destroy(device);
+        m_Swapchain.Destroy(device);
+        vkDestroyDevice(device, nullptr);
         m_Window.Destroy(m_VkInstance);
         m_ValidationLayers.Destroy(m_VkInstance);
         vkDestroyInstance(m_VkInstance, nullptr);

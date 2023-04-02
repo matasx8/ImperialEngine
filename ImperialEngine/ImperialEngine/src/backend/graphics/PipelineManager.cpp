@@ -108,6 +108,15 @@ namespace imp
 		m_ComputePipelineMap[config] = pipe;
 	}
 
+	void PipelineManager::Destroy(VkDevice device)
+	{
+		for (auto& pipe : m_PipelineMap)
+			pipe.second.Destroy(device);
+
+		for (auto& pipe : m_ComputePipelineMap)
+			pipe.second.Destroy(device);
+	}
+
 	VkPipelineShaderStageCreateInfo PipelineManager::MakeShaderStageCI(VkShaderModule module, VkShaderStageFlagBits stage) const
 	{
 		VkPipelineShaderStageCreateInfo ci;

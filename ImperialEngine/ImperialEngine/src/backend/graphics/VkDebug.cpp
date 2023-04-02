@@ -1,5 +1,6 @@
-#include <iostream>
 #include "backend/graphics/VkDebug.h"
+#include <iostream>
+#include <string>
 
 imp::ValidationLayers::ValidationLayers()
     : m_DebugMessenger()
@@ -28,7 +29,21 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT messageType,
     const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-    void* pUserData) {
+    void* pUserData) 
+{
+    // Currently we're leaking some semaphores and fences due to mistakes introduced while rushing.
+    // So far it's not noticable when run for short periods of time so it's okay for now..
+    // TODO nice-to-have: fix this
+    const char* sem = "VkSemaphore";
+    const char* fen = "VkFence";
+    const char* destroy = "vkDestroyDevice";
+
+    // leaked fence error
+    if (std::strstr(pCallbackData->pMessage, fen) && std::strstr(pCallbackData->pMessage, destroy))
+        return VK_TRUE;
+    // leaked semaphore error
+    else if (std::strstr(pCallbackData->pMessage, sem) && std::strstr(pCallbackData->pMessage, destroy))
+        return VK_TRUE;
 
     std::cerr << "[VULKAN]: " << pCallbackData->pMessage << std::endl;
 

@@ -1007,28 +1007,9 @@ void    ImGui_ImplVulkan_DestroyDeviceObjects()
     if (bd->DescriptorSetLayout)  { vkDestroyDescriptorSetLayout(v->Device, bd->DescriptorSetLayout, v->Allocator); bd->DescriptorSetLayout = VK_NULL_HANDLE; }
     if (bd->PipelineLayout)       { vkDestroyPipelineLayout(v->Device, bd->PipelineLayout, v->Allocator); bd->PipelineLayout = VK_NULL_HANDLE; }
     if (bd->Pipeline)             { vkDestroyPipeline(v->Device, bd->Pipeline, v->Allocator); bd->Pipeline = VK_NULL_HANDLE; }
+    if (bd->FontDescriptorSet) { vkFreeDescriptorSets(v->Device, v->DescriptorPool, 1, &bd->FontDescriptorSet); bd->FontDescriptorSet = VK_NULL_HANDLE; }
+    if (v->DescriptorPool) { vkDestroyDescriptorPool(v->Device, v->DescriptorPool, nullptr); v->DescriptorPool = VK_NULL_HANDLE; }
 }
-
-//bool    ImGui_ImplVulkan_LoadFunctions(PFN_vkVoidFunction(*loader_func)(const char* function_name, void* user_data), void* user_data)
-//{
-//    // Load function pointers
-//    // You can use the default Vulkan loader using:
-//    //      ImGui_ImplVulkan_LoadFunctions([](const char* function_name, void*) { return vkGetInstanceProcAddr(your_vk_isntance, function_name); });
-//    // But this would be equivalent to not setting VK_NO_PROTOTYPES.
-//#ifdef VK_NO_PROTOTYPES
-//#define IMGUI_VULKAN_FUNC_LOAD(func) \
-//    func = reinterpret_cast<decltype(func)>(loader_func(#func, user_data)); \
-//    if (func == NULL)   \
-//        return false;
-//    IMGUI_VULKAN_FUNC_MAP(IMGUI_VULKAN_FUNC_LOAD)
-//#undef IMGUI_VULKAN_FUNC_LOAD
-//#else
-//    IM_UNUSED(loader_func);
-//    IM_UNUSED(user_data);
-//#endif
-//    g_FunctionsLoaded = true;
-//    return true;
-//}
 
 bool    ImGui_ImplVulkan_Init(ImGui_ImplVulkan_InitInfo* info, VkRenderPass render_pass)
 {

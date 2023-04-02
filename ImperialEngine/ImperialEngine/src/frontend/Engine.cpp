@@ -160,8 +160,8 @@ namespace imp
 	{
 		CleanUpThreading();
 		CleanUpWindow();
-		CleanUpUI();
 		CleanUpGraphics();
+		CleanUpUI();
 	}
 
 	void Engine::InitThreading(EngineThreadingMode mode)

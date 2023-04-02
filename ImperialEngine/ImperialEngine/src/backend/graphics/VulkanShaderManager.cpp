@@ -249,6 +249,38 @@ namespace imp
 			}).wait();
 	}
 
+	void VulkanShaderManager::Destroy(VkDevice device)
+	{
+		vkDestroyDescriptorSetLayout(device, m_DescriptorSetLayout, nullptr);
+		vkDestroyDescriptorSetLayout(device, m_ComputeDescriptorSetLayout, nullptr);
+
+		static constexpr uint32_t dSetCount = kEngineSwapchainExclusiveMax - 1;
+		vkFreeDescriptorSets(device, m_DescriptorPool, dSetCount, m_DescriptorSets.data());
+		vkFreeDescriptorSets(device, m_DescriptorPool, dSetCount, m_ComputeDescriptorSets.data());
+
+		for (uint32_t i = 0; i < dSetCount; i++)
+		{
+			m_GlobalBuffers[i].Destroy(device);
+			m_MaterialDataBuffers[i].Destroy(device);
+			m_DrawDataBuffers[i].Destroy(device);
+		}
+
+		for (auto& shader : m_ShaderMap)
+			shader.second.Destroy(device);
+
+		m_DrawDataIndices.Destroy(device);
+		m_DrawCommands.Destroy(device);
+		m_MeshData.Destroy(device);
+		m_msMeshData.Destroy(device);
+		m_DrawCommandCount.Destroy(device);
+		m_MeshletData.Destroy(device);
+		m_MeshletVertexData.Destroy(device);
+		m_MeshletTriangleData.Destroy(device);
+		m_MeshletNormalConeData.Destroy(device);
+
+		vkDestroyDescriptorPool(device, m_DescriptorPool, nullptr);
+	}
+
 	VkDescriptorPool VulkanShaderManager::CreateDescriptorPool(VkDevice device)
 	{
 		static constexpr uint32_t kDescriptorCount = 128;
