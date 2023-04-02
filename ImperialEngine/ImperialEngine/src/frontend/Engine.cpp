@@ -21,9 +21,6 @@ namespace imp
 
 	bool Engine::Initialize(EngineSettings settings)
 	{
-		// TODO: this is needed as a workaround when launching the actual .exe since it will have different current path it won't know how to access Assets
-		//std::filesystem::current_path("D:\\source\\ImperialEngine\\ImperialEngine\\ImperialEngine");
-		std::filesystem::current_path("C:\\Users\\mtunk\\source\\repos\\ImperialEngine\\ImperialEngine\\ImperialEngine");
 		m_EngineSettings = settings;
 		InitThreading(m_EngineSettings.threadingMode);
 		InitImgui();
@@ -35,9 +32,13 @@ namespace imp
 		return true;
 	}
 
-	void Engine::LoadScene()
+	void Engine::LoadScenes(const std::vector<std::string>& scenes)
 	{
-		m_AssetImporter.LoadScene("Scene/");
+		m_AssetImporter.LoadScenes(scenes);
+	}
+
+	void Engine::LoadAssets()
+	{
 		m_AssetImporter.LoadMaterials("Shaders/spir-v");
 		m_AssetImporter.LoadComputeProgams("Shaders/spir-v");
 		LoadDefaultStuff();

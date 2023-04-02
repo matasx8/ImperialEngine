@@ -31,7 +31,7 @@ namespace imp
 	{
 	public:
 		AssetImporter(Engine& engine);
-		void LoadScene(const std::string& path);
+		void LoadScenes(const std::vector<std::string>& paths);
 		void LoadMaterials(const std::string& path);
 		void LoadComputeProgams(const std::string& path);
 

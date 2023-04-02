@@ -1,10 +1,18 @@
-#include<iostream>
 #include "frontend/Engine.h"
+#include "extern/ARGH/argh.h"
+#include <iostream>
 #include <chrono>
 #include <thread>
+#include <windows.h>
 
-int main()
+void ConfigureEngineWithArgs(char** argv, std::vector<std::string>& scenesToLoad);
+
+int main(int argc, char** argv)
 {
+	// Engine is configured to work from ImperialEngine/ImperialEngine/
+	if (!IsDebuggerPresent())
+		std::filesystem::current_path("../../../ImperialEngine");
+
 	EngineSettings settings;
 #if _DEBUG && !_DEV
 	settings = { EngineSettingsTemplate::kEngineSettingsDebug };
@@ -14,12 +22,15 @@ int main()
 	settings = { EngineSettingsTemplate::kEngineSettingsRelease };
 #endif
 	imp::Engine engine;
-	
+
+	std::vector<std::string> scenesToLoad;
+	ConfigureEngineWithArgs(argv, scenesToLoad);
+
 	if (!engine.Initialize(settings))
 		return 1;
 
-	// load stuff
-	engine.LoadScene();
+	engine.LoadScenes(scenesToLoad);
+	engine.LoadAssets();
 
 	engine.SyncRenderThread();
 
@@ -37,4 +48,34 @@ int main()
 
 	engine.ShutDown();
 	return 0;
+}
+
+void ConfigureEngineWithArgs(char** argv, std::vector<std::string>& scenesToLoad)
+{
+	argh::parser cmdl(argv);
+
+	if (cmdl["--wait-for-debugger"])
+	{
+		// for some reason debugbreak just terminates..
+		// so just wait 10s
+		Sleep(1000 * 10);
+	}
+
+	std::cout << "Current path is " << std::filesystem::current_path() << '\n'; // (1)
+
+	auto lfIdx = std::find(cmdl.args().begin(), cmdl.args().end(), "--load-files");
+	if (lfIdx != cmdl.args().end())
+	{
+		int numFilesToLoad;
+		cmdl("--file-count") >> numFilesToLoad;
+
+		lfIdx++;
+		for (int i = 0; i < numFilesToLoad; i++)
+		{
+			const auto path = *lfIdx;
+			scenesToLoad.push_back(path);
+			lfIdx++;
+		}
+
+	}
 }

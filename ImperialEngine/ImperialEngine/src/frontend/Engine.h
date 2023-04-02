@@ -21,7 +21,8 @@ namespace imp
 	public:
 		Engine();
 		bool Initialize(EngineSettings settings);
-		void LoadScene();
+		void LoadScenes(const std::vector<std::string>& scenes);
+		void LoadAssets();
 
 		void StartFrame();
 		void Update();

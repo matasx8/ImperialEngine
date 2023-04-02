@@ -122,6 +122,7 @@ namespace argh
       std::multimap<std::string, std::string>  const& params()   const { return params_;   }
       multimap_iteration_wrapper                      params(std::string const& name) const;
       std::vector<std::string>                 const& pos_args() const { return pos_args_; }
+      std::vector<std::string>                 const& args() const { return args_; }
 
       // begin() and end() for using range-for over positional args.
       std::vector<std::string>::const_iterator begin() const { return pos_args_.cbegin(); }

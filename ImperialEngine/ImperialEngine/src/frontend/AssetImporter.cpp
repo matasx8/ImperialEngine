@@ -25,20 +25,30 @@ namespace imp
 	{
 	}
 
-	void AssetImporter::LoadScene(const std::string& path)
+	void AssetImporter::LoadScenes(const std::vector<std::string>& paths)
 	{
-		const auto paths = OS::GetAllFileNamesInDirectory(path);
 		Assimp::Importer importer;
-		for (const auto& file : paths)
+		if (paths.size())
 		{
-			// must load data using assimp
-			// create entity and from main thread it seems like the object has been loaded and created
-			// meanwhile launch render thread command to create vertex and index buffers and upload to gpu
-			// entity will have a handle to this data and when time comes to render it'll be magically inplace
-			LoadFile(importer, file);
+			for (const auto& file : paths)
+			{
+				std::filesystem::path path(file);
+				// must load data using assimp
+				// create entity and from main thread it seems like the object has been loaded and created
+				// meanwhile launch render thread command to create vertex and index buffers and upload to gpu
+				// entity will have a handle to this data and when time comes to render it'll be magically inplace
+				LoadFile(importer, path);
+			}
+		}
+		else
+		{
+			// By default lets still try load something from Scene/
+			const auto files = OS::GetAllFileNamesInDirectory("Scene/");
+			for (const auto& path : files)
+				LoadFile(importer, path);
 		}
 
-		printf("[Asset Importer] Successfully loaded scene from '%s' with %d files\n", path.c_str(), static_cast<int>(paths.size()));
+		printf("[Asset Importer] Successfully loaded scenes with %d files\n", static_cast<int>(paths.size()));
 	}
 
 	void AssetImporter::LoadMaterials(const std::string& path)
