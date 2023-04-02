@@ -305,6 +305,7 @@
     <ClInclude Include="src\extern\AFTERMATH\NsightAftermathGpuCrashTracker.h" />
     <ClInclude Include="src\extern\AFTERMATH\NsightAftermathHelpers.h" />
     <ClInclude Include="src\extern\AFTERMATH\NsightAftermathShaderDatabase.h" />
+    <ClInclude Include="src\extern\ARGH\argh.h" />
     <ClInclude Include="src\extern\IMGUI\backends\imgui_impl_glfw.h" />
     <ClInclude Include="src\extern\IMGUI\backends\imgui_impl_vulkan.h" />
     <ClInclude Include="src\extern\IMGUI\imGuIZMOquat.h" />

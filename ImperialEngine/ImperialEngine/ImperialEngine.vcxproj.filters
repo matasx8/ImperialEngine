@@ -326,6 +326,9 @@
     <ClInclude Include="extern\VOLK\volk.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\extern\ARGH\argh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\extern\IMGUI\vGizmo.h.bak" />
