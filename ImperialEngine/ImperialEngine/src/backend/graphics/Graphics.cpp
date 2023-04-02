@@ -247,6 +247,7 @@ namespace imp
         {
         case kEngineRenderModeTraditional:
             // this contains a race condition
+            // TODO final:
             //m_CbManager.AquireCommandBuffer(m_LogicalDevice);
             m_ShaderManager.UpdateDrawData(m_LogicalDevice, index, m_DrawData, m_VertexBuffers);
             break;

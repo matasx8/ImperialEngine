@@ -48,12 +48,13 @@ bool is_inside_view_frustum(uint idx)
 
     float scale = length(drawData[idx].Transform[0].xyz);
 
+    // dumbass its supposed to be radius..
     float diameter = bv.diameter * scale;
 
     for (int i = 0; i < 6; i++)
     {
         // Compute signed distance of center of BV from plane.
-        // Plane equation: Ax + By + Cy + d = 0
+        // Plane equation: Ax + By + Cz + d = 0
         // Inserting our point into equation gives us the signed distance for wCenter
         float signedDistance = dot(globals.frustum[i], wCenter);
 

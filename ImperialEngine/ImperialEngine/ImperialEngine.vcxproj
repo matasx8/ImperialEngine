@@ -264,6 +264,7 @@
     <ClCompile Include="src\frontend\Engine.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="src\frontend\UI.cpp" />
+    <ClCompile Include="src\Utils\EngineStaticConfig.h" />
     <ClCompile Include="src\Utils\GfxUtilities.cpp" />
     <ClCompile Include="src\Utils\Utilities.cpp" />
     <ClCompile Include="src\frontend\Window.cpp" />

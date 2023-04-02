@@ -1,6 +1,8 @@
 #include "GfxUtilities.h"
+#include "EngineStaticConfig.h"
 #include "extern/MESHOPTIMIZER/meshoptimizer.h"
-#include <GLM/gtc/matrix_access.hpp>
+#include "extern/THREAD-POOL/BS_thread_pool.hpp"
+#include "GLM/gtc/matrix_access.hpp"
 
 namespace imp
 {
@@ -269,6 +271,114 @@ namespace imp
 			}
 
 			return meshletsDst;
+		}
+
+		void Cull(entt::registry& registry, std::vector<DrawDataSingle>& visibleData, const Graphics& gfx, BS::thread_pool& tp)
+		{
+			AUTO_TIMER("[CPU CULL]: ");
+
+			const auto cameras = registry.view<Comp::Transform, Comp::Camera>();
+			const auto& cam = cameras.get<Comp::Camera>(cameras.back());
+			const glm::mat4x4 VP = cam.projection * cam.view;
+
+			const auto frustumPlanes = utils::FindViewFrustumPlanes(VP);
+
+			const auto transforms = registry.view<Comp::Transform>();
+			uint32_t totalMeshes = 0;
+
+			const auto group = registry.group<Comp::ChildComponent, Comp::Mesh, Comp::Material>();
+			const auto groupSize = group.size();
+
+#if CPU_CULL_ST
+			visibleData.resize(0);
+
+			for (auto i = 0; const auto ent : group)
+			{
+				const auto& mesh = group.get<Comp::Mesh>(ent);
+				const auto& parent = group.get<Comp::ChildComponent>(ent).parent;
+				const auto& transform = transforms.get<Comp::Transform>(parent);
+				const auto& BV = gfx.m_BVs.at(mesh.meshId);
+
+				glm::vec4 mCenter = glm::vec4(BV.center, 1.0f);
+				glm::vec4 wCenter = transform.transform * glm::vec4(BV.center, 1.0f);
+
+				float scale = glm::length(glm::vec3(transform.transform[0].x, transform.transform[0].y, transform.transform[0].z));
+
+				bool isVisible = true;
+				for (auto i = 0; i < 6; i++)
+				{
+					float dotProd = glm::dot(frustumPlanes[i], wCenter);
+					if (dotProd < -BV.diameter * scale)
+					{
+						isVisible = false;
+						break;
+					}
+				}
+
+				if (isVisible)
+				{
+					auto lodIdx = utils::ChooseMeshLODByNearPlaneDistance(transform.transform, BV, VP);
+
+					DrawDataSingle dds;
+					dds.Transform = transform.transform;
+					dds.VertexBufferId = mesh.meshId;
+					dds.LodIdx = lodIdx;
+
+					visibleData.push_back(dds);
+				}
+			}
+#else
+			visibleData.resize(groupSize);
+
+			std::atomic_uint32_t drawDataIndex = 0;
+
+			const auto gfxPtr = &gfx;
+			const auto ddPtr = &visibleData;
+			const auto loop = [&group, &transforms, gfxPtr, &frustumPlanes, &VP, &drawDataIndex, ddPtr](const auto st, const auto end)
+			{
+				for (auto i = st; i < end; i++)
+				{
+					const auto ent = group[i];
+					const auto& mesh = group.get<Comp::Mesh>(ent);
+					const auto& parent = group.get<Comp::ChildComponent>(ent).parent;
+					const auto& transform = transforms.get<Comp::Transform>(parent);
+					const auto& BV = gfxPtr->m_BVs.at(mesh.meshId);
+
+					glm::vec4 mCenter = glm::vec4(BV.center, 1.0f);
+					glm::vec4 wCenter = transform.transform * glm::vec4(BV.center, 1.0f);
+
+					float scale = glm::length(glm::vec3(transform.transform[0].x, transform.transform[0].y, transform.transform[0].z));
+
+					bool isVisible = true;
+					for (auto i = 0; i < 6; i++)
+					{
+						float dotProd = glm::dot(frustumPlanes[i], wCenter);
+						if (dotProd < -BV.diameter * scale)
+						{
+							isVisible = false;
+							break;
+						}
+					}
+
+					if (isVisible)
+					{
+						auto lodIdx = utils::ChooseMeshLODByNearPlaneDistance(transform.transform, BV, VP);
+
+						const auto idx = drawDataIndex.fetch_add(1);
+
+						DrawDataSingle dds;
+						dds.Transform = transform.transform;
+						dds.VertexBufferId = mesh.meshId;
+						dds.LodIdx = lodIdx;
+						(*ddPtr)[idx] = dds;
+					}
+				}
+			};
+
+			tp.parallelize_loop(groupSize, loop).wait();
+			visibleData.resize(drawDataIndex);
+#endif
+			printf("[CPU CULL] Total Renderable Meshes: %u; Renderable Meshes after culling: %llu\n", totalMeshes, visibleData.size());
 		}
 	}
 }

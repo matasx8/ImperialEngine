@@ -18,6 +18,6 @@ namespace imp
 		void OptimizeMesh(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices);
 		std::vector<Meshlet> GenerateMeshlets(std::vector<Vertex>& verts, std::vector<uint32_t>& indices, std::vector<uint32_t>& meshletVertexData, std::vector<uint8_t>& meshletTriangleData, std::vector<NormalCone>& normalCones, const Comp::MeshGeometry& geometry, ms_MeshData& meshData);
 
-
+		void Cull(entt::registry& registry, std::vector<DrawDataSingle>& visibleData, const Graphics& gfx, BS::thread_pool& tp);
 	}
 }

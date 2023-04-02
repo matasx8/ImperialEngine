@@ -8,6 +8,7 @@
 #include "extern/GLM/ext/matrix_transform.hpp"
 #include "extern/GLM/ext/matrix_clip_space.hpp"
 #include "extern/GLM/gtx/quaternion.hpp"
+#include "Utils/EngineStaticConfig.h"
 #include <barrier>
 #include <execution>
 
@@ -306,72 +307,7 @@ namespace imp
 
 	void Engine::Cull()
 	{
-		AUTO_TIMER("[CPU CULL]: ");
-		assert(IsCurrentRenderMode(kEngineRenderModeTraditional));
-
-		const auto cameras = m_Entities.view<Comp::Transform, Comp::Camera>();
-		const auto& cam = cameras.get<Comp::Camera>(cameras.back());
-		const glm::mat4x4 VP = cam.projection * cam.view;
-
-		const auto frustumPlanes = utils::FindViewFrustumPlanes(VP);
-
-		const auto transforms = m_Entities.view<Comp::Transform>();
-		uint32_t totalMeshes = 0;
-
-		const auto group = m_Entities.group<Comp::ChildComponent, Comp::Mesh, Comp::Material>();
-		const auto groupSize = group.size();
-		m_CulledDrawData.resize(groupSize);
-
-		std::atomic_uint32_t drawDataIndex;
-
-		const auto gfxPtr = &m_Gfx;
-		const auto ddPtr = &m_CulledDrawData;
-
-		const auto loop = [&group, &transforms, gfxPtr, &frustumPlanes, &VP, &drawDataIndex, ddPtr](const auto st, const auto end)
-		{
-			for (auto i = st; i < end; i++)
-			{
-				const auto ent = group[i];
-				const auto& mesh = group.get<Comp::Mesh>(ent);
-				const auto& parent = group.get<Comp::ChildComponent>(ent).parent;
-				const auto& transform = transforms.get<Comp::Transform>(parent);
-				const auto& BV = gfxPtr->m_BVs.at(mesh.meshId);
-
-				glm::vec4 mCenter = glm::vec4(BV.center, 1.0f);
-				glm::vec4 wCenter = transform.transform * glm::vec4(BV.center, 1.0f);
-
-				float scale = glm::length(glm::vec3(transform.transform[0].x, transform.transform[0].y, transform.transform[0].z));
-
-				bool isVisible = true;
-				for (auto i = 0; i < 6; i++)
-				{
-					float dotProd = glm::dot(frustumPlanes[i], wCenter);
-					if (dotProd < -BV.diameter * scale)
-					{
-						isVisible = false;
-						break;
-					}
-				}
-
-				if (isVisible)
-				{
-					auto lodIdx = utils::ChooseMeshLODByNearPlaneDistance(transform.transform, BV, VP);
-
-					const auto idx = drawDataIndex.fetch_add(1);
-
-					DrawDataSingle dds;
-					dds.Transform = transform.transform;
-					dds.VertexBufferId = mesh.meshId;
-					dds.LodIdx = lodIdx;
-					(*ddPtr)[idx] = std::move(dds);
-				}
-			}
-		};
-
-		m_ThreadPool->parallelize_loop(groupSize, loop).wait();
-		m_CulledDrawData.resize(drawDataIndex);
-
-		//printf("[CPU CULL] Total Renderable Meshes: %u; Renderable Meshes after culling: %llu\n", totalMeshes, m_CulledDrawData.size());
+		utils::Cull(m_Entities, m_CulledDrawData, m_Gfx, *m_ThreadPool);
 	}
 
 	inline void GenerateIndirectDrawCommand(IGPUBuffer& dstBuffer, const Comp::MeshGeometry& meshData, uint32_t meshId)
