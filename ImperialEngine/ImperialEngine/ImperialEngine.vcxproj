@@ -252,6 +252,7 @@
     <ClCompile Include="src\backend\graphics\VkDebug.cpp" />
     <ClCompile Include="src\backend\graphics\VulkanShader.cpp" />
     <ClCompile Include="src\backend\graphics\VulkanShaderManager.cpp" />
+    <ClCompile Include="src\backend\queries\QueryManager.cpp" />
     <ClCompile Include="src\backend\VulkanBuffer.cpp" />
     <ClCompile Include="src\backend\VulkanGarbageCollector.cpp" />
     <ClCompile Include="src\backend\VulkanMemory.cpp" />
@@ -300,6 +301,7 @@
     <ClInclude Include="src\backend\graphics\VkDebug.h" />
     <ClInclude Include="src\backend\graphics\VulkanShader.h" />
     <ClInclude Include="src\backend\graphics\VulkanShaderManager.h" />
+    <ClInclude Include="src\backend\queries\QueryManager.h" />
     <ClInclude Include="src\backend\VariousTypeDefinitions.h" />
     <ClInclude Include="src\backend\VulkanBuffer.h" />
     <ClInclude Include="src\backend\VulkanGarbageCollector.h" />
