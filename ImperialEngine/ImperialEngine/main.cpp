@@ -11,7 +11,7 @@ void ConfigureEngineWithArgs(char** argv, std::vector<std::string>& scenesToLoad
 int main(int argc, char** argv)
 {
 	// Engine is configured to work from ImperialEngine/ImperialEngine/
-	if (!IsDebuggerPresent())
+	if (!IsDebuggerPresent() && std::strstr((const char*)std::filesystem::current_path().c_str(), "x64"))
 		std::filesystem::current_path("../../../ImperialEngine");
 
 	EngineSettings settings;
