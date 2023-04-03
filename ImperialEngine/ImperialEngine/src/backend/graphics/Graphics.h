@@ -1,6 +1,4 @@
 #pragma once
-//#define VK_USE_PLATFORM_WIN32_KHR
-//#define VOLK_IMPLEMENTATION
 #include "backend/graphics/RenderPassGeneratorBase.h"
 #include "backend/graphics/CommandBufferManager.h"
 #include "backend/graphics/VulkanShaderManager.h"
@@ -10,6 +8,7 @@
 #include "backend/graphics/Semaphore.h"
 #include "backend/graphics/Swapchain.h"
 #include "backend/graphics/VkDebug.h"
+#include "backend/queries/QueryManager.h"
 #include "backend/VariousTypeDefinitions.h"
 #include "backend/VulkanGarbageCollector.h"
 #include "backend/VulkanMemory.h"
@@ -121,6 +120,7 @@ namespace imp
 		VulkanShaderManager m_ShaderManager;
 		PipelineManager m_PipelineManager;
 		RenderPassGenerator m_RenderPassManager;
+		QueryManager m_TimestampQueryManager;
 
 		Timings m_Timer;
 		Timings m_OldTimer;

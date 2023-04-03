@@ -36,6 +36,7 @@ namespace imp
         m_ShaderManager(),
         m_PipelineManager(),
         m_RenderPassManager(&m_VulkanGarbageCollector),
+        m_TimestampQueryManager(),
         m_Timer(),
         m_OldTimer(),
         m_SyncTimer(),
@@ -84,6 +85,7 @@ namespace imp
         CreateSurfaceManager();
         CreateGarbageCollector();
         CreateRenderPassGenerator();
+        m_TimestampQueryManager.Initialize(m_PhysicalDevice, m_LogicalDevice, m_Settings);
 
         m_JobSystem = new BS::thread_pool(std::thread::hardware_concurrency() / 2);
 
@@ -180,6 +182,12 @@ namespace imp
         CommandBuffer cb = m_CbManager.AquireCommandBuffer(m_LogicalDevice);
         cb.Begin();
 
+        // maybe move this to command buffer manager?
+        m_TimestampQueryManager.ReadbackQueryResults(m_LogicalDevice, m_Swapchain.GetFrameClock());
+        m_TimestampQueryManager.ResetQueries(cb.cmb, m_Swapchain.GetFrameClock());
+
+        m_TimestampQueryManager.WriteTimestamp(cb.cmb, kQueryGPUFrameBegin, m_Swapchain.GetFrameClock());
+
         std::vector<VkBufferMemoryBarrier> bmbs;
         VkAccessFlags srcAccess = 0; // srcAccess is ignored for Q ownership transfers (when aquiring)
         uint32_t tf = m_GfxCaps.GetQueueFamilies().transferFamily;
@@ -202,6 +210,7 @@ namespace imp
         // not sure if src stage is correct..
         // maybe try src as just before compute stage
 
+        m_TimestampQueryManager.WriteTimestamp(cb.cmb, kQueryCullBegin, m_Swapchain.GetFrameClock());
         vkCmdBindPipeline(cb.cmb, VK_PIPELINE_BIND_POINT_COMPUTE, updateDrawsProgram.GetPipeline());
         vkCmdPushConstants(cb.cmb, updateDrawsProgram.GetPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(push), &push);
         vkCmdBindDescriptorSets(cb.cmb, VK_PIPELINE_BIND_POINT_COMPUTE, updateDrawsProgram.GetPipelineLayout(), 0, dsets.size(), dsets.data(), 0, nullptr);
@@ -234,7 +243,7 @@ namespace imp
         
         // I wonder what happens when you have multiple pipeline stage flag bits like I do here
         utils::InsertBufferBarrier(cb, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, memBars.data(), static_cast<uint32_t>(memBars.size()));
-        
+        m_TimestampQueryManager.WriteTimestamp(cb.cmb, kQueryCullEnd, m_Swapchain.GetFrameClock());
         cb.End();
         m_CbManager.SubmitInternal(cb);
     }
@@ -305,6 +314,13 @@ namespace imp
     void Graphics::EndFrame()
     {
         AUTO_TIMER("[EndFrame]: ");
+
+        auto cb = m_CbManager.AquireCommandBuffer(m_LogicalDevice);
+        cb.Begin();
+        m_TimestampQueryManager.WriteTimestamp(cb.cmb, kQueryGPUFrameEnd, m_Swapchain.GetFrameClock());
+        cb.End();
+        m_CbManager.SubmitInternal(cb);
+
         auto synchs = m_CbManager.SubmitToQueue(m_GfxQueue, m_LogicalDevice, kSubmitSynchForPresent, m_CurrentFrame);
 
         m_Swapchain.Present(m_PresentationQueue, m_CbManager.GetCommandExecSemaphores());
@@ -539,7 +555,7 @@ namespace imp
         ImGui_ImplVulkan_Shutdown();
         renderpassgui->Destroy(device);
 #endif
-
+        m_TimestampQueryManager.Destroy(device);
         m_ShaderManager.Destroy(device);
 
         m_VertexBuffer.Destroy(device);
