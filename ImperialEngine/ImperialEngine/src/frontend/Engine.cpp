@@ -15,7 +15,25 @@
 namespace imp
 {
 	Engine::Engine()
-		: m_Entities(), m_DrawDataDirty(false), m_Q(nullptr), m_Worker(nullptr), m_SyncPoint(nullptr), m_EngineSettings(), m_Window(), m_UI(), m_ThreadPool(nullptr), m_Gfx(), m_CulledDrawData()/*, m_BVs()*/, m_AssetImporter(*this)
+		: m_Entities()
+		, m_DrawDataDirty(false)
+		, m_Q(nullptr)
+		, m_Worker(nullptr)
+		, m_SyncPoint(nullptr)
+		, m_EngineSettings()
+		, m_Window()
+		, m_UI()
+		, m_ThreadPool(nullptr)
+		, m_Gfx()
+		, m_CulledDrawData()
+#if BENCHMARK_MODE
+		, m_FrameTimeTables()
+		, m_FrameTimer()
+		, m_CullTimer()
+		, m_BenchmarkDone()
+		, m_CollectBenchmarkData()
+#endif
+		, m_AssetImporter(*this)
 	{
 	}
 
@@ -29,7 +47,7 @@ namespace imp
 		InitWindow();
 		InitGraphics();
 
-		// unfortunately we must wait until imgui is initialized on the backend
+		// wait until backend initted
 		m_SyncPoint->arrive_and_wait();
 		return true;
 	}
@@ -49,6 +67,10 @@ namespace imp
 
 	void Engine::StartFrame()
 	{
+#if BENCHMARK_MODE
+		if (m_CollectBenchmarkData)
+			m_FrameTimer.start();
+#endif
 		m_Q->add(std::mem_fn(&Engine::Cmd_StartFrame), std::shared_ptr<void>());
 	}
 
@@ -82,6 +104,24 @@ namespace imp
 
 	void Engine::SyncRenderThread()
 	{
+#if BENCHMARK_MODE
+		if (m_CollectBenchmarkData)
+		{
+			m_FrameTimer.stop();
+
+			const auto renderMode = GetCurrentRenderMode();
+
+			FrameTimeRow row;
+			row.frameMainCPU = m_FrameTimer.miliseconds();
+
+			if (renderMode == kEngineRenderModeTraditional)
+				row.cull = m_CullTimer.miliseconds();
+
+			const auto tableIndex = static_cast<uint32_t>(GetCurrentRenderMode());
+			auto& table = m_FrameTimeTables[tableIndex];
+			table.table_rows.push_back(row);
+		}
+#endif
 		if (m_EngineSettings.threadingMode == kEngineMultiThreaded)
 			m_Q->add(std::mem_fn(&Engine::Cmd_SyncRenderThread), std::shared_ptr<void>());
 	}
@@ -107,6 +147,15 @@ namespace imp
 		// start the timer again
 		m_Timer.StartAll();
 	}
+
+#if BENCHMARK_MODE
+	void Engine::StartBenchmark()
+	{
+		m_CollectBenchmarkData = true;
+
+		// send commant to render thread
+	}
+#endif
 
 	bool Engine::IsCurrentRenderMode(EngineRenderMode mode) const
 	{
@@ -160,7 +209,11 @@ namespace imp
 
 	bool Engine::ShouldClose() const
 	{
+#if !BENCHMARK_MODE
 		return m_Window.ShouldClose();
+#else
+		return m_Window.ShouldClose() || m_BenchmarkDone;
+#endif
 	}
 
 	void Engine::ShutDown()
@@ -316,7 +369,16 @@ namespace imp
 
 	void Engine::Cull()
 	{
+#if BENCHMARK_MODE
+		if (m_CollectBenchmarkData)
+			m_CullTimer.start();
+#endif
 		utils::Cull(m_Entities, m_CulledDrawData, m_Gfx, *m_ThreadPool);
+
+#if BENCHMARK_MODE
+		if (m_CollectBenchmarkData)
+			m_CullTimer.stop();
+#endif
 	}
 
 	inline void GenerateIndirectDrawCommand(IGPUBuffer& dstBuffer, const Comp::MeshGeometry& meshData, uint32_t meshId)

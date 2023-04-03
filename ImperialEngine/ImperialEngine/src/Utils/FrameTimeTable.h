@@ -10,7 +10,8 @@ namespace imp
 
 		double cull;
 		double draw;
-		double frameCPU;
+		double frameMainCPU;
+		double frameRenderCPU;
 		double frameGPU;
 	};
 

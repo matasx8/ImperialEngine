@@ -1,4 +1,5 @@
 #pragma once
+#include "Utils/FrameTimeTable.h"
 #include "Utils/NonCopyable.h"
 #include "Utils/SimpleTimer.h"
 #include "extern/ENTT/entt.hpp"
@@ -30,6 +31,10 @@ namespace imp
 		void EndFrame();
 		void SyncRenderThread();
 		void SyncGameThread();
+
+#if BENCHMARK_MODE
+		void StartBenchmark();
+#endif
 
 		bool IsCurrentRenderMode(EngineRenderMode mode) const;
 		EngineRenderMode GetCurrentRenderMode() const;
@@ -107,6 +112,13 @@ namespace imp
 		// Used as a "staging" buffer for CPU VF culling
 		std::vector<DrawDataSingle> m_CulledDrawData;
 
+#if BENCHMARK_MODE
+		std::array<FrameTimeTable, kEngineRenderModeCount> m_FrameTimeTables;
+		SimpleTimer m_FrameTimer;
+		SimpleTimer m_CullTimer;
+		bool m_BenchmarkDone;
+		bool m_CollectBenchmarkData;
+#endif
 
 		// asset stuff
 		friend class AssetImporter;
@@ -126,7 +138,6 @@ namespace imp
 		void Cmd_UploadComputePrograms(std::shared_ptr<void> rsc);
 		void Cmd_ChangeRenderMode(std::shared_ptr<void> rsc);
 		void Cmd_UpdateDraws(std::shared_ptr<void> rsc);
-		void Cmd_DoTransfers(std::shared_ptr<void> rsc);
 	};
 }
 

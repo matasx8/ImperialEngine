@@ -270,6 +270,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="src\frontend\UI.cpp" />
     <ClCompile Include="src\Utils\EngineStaticConfig.h" />
+    <ClCompile Include="src\Utils\FrameTimeTable.cpp" />
     <ClCompile Include="src\Utils\GfxUtilities.cpp" />
     <ClCompile Include="src\Utils\Utilities.cpp" />
     <ClCompile Include="src\frontend\Window.cpp" />
@@ -330,6 +331,7 @@
     <ClInclude Include="src\frontend\Engine.h" />
     <ClInclude Include="src\frontend\UI.h" />
     <ClInclude Include="src\Utils\Finalizer.h" />
+    <ClInclude Include="src\Utils\FrameTimeTable.h" />
     <ClInclude Include="src\Utils\GfxUtilities.h" />
     <ClInclude Include="src\Utils\Pool.h" />
     <ClInclude Include="src\Utils\SimpleTimer.h" />

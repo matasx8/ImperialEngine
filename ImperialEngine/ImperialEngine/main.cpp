@@ -8,6 +8,10 @@
 
 void ConfigureEngineWithArgs(char** argv, std::vector<std::string>& scenesToLoad, EngineSettings& settings);
 
+#if BENCHMARK_MODE
+bool Benchmark(imp::Engine& engine, EngineSettings& settings, int32_t& warmupFrames, int32_t& benchmarkFrames);
+#endif
+
 int main(int argc, char** argv)
 {
 	// Engine is configured to work from ImperialEngine/ImperialEngine/
@@ -35,9 +39,18 @@ int main(int argc, char** argv)
 
 	engine.SyncRenderThread();
 
+#if BENCHMARK_MODE
+	static constexpr uint32_t kWarmUpFrameCount = 10;
+	int32_t warmupFrames = kWarmUpFrameCount;
+	int32_t benchmarkFrames = settings.gfxSettings.numberOfFramesToBenchmark;
+#endif
+
 	// update - sync - render - update
 	while (!engine.ShouldClose())
 	{
+#if BENCHMARK_MODE
+		if (Benchmark(engine, settings, warmupFrames, benchmarkFrames)) break;
+#endif
 		engine.StartFrame();
 		engine.Update();
 		engine.SyncGameThread();	// wait for render thread and copy over render data
@@ -82,3 +95,21 @@ void ConfigureEngineWithArgs(char** argv, std::vector<std::string>& scenesToLoad
 
 	}
 }
+
+#if BENCHMARK_MODE
+bool Benchmark(imp::Engine& engine, EngineSettings& settings, int32_t& warmupFrames, int32_t& benchmarkFrames)
+{
+	if (warmupFrames-- == 0)
+	{
+		engine.StartBenchmark();
+	}
+	
+	if (warmupFrames < 0 && benchmarkFrames-- == 0)
+	{
+		// probably not needed? or maybe needed for multiple rendering modes
+		//engine.StopBenchmark();
+		return true; // done
+	}
+	return false;
+}
+#endif

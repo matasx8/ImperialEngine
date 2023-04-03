@@ -29,6 +29,11 @@ namespace imp
             return (std::chrono::duration_cast<std::chrono::milliseconds>(elapsed_time)).count();
         }
 
+        inline double miliseconds() const
+        {
+            return double((std::chrono::duration_cast<std::chrono::nanoseconds>(elapsed_time)).count()) * 1e-6;
+        }
+
         std::chrono::time_point<std::chrono::steady_clock> start_time = std::chrono::steady_clock::now();
         std::chrono::duration<double> elapsed_time = std::chrono::duration<double>::zero();
 
