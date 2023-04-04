@@ -48,6 +48,12 @@ namespace Comp
 		Mesh mesh;
 	};
 
+	struct GLTFCamera
+	{
+		Transform transform;
+		bool valid;
+	};
+
 	// child component points to main entity - allows to have multiple components
 	struct ChildComponent
 	{

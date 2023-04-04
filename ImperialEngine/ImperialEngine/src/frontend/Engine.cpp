@@ -46,6 +46,7 @@ namespace imp
 #endif
 		InitWindow();
 		InitGraphics();
+		CreateCameras();
 
 		// wait until backend initted
 		m_SyncPoint->arrive_and_wait();
@@ -326,6 +327,14 @@ namespace imp
 
 	void Engine::LoadDefaultStuff()
 	{			
+#if !BENCHMARK_MODE
+		//AddDemoEntity(5000);
+		//AddDemoEntity(kMaxDrawCount - 1);
+#endif
+	}
+
+	void Engine::CreateCameras()
+	{
 		const auto camera = m_Entities.create();
 		const auto previewCamera = m_Entities.create();
 		const auto identity = glm::mat4x4(1.0f);
@@ -338,9 +347,6 @@ namespace imp
 
 		m_Entities.emplace<Comp::Transform>(previewCamera, glm::translate(defaultCameraTransform, glm::vec3(0.0f, 0.0f, 100.0f)));
 		m_Entities.emplace<Comp::Camera>(previewCamera, proj, glm::mat4x4(), kCamOutColor, true, true, false);
-
-		//AddDemoEntity(5000);
-		//AddDemoEntity(kMaxDrawCount - 1);
 	}
 
 	void Engine::RenderCameras()

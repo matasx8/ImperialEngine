@@ -108,10 +108,28 @@ namespace imp
 		std::vector<MeshCreationRequest> reqs;
 		std::unordered_map<uint32_t, uint32_t> meshIdMap;
 		std::vector<Comp::GLTFEntity> entities;
+		Comp::GLTFCamera camera;
 		for (const auto& nodeIdx : model.scenes.front().nodes)
 		{
 			const auto& node = model.nodes[nodeIdx];
-			LoadGLTFNode(node, model, reqs, entities, meshIdMap);
+			LoadGLTFNode(node, model, reqs, entities, meshIdMap, camera);
+		}
+
+		// means we loaded somekind of camera, try to override exisitng one
+		if (camera.valid)
+		{
+			auto& reg = m_Engine.m_Entities;
+			const auto cameras = reg.view<Comp::Transform, Comp::Camera>();
+			for (auto ent : cameras)
+			{
+				auto& transform = cameras.get<Comp::Transform>(ent);
+				auto& cam = cameras.get<Comp::Camera>(ent);
+
+				if (cam.preview)
+					continue;
+				else
+					transform = camera.transform;
+			}
 		}
 
 		for (const auto& ent : entities)
@@ -129,7 +147,7 @@ namespace imp
 		m_Engine.m_Q->add(std::mem_fn(&Engine::Cmd_UploadMeshes), std::make_shared<std::vector<imp::MeshCreationRequest>>(reqs));
 	}
 
-	void AssetImporter::LoadGLTFNode(const tinygltf::Node& node, const tinygltf::Model& model, std::vector<MeshCreationRequest>& reqs, std::vector<Comp::GLTFEntity>& entities, std::unordered_map<uint32_t, uint32_t>& meshIdMap)
+	void AssetImporter::LoadGLTFNode(const tinygltf::Node& node, const tinygltf::Model& model, std::vector<MeshCreationRequest>& reqs, std::vector<Comp::GLTFEntity>& entities, std::unordered_map<uint32_t, uint32_t>& meshIdMap, Comp::GLTFCamera& camera)
 	{
 		auto transform = glm::mat4x4(1.0f);
 
@@ -147,8 +165,15 @@ namespace imp
 				transform = glm::scale(transform, glm::vec3(glm::make_vec3(node.scale.data())));
 		}
 
+		// special quick hack to import camera orientation
+		if (node.name == "Camera")
+		{
+			camera.transform.transform = transform;
+			camera.valid = true;
+		}
+
 		for (const auto child : node.children)
-			LoadGLTFNode(model.nodes[child], model, reqs, entities, meshIdMap);
+			LoadGLTFNode(model.nodes[child], model, reqs, entities, meshIdMap, camera);
 
 		if (meshIdMap.find(node.mesh) != meshIdMap.end())
 		{
@@ -264,6 +289,13 @@ namespace imp
 				entities.push_back(ent);
 				reqs.push_back(req);
 			}
+		}
+
+		// this is camera index, but we don't care about the actual camera params.
+		// only want orientation
+		if (node.camera >= 0)
+		{
+			camera.transform.transform *= transform;
 		}
 	}
 

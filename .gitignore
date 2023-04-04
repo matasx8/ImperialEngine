@@ -421,4 +421,6 @@ FodyWeavers.xsd
 
 # custom
 *.ini
+*.bak
 Crashes/
+TestData/

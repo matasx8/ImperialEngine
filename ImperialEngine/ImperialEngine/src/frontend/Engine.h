@@ -68,6 +68,7 @@ namespace imp
 		void CleanUpUI();
 
 		void LoadDefaultStuff();
+		void CreateCameras();
 
 		// Signal that number of draws have changed
 		void MarkDrawDataDirty() { m_DrawDataDirty = true; }
