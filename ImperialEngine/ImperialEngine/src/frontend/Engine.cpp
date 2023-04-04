@@ -117,7 +117,7 @@ namespace imp
 			if (renderMode == kEngineRenderModeTraditional)
 				row.cull = m_CullTimer.miliseconds();
 
-			const auto tableIndex = static_cast<uint32_t>(GetCurrentRenderMode());
+			const auto tableIndex = static_cast<uint32_t>(renderMode);
 			auto& table = m_FrameTimeTables[tableIndex];
 			table.table_rows.push_back(row);
 		}
@@ -153,7 +153,17 @@ namespace imp
 	{
 		m_CollectBenchmarkData = true;
 
-		// send commant to render thread
+		m_Q->add(std::mem_fn(&Engine::Cmd_StartBenchmark), std::shared_ptr<void>());
+	}
+
+	const std::array<FrameTimeTable, kEngineRenderModeCount>& Engine::GetMainBenchmarkTable() const
+	{
+		return m_FrameTimeTables;
+	}
+
+	const std::array<FrameTimeTable, kEngineRenderModeCount>& Engine::GetRenderBenchmarkTable() const
+	{
+		return m_Gfx.GetBenchmarkTable();
 	}
 #endif
 
@@ -270,7 +280,7 @@ namespace imp
 	{
 		if (m_EngineSettings.threadingMode == kEngineMultiThreaded)
 		{
-			m_Worker->End();				// signal to stop working
+			m_Q->add(std::mem_fn(&Engine::Cmd_ShutDown), std::make_shared<Window>(m_Window));
 			m_SyncPoint->arrive_and_wait();
 			m_Worker->Join();
 			m_ThreadPool->wait_for_tasks();

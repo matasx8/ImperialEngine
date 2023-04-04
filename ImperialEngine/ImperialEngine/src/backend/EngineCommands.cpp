@@ -66,4 +66,16 @@ namespace imp
 	{
 		m_Gfx.UpdateDrawCommands();
 	}
+
+	void Engine::Cmd_ShutDown(std::shared_ptr<void> rsc)
+	{
+		m_Worker->End();
+	}
+
+#if BENCHMARK_MODE
+	void Engine::Cmd_StartBenchmark(std::shared_ptr<void> rsc)
+	{
+		m_Gfx.StartBenchmark();
+	}
+#endif
 }

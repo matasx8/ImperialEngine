@@ -15,6 +15,7 @@
 #include "backend/VkWindow.h"
 #include "Utils/Pool.h"
 #include "Utils/SimpleTimer.h"
+#include "Utils/FrameTimeTable.h"
 #include "frontend/Components/Components.h"
 #include <extern/ENTT/entt.hpp>
 #include <barrier>
@@ -41,6 +42,11 @@ namespace imp
 		void RenderCameras();
 		void RenderImGUI();
 		void EndFrame();
+
+#if BENCHMARK_MODE
+		void StartBenchmark();
+		const std::array<FrameTimeTable, kEngineRenderModeCount>& GetBenchmarkTable() const;
+#endif
 
 		void CreateAndUploadMeshes(std::vector<MeshCreationRequest>& meshCreationData);
 		void CreateAndUploadMaterials(const std::vector<MaterialCreationRequest>& materialCreationData);
@@ -80,7 +86,6 @@ namespace imp
 		void CreateRenderPassGenerator();
 		
 		void InitializeVulkanMemory();
-
 
 		// transfer commands
 		VulkanBuffer UploadVulkanBuffer(VkBufferUsageFlags usageFlags, VkBufferUsageFlags dstUsageFlags, VkMemoryPropertyFlags memoryFlags, VkMemoryPropertyFlags dstMemoryFlags, const CommandBuffer& cb, uint32_t allocSize, const void* dataToUpload);
@@ -122,10 +127,21 @@ namespace imp
 		RenderPassGenerator m_RenderPassManager;
 		QueryManager m_TimestampQueryManager;
 
+		// TODO benchmark: remove these and replace with benchmark_mode added timers
 		Timings m_Timer;
 		Timings m_OldTimer;
 		SimpleTimer m_SyncTimer; // time spent waiting for gpu
 		SimpleTimer m_OldSyncTimer;
+
+#if BENCHMARK_MODE
+		void CollectFrameCPUResults();
+		void CollectFinalResults();
+		std::array<FrameTimeTable, kEngineRenderModeCount> m_FrameTimeTables;
+		SimpleTimer m_FrameTimer;
+		SimpleTimer m_CullTimer;
+		bool m_CollectBenchmarkData;
+		uint64_t m_FrameStartedCollecting;
+#endif
 
 		// Pools
 		PrimitivePool<Semaphore, SemaphoreFactory> m_SemaphorePool;

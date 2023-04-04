@@ -34,6 +34,8 @@ namespace imp
 
 #if BENCHMARK_MODE
 		void StartBenchmark();
+		const std::array<FrameTimeTable, kEngineRenderModeCount>& GetMainBenchmarkTable() const;
+		const std::array<FrameTimeTable, kEngineRenderModeCount>& GetRenderBenchmarkTable() const;
 #endif
 
 		bool IsCurrentRenderMode(EngineRenderMode mode) const;
@@ -126,7 +128,7 @@ namespace imp
 
 		EngineSettings m_EngineSettings;
 
-		// can I put this in a different namespace and drop the prefix?
+		// TODO prettier: put this into a namespace
 		void Cmd_InitGraphics(std::shared_ptr<void> rsc);
 		void Cmd_StartFrame(std::shared_ptr<void> rsc);
 		void Cmd_RenderCameras(std::shared_ptr<void> rsc);
@@ -138,6 +140,11 @@ namespace imp
 		void Cmd_UploadComputePrograms(std::shared_ptr<void> rsc);
 		void Cmd_ChangeRenderMode(std::shared_ptr<void> rsc);
 		void Cmd_UpdateDraws(std::shared_ptr<void> rsc);
+		void Cmd_ShutDown(std::shared_ptr<void> rsc);
+
+#if BENCHMARK_MODE
+		void Cmd_StartBenchmark(std::shared_ptr<void> rsc);
+#endif
 	};
 }
 

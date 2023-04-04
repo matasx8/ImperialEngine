@@ -41,6 +41,13 @@ namespace imp
         m_OldTimer(),
         m_SyncTimer(),
         m_OldSyncTimer(),
+#if BENCHMARK_MODE
+        m_FrameTimeTables(),
+        m_FrameTimer(),
+        m_CullTimer(),
+        m_CollectBenchmarkData(),
+        m_FrameStartedCollecting(),
+#endif
         m_SemaphorePool(SemaphoreFactory()),
         m_FencePool(FenceFactory()),
         m_JobSystem(),
@@ -183,7 +190,12 @@ namespace imp
         cb.Begin();
 
         // maybe move this to command buffer manager?
+#if BENCHMARK_MODE
+        if (m_CollectBenchmarkData)
+            m_TimestampQueryManager.ReadbackQueryResults(m_LogicalDevice, m_FrameTimeTables[m_Settings.renderMode], m_CurrentFrame, m_FrameStartedCollecting, m_Swapchain.GetFrameClock());
+#else
         m_TimestampQueryManager.ReadbackQueryResults(m_LogicalDevice, m_Swapchain.GetFrameClock());
+#endif
         m_TimestampQueryManager.ResetQueries(cb.cmb, m_Swapchain.GetFrameClock());
 
         m_TimestampQueryManager.WriteTimestamp(cb.cmb, kQueryGPUFrameBegin, m_Swapchain.GetFrameClock());
@@ -253,6 +265,10 @@ namespace imp
     {
         AUTO_TIMER("[StartFrame]: ");
         const auto index = m_Swapchain.GetFrameClock();
+
+#if BENCHMARK_MODE
+        m_FrameTimer.start();
+#endif
         switch (m_Settings.renderMode)
         {
         case kEngineRenderModeTraditional:
@@ -330,7 +346,25 @@ namespace imp
         m_VulkanGarbageCollector.DestroySafeResources(m_LogicalDevice, m_CurrentFrame);
         m_CurrentFrame++;
         m_Timer.frameWorkTime.stop();
+
+#if BENCHMARK_MODE
+        m_FrameTimer.stop();
+        if (m_CollectBenchmarkData)
+            CollectFrameCPUResults();
+#endif
     }
+
+#if BENCHMARK_MODE
+    void Graphics::StartBenchmark()
+    {
+        m_CollectBenchmarkData = true;
+        m_FrameStartedCollecting = m_CurrentFrame;
+    }
+    const std::array<FrameTimeTable, kEngineRenderModeCount>& Graphics::GetBenchmarkTable() const
+    {
+        return m_FrameTimeTables;
+    }
+#endif
 
     void Graphics::CreateAndUploadMeshes(std::vector<MeshCreationRequest>& meshCreationData)
     {
@@ -554,6 +588,8 @@ namespace imp
 #if !BENCHMARK_MODE
         ImGui_ImplVulkan_Shutdown();
         renderpassgui->Destroy(device);
+#else
+        CollectFinalResults();
 #endif
         m_TimestampQueryManager.Destroy(device);
         m_ShaderManager.Destroy(device);
@@ -1006,4 +1042,25 @@ namespace imp
         }
         return true;
     }
+
+#if BENCHMARK_MODE
+    void Graphics::CollectFrameCPUResults()
+    {
+        const auto renderMode = m_Settings.renderMode;
+
+        FrameTimeRow row;
+        row.frameRenderCPU = m_FrameTimer.miliseconds();
+
+        const auto tableIndex = static_cast<uint32_t>(renderMode);
+        auto& table = m_FrameTimeTables[tableIndex];
+        table.table_rows.push_back(row);
+    }
+
+    // this problem will be relevant when switching rendering modes
+    void Graphics::CollectFinalResults()
+    {
+        m_TimestampQueryManager.ReadbackQueryResults(m_LogicalDevice, m_FrameTimeTables[m_Settings.renderMode], m_CurrentFrame, m_FrameStartedCollecting, m_Swapchain.GetFrameClock());
+        m_TimestampQueryManager.ReadbackQueryResults(m_LogicalDevice, m_FrameTimeTables[m_Settings.renderMode], m_CurrentFrame + 1, m_FrameStartedCollecting, (m_Swapchain.GetFrameClock() + 1) % kEngineSwapchainDoubleBuffering);
+    }
+#endif
 }

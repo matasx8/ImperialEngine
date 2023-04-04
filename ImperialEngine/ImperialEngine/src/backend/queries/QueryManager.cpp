@@ -1,10 +1,11 @@
 #include "QueryManager.h"
+#include "Utils/FrameTimeTable.h"
 #include <cassert>
 
 namespace imp
 {
 	QueryManager::QueryManager()
-		: m_Pool(), m_QueryCount()
+		: m_Pool(), m_QueryCount(), m_TimestampPeriod(), m_UsedQueries()
 	{
 	}
 
@@ -43,8 +44,22 @@ namespace imp
 		m_UsedQueries[swapchainIndex].reset();
 	}
 
+#if BENCHMARK_MODE
+	void QueryManager::ReadbackQueryResults(VkDevice device, FrameTimeTable& table, uint64_t currFrame, uint64_t frameStartedCollecting, uint32_t swapchainIndex)
+#else
 	void QueryManager::ReadbackQueryResults(VkDevice device, uint32_t swapchainIndex)
+#endif
 	{
+#if BENCHMARK_MODE
+		// TODO kEngineSwapchainDoubleBuffering: assuming now that we're only using this
+		// should be getting results for frame n - 2
+		if (currFrame - frameStartedCollecting < kEngineSwapchainDoubleBuffering)
+			return;
+
+		const auto currIdx = currFrame - frameStartedCollecting;
+		const auto actualIdx = currIdx - kEngineSwapchainDoubleBuffering;
+		auto& row = table.table_rows[actualIdx];
+#endif
 		uint64_t results[kQueryCount] = {};
 
 		uint32_t offset = swapchainIndex * m_QueryCount;
@@ -57,54 +72,42 @@ namespace imp
 		{
 			double beginQ = 0.0;
 			double endQ = 0.0;
-			std::string msg;
 
 			for (uint32_t i = 0; i < kQueryCount; i++)
 			{
+
 				if (usedQueries[i])
 				{
+					if (i % 2 == 0) // begin query
+						beginQ = results[i];
+					else			// end query
+						endQ = results[i];
+
 					switch ((QueryType)i)
 					{
-						case kQueryGPUFrameBegin:
-						{
-							msg = "GPU Frame TIME %f ms\n";
-							beginQ = results[kQueryGPUFrameBegin];
-							break;
-						}
 						case kQueryGPUFrameEnd:
 						{
-							endQ = results[kQueryGPUFrameEnd];
-							break;
-						}
-						case kQueryCullBegin:
-						{
-							msg = "GPU CULL TIME %f ms\n";
-							beginQ = results[kQueryCullBegin];
+#if BENCHMARK_MODE
+							row.frameGPU = (endQ - beginQ) * 1e-6;
+#endif
 							break;
 						}
 						case kQueryCullEnd:
 						{
-							endQ = results[kQueryCullEnd];
-							break;
-						}
-						case kQueryDrawBegin:
-						{
-							msg = "GPU DRAW TIME %f ms\n";
-							beginQ = results[kQueryDrawBegin];
+#if BENCHMARK_MODE
+							row.cull = (endQ - beginQ) * 1e-6;
+#endif
 							break;
 						}
 						case kQueryDrawEnd:
 						{
-							endQ = results[kQueryDrawEnd];
+#if BENCHMARK_MODE
+							row.draw = (endQ - beginQ) * 1e-6;
+#endif
 							break;
 						}
 						default:
 							break;
-					}
-
-					if (i % 2 != 0)
-					{
-						//printf(msg.c_str(), (endQ - beginQ) * m_TimestampPeriod * 1e-6);
 					}
 				}
 			}

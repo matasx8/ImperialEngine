@@ -2,14 +2,17 @@
 #include "Utils/EngineStaticConfig.h"
 #include "extern/ARGH/argh.h"
 #include <iostream>
+#include <fstream>
 #include <chrono>
 #include <thread>
+#include <ctime>
 #include <windows.h>
 
 void ConfigureEngineWithArgs(char** argv, std::vector<std::string>& scenesToLoad, EngineSettings& settings);
 
 #if BENCHMARK_MODE
 bool Benchmark(imp::Engine& engine, EngineSettings& settings, int32_t& warmupFrames, int32_t& benchmarkFrames);
+void MergeTimingsAndOutput(imp::Engine& engine);
 #endif
 
 int main(int argc, char** argv)
@@ -40,7 +43,7 @@ int main(int argc, char** argv)
 	engine.SyncRenderThread();
 
 #if BENCHMARK_MODE
-	static constexpr uint32_t kWarmUpFrameCount = 10;
+	static constexpr uint32_t kWarmUpFrameCount = 20;
 	int32_t warmupFrames = kWarmUpFrameCount;
 	int32_t benchmarkFrames = settings.gfxSettings.numberOfFramesToBenchmark;
 #endif
@@ -60,7 +63,12 @@ int main(int argc, char** argv)
 									// now while render thread works the main thread can do its work
 	}
 
+	// TODO benchmark: seems like the last frames also could use a warmup. Last frame GPU time is x8 for some reason
 	engine.ShutDown();
+
+#if BENCHMARK_MODE
+	MergeTimingsAndOutput(engine);
+#endif
 	return 0;
 }
 
@@ -111,5 +119,59 @@ bool Benchmark(imp::Engine& engine, EngineSettings& settings, int32_t& warmupFra
 		return true; // done
 	}
 	return false;
+}
+
+void MergeTimingsAndOutput(imp::Engine& engine)
+{
+	const auto& mainTables = engine.GetMainBenchmarkTable();
+	const auto& renderTables = engine.GetRenderBenchmarkTable();
+
+	std::stringstream dateStamp;
+	std::time_t currTime = time(0);
+	std::tm* time = new std::tm();
+	localtime_s(time, &currTime);
+	// knowing exact date from this doesn't matter I guess, so I'll use this as a unique id to the file that'll also sort well
+	dateStamp << time->tm_mon + 1 << time->tm_mday << time->tm_hour << time->tm_min << time->tm_sec;
+
+	for (uint32_t i = 0; i < mainTables.size(); i++)
+	{
+		const auto& mainTable = mainTables[i];
+		const auto& renderTable = renderTables[i];
+
+		if (mainTable.table_rows.size() == 0)
+			continue;
+
+		std::ofstream file;
+		std::stringstream fileName;
+		// also append rendering mode string
+		fileName << "Testing/TestData/TestData" << dateStamp.str() << ".csv";
+		file.open(fileName.str(), std::ios::out);
+
+		if (!file.is_open())
+		{
+			std::cerr << "[Benchmark]: Failed to open '" << fileName.str() << "' and write test data\n";
+			return;
+		}
+
+		static constexpr char c = ';';
+		file << "sep=;" << std::endl;
+		file << "Culling" << c << "Drawing" << c << "CPU Main Thread" << c << "CPU Render Thread" << c << "GPU Frame" << c << std::endl;
+
+		for (uint32_t row = 0; row < mainTable.table_rows.size(); row++)
+		{
+			const auto& mainRow = mainTable.table_rows[row];
+			const auto& renderRow = renderTable.table_rows[row];
+
+			double cull = mainRow.cull >= 0.0 ? mainRow.cull : renderRow.cull;
+			double draw = mainRow.draw >= 0.0 ? mainRow.draw : renderRow.draw;
+			double frameMainCPU = mainRow.frameMainCPU >= 0.0 ? mainRow.frameMainCPU : renderRow.frameMainCPU;
+			double frameRenderCPU = mainRow.frameRenderCPU >= 0.0 ? mainRow.frameRenderCPU : renderRow.frameRenderCPU;
+			double frameGPU = mainRow.frameGPU >= 0.0 ? mainRow.frameGPU : renderRow.frameGPU;
+
+			file << cull << c << draw << c << frameMainCPU << c << frameRenderCPU << c << frameGPU << c << std::endl;
+		}
+
+		file.close();
+	}
 }
 #endif
