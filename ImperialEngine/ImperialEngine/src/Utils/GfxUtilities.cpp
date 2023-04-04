@@ -378,7 +378,7 @@ namespace imp
 			tp.parallelize_loop(groupSize, loop).wait();
 			visibleData.resize(drawDataIndex);
 #endif
-			printf("[CPU CULL] Total Renderable Meshes: %u; Renderable Meshes after culling: %llu\n", totalMeshes, visibleData.size());
+			//printf("[CPU CULL] Total Renderable Meshes: %u; Renderable Meshes after culling: %llu\n", totalMeshes, visibleData.size());
 		}
 	}
 }

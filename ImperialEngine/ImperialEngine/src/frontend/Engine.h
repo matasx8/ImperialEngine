@@ -34,12 +34,14 @@ namespace imp
 
 #if BENCHMARK_MODE
 		void StartBenchmark();
+		void StopBenchmark();
 		const std::array<FrameTimeTable, kEngineRenderModeCount>& GetMainBenchmarkTable() const;
 		const std::array<FrameTimeTable, kEngineRenderModeCount>& GetRenderBenchmarkTable() const;
 #endif
 
 		bool IsCurrentRenderMode(EngineRenderMode mode) const;
 		EngineRenderMode GetCurrentRenderMode() const;
+		bool IsRenderingModeSupported(EngineRenderMode mode) const;
 
 		const Timings& GetFrameTimings() { return m_OldTimer; }
 		const Timings& GetGfxFrameTimings() { return m_Gfx.GetFrameTimings(); }
@@ -144,6 +146,7 @@ namespace imp
 
 #if BENCHMARK_MODE
 		void Cmd_StartBenchmark(std::shared_ptr<void> rsc);
+		void Cmd_StopBenchmark(std::shared_ptr<void> rsc);
 #endif
 	};
 }

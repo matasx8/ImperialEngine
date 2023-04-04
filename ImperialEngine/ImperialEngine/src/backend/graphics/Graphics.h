@@ -45,6 +45,7 @@ namespace imp
 
 #if BENCHMARK_MODE
 		void StartBenchmark();
+		void StopBenchmark();
 		const std::array<FrameTimeTable, kEngineRenderModeCount>& GetBenchmarkTable() const;
 #endif
 
@@ -141,6 +142,8 @@ namespace imp
 		SimpleTimer m_CullTimer;
 		bool m_CollectBenchmarkData;
 		uint64_t m_FrameStartedCollecting;
+		uint64_t m_FrameStoppedCollecting;
+		EngineRenderMode m_EngineRenderModeCollectingInto;
 #endif
 
 		// Pools

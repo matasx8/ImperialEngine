@@ -54,6 +54,8 @@ namespace imp
 		void SubmitInternal(CommandBuffer& cb);
 		void SubmitInternal(CommandBuffer& cb, const std::vector<Semaphore>& semaphores);
 
+		void EnsureReset(VkDevice device);
+
 		// Submit accumulated command buffers to VkQueue
 		SubmitSynchPrimitives SubmitToQueue(VkQueue submitQueue, VkDevice device, SubmitType submitType, uint64_t currFrame);
 

@@ -11,8 +11,10 @@
 void ConfigureEngineWithArgs(char** argv, std::vector<std::string>& scenesToLoad, EngineSettings& settings);
 
 #if BENCHMARK_MODE
-bool Benchmark(imp::Engine& engine, EngineSettings& settings, int32_t& warmupFrames, int32_t& benchmarkFrames);
-void MergeTimingsAndOutput(imp::Engine& engine);
+bool Benchmark(imp::Engine& engine, EngineSettings& settings, int32_t& warmupFrames, int32_t& benchmarkFrames, uint32_t& currRenderModeIdx);
+int MergeTimingsAndOutput(imp::Engine& engine);
+
+static constexpr std::array<EngineRenderMode, kEngineRenderModeCount> kRenderModesToBenchmark = { kEngineRenderModeGPUDriven, kEngineRenderModeGPUDrivenMeshShading, kEngineRenderModeTraditional };
 #endif
 
 int main(int argc, char** argv)
@@ -46,13 +48,16 @@ int main(int argc, char** argv)
 	static constexpr uint32_t kWarmUpFrameCount = 20;
 	int32_t warmupFrames = kWarmUpFrameCount;
 	int32_t benchmarkFrames = settings.gfxSettings.numberOfFramesToBenchmark;
+
+	uint32_t currRenderModeIdx = 0;
+	engine.SwitchRenderingMode(kRenderModesToBenchmark[currRenderModeIdx]);
 #endif
 
 	// update - sync - render - update
 	while (!engine.ShouldClose())
 	{
 #if BENCHMARK_MODE
-		if (Benchmark(engine, settings, warmupFrames, benchmarkFrames)) break;
+		if (Benchmark(engine, settings, warmupFrames, benchmarkFrames, currRenderModeIdx)) break;
 #endif
 		engine.StartFrame();
 		engine.Update();
@@ -67,9 +72,11 @@ int main(int argc, char** argv)
 	engine.ShutDown();
 
 #if BENCHMARK_MODE
-	MergeTimingsAndOutput(engine);
-#endif
+	// returns timestamp integer so script can find the correct test dir
+	return MergeTimingsAndOutput(engine);
+#else
 	return 0;
+#endif
 }
 
 void ConfigureEngineWithArgs(char** argv, std::vector<std::string>& scenesToLoad, EngineSettings& settings)
@@ -105,7 +112,7 @@ void ConfigureEngineWithArgs(char** argv, std::vector<std::string>& scenesToLoad
 }
 
 #if BENCHMARK_MODE
-bool Benchmark(imp::Engine& engine, EngineSettings& settings, int32_t& warmupFrames, int32_t& benchmarkFrames)
+bool Benchmark(imp::Engine& engine, EngineSettings& settings, int32_t& warmupFrames, int32_t& benchmarkFrames, uint32_t& currRenderModeIdx)
 {
 	if (warmupFrames-- == 0)
 	{
@@ -115,23 +122,40 @@ bool Benchmark(imp::Engine& engine, EngineSettings& settings, int32_t& warmupFra
 	if (warmupFrames < 0 && benchmarkFrames-- == 0)
 	{
 		// probably not needed? or maybe needed for multiple rendering modes
-		//engine.StopBenchmark();
-		return true; // done
+		engine.StopBenchmark();
+
+		warmupFrames = 20;
+		benchmarkFrames = settings.gfxSettings.numberOfFramesToBenchmark;
+
+		currRenderModeIdx++;
+		if (currRenderModeIdx >= kEngineRenderModeCount)
+			return true;
+
+		while (!engine.IsRenderingModeSupported(static_cast<EngineRenderMode>(kRenderModesToBenchmark[currRenderModeIdx])))
+		{
+			currRenderModeIdx++;
+			if (currRenderModeIdx >= kEngineRenderModeCount)
+				return true; // cycled through all rendering modes - benchmark done
+		}
+
+		engine.SwitchRenderingMode(kRenderModesToBenchmark[currRenderModeIdx]);
 	}
 	return false;
 }
 
-void MergeTimingsAndOutput(imp::Engine& engine)
+int MergeTimingsAndOutput(imp::Engine& engine)
 {
 	const auto& mainTables = engine.GetMainBenchmarkTable();
 	const auto& renderTables = engine.GetRenderBenchmarkTable();
 
-	std::stringstream dateStamp;
 	std::time_t currTime = time(0);
 	std::tm* time = new std::tm();
 	localtime_s(time, &currTime);
-	// knowing exact date from this doesn't matter I guess, so I'll use this as a unique id to the file that'll also sort well
-	dateStamp << time->tm_mon + 1 << time->tm_mday << time->tm_hour << time->tm_min << time->tm_sec;
+	const int dateStamp = (time->tm_mon + 1) * 1e8 + time->tm_mday * 1e6 + time->tm_hour * 1e4 + time->tm_min * 1e2 + time->tm_sec;
+
+	std::stringstream outPath;
+	outPath << "Testing/TestData/" << std::setfill('0') << std::setw(10) << dateStamp;
+	CreateDirectoryA(outPath.str().c_str(), nullptr);
 
 	for (uint32_t i = 0; i < mainTables.size(); i++)
 	{
@@ -143,14 +167,14 @@ void MergeTimingsAndOutput(imp::Engine& engine)
 
 		std::ofstream file;
 		std::stringstream fileName;
-		// also append rendering mode string
-		fileName << "Testing/TestData/TestData" << dateStamp.str() << ".csv";
+		const auto renderModeName = EngineGraphicsSettings::RenderingModeToString(static_cast<EngineRenderMode>(i));
+		fileName << outPath.str() << "/TestData-" << renderModeName << ".csv";
 		file.open(fileName.str(), std::ios::out);
 
 		if (!file.is_open())
 		{
 			std::cerr << "[Benchmark]: Failed to open '" << fileName.str() << "' and write test data\n";
-			return;
+			return 0;
 		}
 
 		static constexpr char c = ';';
@@ -173,5 +197,7 @@ void MergeTimingsAndOutput(imp::Engine& engine)
 
 		file.close();
 	}
+
+	return dateStamp;
 }
 #endif

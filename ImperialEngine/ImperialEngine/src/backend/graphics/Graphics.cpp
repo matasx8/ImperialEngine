@@ -189,17 +189,6 @@ namespace imp
         CommandBuffer cb = m_CbManager.AquireCommandBuffer(m_LogicalDevice);
         cb.Begin();
 
-        // maybe move this to command buffer manager?
-#if BENCHMARK_MODE
-        if (m_CollectBenchmarkData)
-            m_TimestampQueryManager.ReadbackQueryResults(m_LogicalDevice, m_FrameTimeTables[m_Settings.renderMode], m_CurrentFrame, m_FrameStartedCollecting, m_Swapchain.GetFrameClock());
-#else
-        m_TimestampQueryManager.ReadbackQueryResults(m_LogicalDevice, m_Swapchain.GetFrameClock());
-#endif
-        m_TimestampQueryManager.ResetQueries(cb.cmb, m_Swapchain.GetFrameClock());
-
-        m_TimestampQueryManager.WriteTimestamp(cb.cmb, kQueryGPUFrameBegin, m_Swapchain.GetFrameClock());
-
         std::vector<VkBufferMemoryBarrier> bmbs;
         VkAccessFlags srcAccess = 0; // srcAccess is ignored for Q ownership transfers (when aquiring)
         uint32_t tf = m_GfxCaps.GetQueueFamilies().transferFamily;
@@ -300,6 +289,21 @@ namespace imp
         m_ShaderManager.UpdateGlobalData(m_LogicalDevice, index, data);
         m_CbManager.AddQueueDependencies(m_ShaderManager.GetGlobalDataBuffer(index).GetTimeline());
         m_ShaderManager.GetGlobalDataBuffer(index).MarkUsedInQueue();
+
+        // Doing readback here moves the CPU-GPU synch for aquiring command buffers a teeny tiny bit closer, but that shouldn't make a noticable diff
+        auto cb = m_CbManager.AquireCommandBuffer(m_LogicalDevice);
+        cb.Begin();
+#if BENCHMARK_MODE
+        if (m_CollectBenchmarkData || m_CurrentFrame - m_FrameStoppedCollecting < kEngineSwapchainDoubleBuffering)
+            m_TimestampQueryManager.ReadbackQueryResults(m_LogicalDevice, m_FrameTimeTables[m_EngineRenderModeCollectingInto], m_CurrentFrame, m_FrameStartedCollecting, m_Swapchain.GetFrameClock());
+#else
+        m_TimestampQueryManager.ReadbackQueryResults(m_LogicalDevice, m_Swapchain.GetFrameClock());
+#endif
+        m_TimestampQueryManager.ResetQueries(cb.cmb, index);
+
+        m_TimestampQueryManager.WriteTimestamp(cb.cmb, kQueryGPUFrameBegin, m_Swapchain.GetFrameClock());
+        cb.End();
+        m_CbManager.SubmitInternal(cb);
     }
 
     void Graphics::RenderCameras()
@@ -359,7 +363,15 @@ namespace imp
     {
         m_CollectBenchmarkData = true;
         m_FrameStartedCollecting = m_CurrentFrame;
+        m_EngineRenderModeCollectingInto = m_Settings.renderMode;
     }
+
+    void Graphics::StopBenchmark()
+    {
+        m_CollectBenchmarkData = false;
+        m_FrameStoppedCollecting = m_CurrentFrame;
+    }
+
     const std::array<FrameTimeTable, kEngineRenderModeCount>& Graphics::GetBenchmarkTable() const
     {
         return m_FrameTimeTables;

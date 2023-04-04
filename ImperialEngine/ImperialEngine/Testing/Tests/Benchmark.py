@@ -9,7 +9,7 @@ print(cwd)
 
 def main():
     compile_engine()
-    run_test("")
+    run_test("--file-count=1 --run-for=1000 --load-files Scene/Sponza.glb")
 
 def compile_engine():
     project = "ImperialEngine.vcxproj"
@@ -20,7 +20,7 @@ def compile_engine():
     print(exit_code)
 
 def run_test(args):
-    command = cwd + engine_path + args
+    command = cwd + engine_path + " " + args
     exit_code = os.system(command)
     print(exit_code)
 

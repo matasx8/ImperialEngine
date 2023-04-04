@@ -77,5 +77,10 @@ namespace imp
 	{
 		m_Gfx.StartBenchmark();
 	}
+
+	void Engine::Cmd_StopBenchmark(std::shared_ptr<void> rsc)
+	{
+		m_Gfx.StopBenchmark();
+	}
 #endif
 }

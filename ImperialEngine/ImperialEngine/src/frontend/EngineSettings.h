@@ -54,6 +54,8 @@ struct EngineGraphicsSettings
 	bool validationLayersEnabled;
 
 	uint32_t numberOfFramesToBenchmark;
+
+	static std::string RenderingModeToString(EngineRenderMode mode);
 };
 
 // engine settings used for initialization

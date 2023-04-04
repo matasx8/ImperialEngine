@@ -55,6 +55,15 @@ namespace imp
         m_SemaphoresToWaitOnSubmit.insert(m_SemaphoresToWaitOnSubmit.end(), semaphores.begin(), semaphores.end());
     }
 
+    void CommandBufferManager::EnsureReset(VkDevice device)
+    {
+        if (m_IsNewFrame)
+        {
+            m_GfxCommandPools[m_FrameClock].Reset(device, m_SemaphorePool, m_FencePool, m_Timer);
+            m_IsNewFrame = false;
+        }
+    }
+
     SubmitSynchPrimitives CommandBufferManager::SubmitToQueue(VkQueue submitQueue, VkDevice device, SubmitType submitType, uint64_t currFrame)
     {
         // maxTimelineSemaphoreValueDifference 
@@ -149,11 +158,7 @@ namespace imp
 
     std::vector<CommandBuffer> CommandBufferManager::AquireCommandBuffers(VkDevice device, uint32_t count)
     {
-        if (m_IsNewFrame)
-        {
-            m_GfxCommandPools[m_FrameClock].Reset(device, m_SemaphorePool, m_FencePool, m_Timer);
-            m_IsNewFrame = false;
-        }
+        EnsureReset(device);
         return m_GfxCommandPools[m_FrameClock].AquireCommandBuffers(device, count);
     }
 

@@ -42,3 +42,18 @@ EngineSettings::EngineSettings(EngineSettingsTemplate settingsTemplate)
 #endif
 	gfxSettings.renderMode = static_cast<EngineRenderMode>(kDefaultEngineRenderMode);
 }
+
+std::string EngineGraphicsSettings::RenderingModeToString(EngineRenderMode mode)
+{
+	switch (mode)
+	{
+	case kEngineRenderModeTraditional:
+		return "Traditional";
+	case kEngineRenderModeGPUDriven:
+		return "GPU-Driven";
+	case kEngineRenderModeGPUDrivenMeshShading:
+		return "GPU-Driven-Mesh";
+	case kEngineRenderModeCount:
+		return "Render-Mode-Count";
+	}
+}

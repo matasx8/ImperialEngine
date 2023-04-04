@@ -156,6 +156,13 @@ namespace imp
 		m_Q->add(std::mem_fn(&Engine::Cmd_StartBenchmark), std::shared_ptr<void>());
 	}
 
+	void Engine::StopBenchmark()
+	{
+		m_CollectBenchmarkData = false;
+
+		m_Q->add(std::mem_fn(&Engine::Cmd_StopBenchmark), std::shared_ptr<void>());
+	}
+
 	const std::array<FrameTimeTable, kEngineRenderModeCount>& Engine::GetMainBenchmarkTable() const
 	{
 		return m_FrameTimeTables;
@@ -175,6 +182,17 @@ namespace imp
 	EngineRenderMode Engine::GetCurrentRenderMode() const
 	{
 		return m_EngineSettings.gfxSettings.renderMode;
+	}
+
+	bool Engine::IsRenderingModeSupported(EngineRenderMode mode) const
+	{
+		if (mode == kEngineRenderModeGPUDrivenMeshShading)
+		{
+			const auto& caps = m_Gfx.GetGfxCaps();
+			if (!caps.IsMeshShadingSupported())
+				return false;
+		}
+		return true;
 	}
 
 	void Engine::SwitchRenderingMode(EngineRenderMode newRenderMode)
