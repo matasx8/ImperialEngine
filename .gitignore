@@ -422,5 +422,7 @@ FodyWeavers.xsd
 # custom
 *.ini
 *.bak
+*.gltf
+*.glb
 Crashes/
 TestData/

@@ -36,6 +36,8 @@ namespace imp
 		void LoadMaterials(const std::string& path);
 		void LoadComputeProgams(const std::string& path);
 
+		uint32_t GetNumberOfUniqueMeshesLoaded() const;
+
 	private:
 
 		void LoadGLTFScene(const std::filesystem::path& path);

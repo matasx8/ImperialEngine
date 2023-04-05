@@ -7,8 +7,10 @@
 #include <thread>
 #include <ctime>
 #include <windows.h>
+#include <GLM/gtx/quaternion.hpp>
 
-void ConfigureEngineWithArgs(char** argv, std::vector<std::string>& scenesToLoad, EngineSettings& settings);
+void ConfigureEngineWithArgs(char** argv, std::vector<std::string>& scenesToLoad, std::string& distribution, std::string& entityCount, std::string& cameraMovement, EngineSettings& settings);
+void CustomUpdates(imp::Engine& engine, const std::string& cameraMovement);
 
 #if BENCHMARK_MODE
 bool Benchmark(imp::Engine& engine, EngineSettings& settings, int32_t& warmupFrames, int32_t& benchmarkFrames, uint32_t& currRenderModeIdx);
@@ -34,13 +36,19 @@ int main(int argc, char** argv)
 	imp::Engine engine;
 
 	std::vector<std::string> scenesToLoad;
-	ConfigureEngineWithArgs(argv, scenesToLoad, settings);
+	std::string distribution;
+	std::string entityCount;
+	std::string cameraMovement;
+	ConfigureEngineWithArgs(argv, scenesToLoad, distribution, entityCount, cameraMovement, settings);
 
 	if (!engine.Initialize(settings))
 		return 1;
 
 	engine.LoadScenes(scenesToLoad);
 	engine.LoadAssets();
+
+	if (distribution.size() && entityCount.size())
+		engine.DistributeEntities(distribution, entityCount);
 
 	engine.SyncRenderThread();
 
@@ -60,6 +68,7 @@ int main(int argc, char** argv)
 		if (Benchmark(engine, settings, warmupFrames, benchmarkFrames, currRenderModeIdx)) break;
 #endif
 		engine.StartFrame();
+		CustomUpdates(engine, cameraMovement);
 		engine.Update();
 		engine.SyncGameThread();	// wait for render thread and copy over render data
 		engine.Render();			// now give commands to render
@@ -79,7 +88,7 @@ int main(int argc, char** argv)
 #endif
 }
 
-void ConfigureEngineWithArgs(char** argv, std::vector<std::string>& scenesToLoad, EngineSettings& settings)
+void ConfigureEngineWithArgs(char** argv, std::vector<std::string>& scenesToLoad, std::string& distribution, std::string& entityCount, std::string& cameraMovement, EngineSettings& settings)
 {
 	argh::parser cmdl(argv);
 
@@ -93,6 +102,15 @@ void ConfigureEngineWithArgs(char** argv, std::vector<std::string>& scenesToLoad
 #if BENCHMARK_MODE
 	cmdl("--run-for") >> settings.gfxSettings.numberOfFramesToBenchmark;
 #endif
+
+	if (cmdl("--distribute"))
+		distribution = cmdl("--distribute").str();
+
+	if (cmdl("--entity-count"))
+		entityCount = cmdl("--entity-count").str();
+
+	if (cmdl("--camera-movement"))
+		cameraMovement = cmdl("--camera-movement").str();
 
 	auto lfIdx = std::find(cmdl.args().begin(), cmdl.args().end(), "--load-files");
 	if (lfIdx != cmdl.args().end())
@@ -108,6 +126,25 @@ void ConfigureEngineWithArgs(char** argv, std::vector<std::string>& scenesToLoad
 			lfIdx++;
 		}
 
+	}
+}
+
+void CustomUpdates(imp::Engine& engine, const std::string& cameraMovement)
+{
+	if (cameraMovement == "rotate")
+	{
+		auto& reg = engine.GetEntityRegistry();
+
+		const float rotationStep = glm::radians(360.0f / 1000.0f);
+
+		const auto cameras = reg.view<Comp::Transform, Comp::Camera>();
+		for (auto ent : cameras)
+		{
+			auto& transform = cameras.get<Comp::Transform>(ent);
+
+			const auto axis = glm::vec3(0.0f, 1.0f, 0.0f);
+			transform.transform = glm::rotate(transform.transform, rotationStep, axis);
+		}
 	}
 }
 
@@ -178,8 +215,8 @@ int MergeTimingsAndOutput(imp::Engine& engine)
 		}
 
 		static constexpr char c = ';';
-		file << "sep=;" << std::endl;
-		file << "Culling" << c << "Drawing" << c << "CPU Main Thread" << c << "CPU Render Thread" << c << "GPU Frame" << c << std::endl;
+		//file << "sep=;" << std::endl; this fails in pandas
+		file << "Culling" << c << "Drawing" << c << "CPU Main Thread" << c << "CPU Render Thread" << c << "GPU Frame" << std::endl;
 
 		for (uint32_t row = 0; row < mainTable.table_rows.size(); row++)
 		{
@@ -192,7 +229,7 @@ int MergeTimingsAndOutput(imp::Engine& engine)
 			double frameRenderCPU = mainRow.frameRenderCPU >= 0.0 ? mainRow.frameRenderCPU : renderRow.frameRenderCPU;
 			double frameGPU = mainRow.frameGPU >= 0.0 ? mainRow.frameGPU : renderRow.frameGPU;
 
-			file << cull << c << draw << c << frameMainCPU << c << frameRenderCPU << c << frameGPU << c << std::endl;
+			file << cull << c << draw << c << frameMainCPU << c << frameRenderCPU << c << frameGPU << std::endl;
 		}
 
 		file.close();

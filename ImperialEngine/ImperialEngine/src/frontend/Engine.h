@@ -25,6 +25,8 @@ namespace imp
 		void LoadScenes(const std::vector<std::string>& scenes);
 		void LoadAssets();
 
+		void DistributeEntities(const std::string& distribution, const std::string& entityCount);
+
 		void StartFrame();
 		void Update();
 		void Render();
@@ -38,6 +40,8 @@ namespace imp
 		const std::array<FrameTimeTable, kEngineRenderModeCount>& GetMainBenchmarkTable() const;
 		const std::array<FrameTimeTable, kEngineRenderModeCount>& GetRenderBenchmarkTable() const;
 #endif
+
+		entt::registry& GetEntityRegistry();
 
 		bool IsCurrentRenderMode(EngineRenderMode mode) const;
 		EngineRenderMode GetCurrentRenderMode() const;

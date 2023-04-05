@@ -87,6 +87,11 @@ namespace imp
 		printf("[Asset Importer] Successfully loaded compute programs from '%s' with %i total shaders\n", path.c_str(), static_cast<int>(paths.size()));
 	}
 
+	uint32_t imp::AssetImporter::GetNumberOfUniqueMeshesLoaded() const
+	{
+		return temporaryMeshCounter;
+	}
+
 	void AssetImporter::LoadGLTFScene(const std::filesystem::path& path)
 	{
 		assert(path.extension().string() == ".gltf" || path.extension().string() == ".glb");
@@ -301,10 +306,7 @@ namespace imp
 
 	void AssetImporter::LoadFile(Assimp::Importer& imp, const std::filesystem::path& path)
 	{
-		// TODO: currently we load every obj file in Scenes folder and also create an entity for it
-		// I want to load the meshes but not create an entity for each one. There's a button
-		// in the UI to do that.
-		static bool tFirstEntityLoaded = false;
+		static bool tFirstEntityLoaded = true;
 
 		const auto extension = path.extension().string();
 		if (extension == ".obj")

@@ -48,10 +48,10 @@ namespace imp
 
 		// these allocations related to meshlets are probably not correct if we're trying to allocate max allowed
 		// (this means we have max unique meshes then they can have only 1 meshlet each)
-		static constexpr uint32_t kMeshletDataBufferSize = sizeof(Meshlet) * kMaxMeshCount;
-		static constexpr uint32_t kMeshletVertexDataBufferSize = sizeof(uint32_t) * kMaxMeshCount * kMaxMeshletVertices;
-		static constexpr uint32_t kMeshletTriangleDataBufferSize = sizeof(uint8_t) * kMaxMeshCount * kMaxMeshletTriangles;
-		static constexpr uint32_t kMeshletNormalConeDataBufferSize = sizeof(NormalCone) * kMaxMeshCount;
+		static constexpr uint32_t kMeshletDataBufferSize = sizeof(Meshlet) * kMaxMeshCount * 4;
+		static constexpr uint32_t kMeshletVertexDataBufferSize = sizeof(uint32_t) * kMaxMeshCount * kMaxMeshletVertices * 4;
+		static constexpr uint32_t kMeshletTriangleDataBufferSize = sizeof(uint8_t) * kMaxMeshCount * kMaxMeshletTriangles * 4;
+		static constexpr uint32_t kMeshletNormalConeDataBufferSize = sizeof(NormalCone) * kMaxMeshCount * 4;
 
 		static constexpr auto kHostVisisbleCoherentFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 		static constexpr auto kStorageDstFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;

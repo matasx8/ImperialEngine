@@ -66,6 +66,20 @@ namespace imp
 		MarkDrawDataDirty();
 	}
 
+	void Engine::DistributeEntities(const std::string& distribution, const std::string& entityCount)
+	{
+		uint32_t numEntities = 0;
+		if (entityCount == "max")
+			numEntities = kMaxDrawCount;
+		else
+			numEntities = uint32_t(std::min(std::stoul(entityCount), static_cast<unsigned long>(kMaxDrawCount)));
+
+		if (distribution == "random")
+			AddDemoEntity(numEntities);
+		else
+			printf("[Entity Distribution] Error, trying to use unsupported distribution '%s'\n", distribution.c_str());
+	}
+
 	void Engine::StartFrame()
 	{
 #if BENCHMARK_MODE
@@ -175,6 +189,11 @@ namespace imp
 	}
 #endif
 
+	entt::registry& Engine::GetEntityRegistry()
+	{
+		return m_Entities;
+	}
+
 	bool Engine::IsCurrentRenderMode(EngineRenderMode mode) const
 	{
 		return m_EngineSettings.gfxSettings.renderMode == mode;
@@ -215,7 +234,7 @@ namespace imp
 		if (count)
 			MarkDrawDataDirty();
 
-		static constexpr uint32_t numMeshes = 1u;
+		const auto numMeshes = m_AssetImporter.GetNumberOfUniqueMeshesLoaded();
 
 		auto& reg = m_Entities;
 		for (auto i = 0; i < count; i++)
