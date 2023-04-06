@@ -38,7 +38,12 @@ void copy_draw_command(uint idx, uint newIdx)
     
     ms_MeshLOD lod = meshdata.LODData[lodIdx];
     
+#if CONE_CULLING_ENABLED
     ms_DrawDst[newIdx].taskCount = (lod.taskCount + 31) / 32;
+#else
+    ms_DrawDst[newIdx].taskCount = lod.taskCount;
+#endif
+
     ms_DrawDst[newIdx].firstTask = 0;
 
     ms_DrawDst[newIdx].meshletBufferOffset = lod.meshletBufferOffset;

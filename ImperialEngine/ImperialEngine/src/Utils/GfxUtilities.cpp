@@ -251,18 +251,19 @@ namespace imp
 
 					const uint32_t* meshletVertexPtr = &vertices[meshlets[i].vertex_offset];
 					const uint8_t* meshletTrianglePtr = &triangles[meshlets[i].triangle_offset];
-					meshopt_Bounds bounds = meshopt_computeMeshletBounds(meshletVertexPtr, meshletTrianglePtr, meshlet.triangleCount, (float*)verts.data(), verts.size(), sizeof(Vertex));
 
 					NormalCone cone;
+#if CONE_CULLING_ENABLED
+					meshopt_Bounds bounds = meshopt_computeMeshletBounds(meshletVertexPtr, meshletTrianglePtr, meshlet.triangleCount, (float*)verts.data(), verts.size(), sizeof(Vertex));
 					cone.cone[0] = bounds.cone_axis_s8[0];
 					cone.cone[1] = bounds.cone_axis_s8[1];
 					cone.cone[2] = bounds.cone_axis_s8[2];
 					cone.cone[3] = bounds.cone_cutoff_s8;
-
 					// I chose not to do per-meshlet VF culling so I wont be needing meshlet BV so it makes a lot more sense to use
 					// cone apex instead of BV for cone culling
 					static_assert(sizeof(cone.apex) == sizeof(bounds.cone_apex));
 					std::memcpy(&cone.apex.x, bounds.cone_apex, sizeof(cone.apex));
+#endif
 					normalCones.push_back(cone);
 
 					meshletsDst.push_back(meshlet);

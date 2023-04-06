@@ -29,5 +29,5 @@
 
 // if disabled also disabled task shader
 #ifndef CONE_CULLING_ENABLED
-#define CONE_CULLING_ENABLED 1
+#define CONE_CULLING_ENABLED 0
 #endif 

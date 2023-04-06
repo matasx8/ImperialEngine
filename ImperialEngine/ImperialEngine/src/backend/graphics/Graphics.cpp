@@ -774,7 +774,9 @@ namespace imp
         
         VkPhysicalDeviceMeshShaderFeaturesNV featuresMesh = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV };
         featuresMesh.meshShader = m_GfxCaps.IsMeshShadingSupported();
+#if CONE_CULLING_ENABLED
         featuresMesh.taskShader = m_GfxCaps.IsMeshShadingSupported();
+#endif
 
         features11.pNext = &featuresMesh;
         features12.pNext = &features11;
@@ -998,7 +1000,9 @@ namespace imp
             break;
         case kEngineRenderModeGPUDrivenMeshShading:
             tempConfig.meshModule = m_ShaderManager.GetShader("basic.mesh").GetShaderModule();
+#if CONE_CULLING_ENABLED
             tempConfig.taskModule = m_ShaderManager.GetShader("basic.task").GetShaderModule();
+#endif
             break;
         }
 

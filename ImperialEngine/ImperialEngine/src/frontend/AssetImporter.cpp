@@ -462,7 +462,9 @@ namespace imp
 		const auto vertexShaderPath = shader + ".vert.spv";
 		const auto vertexIndirectShaderPath = shader + ".ind.vert.spv";
 		const auto meshShaderPath = shader + ".mesh.spv";
+#if CONE_CULLING_ENABLED
 		const auto taskShaderPath = shader + ".task.spv";
+#endif
 		const auto fragmentShaderPath = shader + ".frag.spv";
 
 		MaterialCreationRequest req;
@@ -470,12 +472,16 @@ namespace imp
 		req.vertexSpv = OS::ReadFileContents(vertexShaderPath);
 		req.vertexIndSpv = OS::ReadFileContents(vertexIndirectShaderPath);
 		req.meshSpv = OS::ReadFileContents(meshShaderPath);
+#if CONE_CULLING_ENABLED
 		req.taskSpv = OS::ReadFileContents(taskShaderPath);
+#endif
 		req.fragmentSpv = OS::ReadFileContents(fragmentShaderPath);
 		assert(req.vertexSpv.get());
 		assert(req.vertexIndSpv.get());
 		assert(req.meshSpv.get());
+#if CONE_CULLING_ENABLED
 		assert(req.taskSpv.get());
+#endif
 		assert(req.fragmentSpv.get());
 		return req;
 	}

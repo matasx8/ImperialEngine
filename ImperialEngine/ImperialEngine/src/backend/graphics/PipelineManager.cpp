@@ -14,14 +14,19 @@ namespace imp
 	{
 		// TODO: have a 'base' pipeline that I can use to create pipeline derivatives?
 
+		constexpr auto meshPipelineStageCount = CONE_CULLING_ENABLED ? 3 : 2;
+		constexpr auto regularPipelineStageCount = 2;
+
 		const bool meshPipeline = config.meshModule != VK_NULL_HANDLE;
-		const auto shaderStageCount = meshPipeline ? 3 : 2;
+		const auto shaderStageCount = meshPipeline ? meshPipelineStageCount : regularPipelineStageCount;
 
 		VkPipelineShaderStageCreateInfo shaderStages[3];
 		shaderStages[0] = MakeShaderStageCI(meshPipeline ? config.meshModule : config.vertModule, meshPipeline ? VK_SHADER_STAGE_MESH_BIT_EXT : VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = MakeShaderStageCI(config.fragModule, VK_SHADER_STAGE_FRAGMENT_BIT);
+#if CONE_CULLING_ENABLED
 		if (meshPipeline)
 			shaderStages[2] = MakeShaderStageCI(config.taskModule, VK_SHADER_STAGE_TASK_BIT_EXT);
+#endif
 
 		const auto vertInputBindingDesc = MakeVertexBindingDesc();
 		const auto vertInputAttrDesc = MakeVertexAttrDescs();

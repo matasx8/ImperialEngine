@@ -204,12 +204,14 @@ namespace imp
 		const VulkanShader vertexIndShader(CreateShaderModule(device, *req.vertexIndSpv.get()));
 		const VulkanShader fragmentShader(CreateShaderModule(device, *req.fragmentSpv.get()));
 		const VulkanShader meshShader(CreateShaderModule(device, *req.meshSpv.get()));
+#if CONE_CULLING_ENABLED
 		const VulkanShader taskShader(CreateShaderModule(device, *req.taskSpv.get()));
+		m_ShaderMap[req.shaderName + ".task"] = taskShader;
+#endif
 		m_ShaderMap[req.shaderName + ".vert"] = vertexShader;
 		m_ShaderMap[req.shaderName + ".ind.vert"] = vertexIndShader;
 		m_ShaderMap[req.shaderName + ".frag"] = fragmentShader;
 		m_ShaderMap[req.shaderName + ".mesh"] = meshShader;
-		m_ShaderMap[req.shaderName + ".task"] = taskShader;
 	}
 
 	void VulkanShaderManager::CreateComputePrograms(VkDevice device, PipelineManager& pipeManager, const ComputeProgramCreationRequest& req)
@@ -387,16 +389,18 @@ namespace imp
 
 	void VulkanShaderManager::CreateComputeDescriptorSetLayout(VkDevice device)
 	{
+		constexpr auto taskFlagBit = CONE_CULLING_ENABLED ? VK_SHADER_STAGE_TASK_BIT_EXT : 0;
 		const auto drawCommandStagingBufferBinding = CreateDescriptorBinding(0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT);
-		const auto drawCommandBufferBinding = CreateDescriptorBinding(1, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_TASK_BIT_EXT);
+		const auto drawCommandBufferBinding = CreateDescriptorBinding(1, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT | taskFlagBit | VK_SHADER_STAGE_MESH_BIT_EXT);
 		const auto boundingVolumeBinding = CreateDescriptorBinding(2, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT);
 		const auto drawCommandCountBufferBinding = CreateDescriptorBinding(3, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT);
 		// TODO mesh: figure out proper stages
-		const auto meshletBufferBinding = CreateDescriptorBinding(4, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_TASK_BIT_EXT);
+		const auto meshletBufferBinding = CreateDescriptorBinding(4, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_MESH_BIT_EXT | taskFlagBit);
 		const auto msMeshDataBufferBinding = CreateDescriptorBinding(5, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_MESH_BIT_EXT);
-		const auto meshletVertexDataBufferBinding = CreateDescriptorBinding(6, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_TASK_BIT_EXT);
-		const auto meshletTriangleDataBufferBinding = CreateDescriptorBinding(7, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_TASK_BIT_EXT);
-		const auto meshletNormalConeDataBufferBinding = CreateDescriptorBinding(8, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_TASK_BIT_EXT);
+		const auto meshletVertexDataBufferBinding = CreateDescriptorBinding(6, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_MESH_BIT_EXT | taskFlagBit);
+		const auto meshletTriangleDataBufferBinding = CreateDescriptorBinding(7, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_MESH_BIT_EXT | taskFlagBit);
+//#if CONE_CULLING_ENABLED
+		const auto meshletNormalConeDataBufferBinding = CreateDescriptorBinding(8, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, taskFlagBit);
 
 		std::array<VkDescriptorSetLayoutBinding, kComputeBindingCount> bindings = { drawCommandStagingBufferBinding, drawCommandBufferBinding, boundingVolumeBinding, drawCommandCountBufferBinding, meshletBufferBinding, msMeshDataBufferBinding, meshletVertexDataBufferBinding, meshletTriangleDataBufferBinding, meshletNormalConeDataBufferBinding };
 
