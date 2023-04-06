@@ -14,5 +14,17 @@
 
 // if disabled also disables task shader
 #ifndef CONE_CULLING_ENABLED
-#define CONE_CULLING_ENABLED 0
+#define CONE_CULLING_ENABLED 1
 #endif 
+
+#ifndef MESHLET_MAX_PRIMS
+#define MESHLET_MAX_PRIMS 84
+#endif
+
+#ifndef MESHLET_MAX_VERTS
+#define MESHLET_MAX_VERTS 64
+#endif
+
+#ifndef MESH_WGROUP
+#define MESH_WGROUP 32
+#endif

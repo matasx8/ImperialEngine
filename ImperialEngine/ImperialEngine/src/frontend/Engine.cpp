@@ -370,9 +370,8 @@ namespace imp
 	void Engine::LoadDefaultStuff()
 	{			
 #if !BENCHMARK_MODE
-		AddDemoEntity(5000);
-		//AddDemoEntity(kMaxDrawCount / 2);
-		//AddDemoEntity(kMaxDrawCount - 1);
+		//AddDemoEntity(5000);
+		AddDemoEntity(kMaxDrawCount - 1);
 #endif
 	}
 

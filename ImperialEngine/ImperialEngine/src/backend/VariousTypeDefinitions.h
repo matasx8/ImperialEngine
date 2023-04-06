@@ -9,8 +9,8 @@
 namespace imp
 {
 	inline constexpr uint32_t kMaxLODCount = LOD_ENABLED ? 4 : 1;
-	inline constexpr size_t kMaxMeshletVertices = 64;
-	inline constexpr size_t kMaxMeshletTriangles = 124;
+	inline constexpr size_t kMaxMeshletVertices = MESHLET_MAX_VERTS;
+	inline constexpr size_t kMaxMeshletTriangles = MESHLET_MAX_PRIMS;
 
 	struct BoundingVolumeSphere
 	{

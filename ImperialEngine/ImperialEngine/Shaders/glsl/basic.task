@@ -13,11 +13,11 @@
 #include "DescriptorSet0.h"
 #include "DescriptorSet1.h"
 
-layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = MESH_WGROUP, local_size_y = 1, local_size_z = 1) in;
 
 out taskNV block
 {
-	uint meshletIndices[32];
+	uint meshletIndices[MESH_WGROUP];
 	uint drawIdx;
 };
 
@@ -59,7 +59,7 @@ void main()
 	if (ti == 0)
 	{
 		uint drawDataIndex = drawIdx;
-		uint taskCount = min(meshletCount, meshTaskCount - gl_WorkGroupID.x * 32);
+		uint taskCount = min(meshletCount, meshTaskCount - gl_WorkGroupID.x * MESH_WGROUP);
 
 		gl_TaskCountNV = taskCount;
 	}

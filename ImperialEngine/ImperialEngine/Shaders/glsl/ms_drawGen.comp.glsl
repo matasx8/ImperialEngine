@@ -39,7 +39,7 @@ void copy_draw_command(uint idx, uint newIdx)
     ms_MeshLOD lod = meshdata.LODData[lodIdx];
     
 #if CONE_CULLING_ENABLED
-    ms_DrawDst[newIdx].taskCount = (lod.taskCount + 31) / 32;
+    ms_DrawDst[newIdx].taskCount = (lod.taskCount + MESH_WGROUP - 1) / MESH_WGROUP;
 #else
     ms_DrawDst[newIdx].taskCount = lod.taskCount;
 #endif
