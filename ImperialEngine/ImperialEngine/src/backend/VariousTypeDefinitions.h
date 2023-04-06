@@ -1,13 +1,14 @@
 #pragma once
 #include "extern/GLM/vec3.hpp"
 #include "extern/GLM/mat4x4.hpp"
+#include "Utils/EngineStaticConfig.h"
 #include <memory>
 #include <string>
 #include <vector>
 
 namespace imp
 {
-	inline constexpr uint32_t kMaxLODCount = 4;
+	inline constexpr uint32_t kMaxLODCount = LOD_ENABLED ? 4 : 1;
 	inline constexpr size_t kMaxMeshletVertices = 64;
 	inline constexpr size_t kMaxMeshletTriangles = 124;
 
@@ -33,17 +34,21 @@ namespace imp
 	struct alignas(16) MeshData
 	{
 		MeshLOD LODData[kMaxLODCount];
+#if !LOD_ENABLED
+		int32_t pad[2];
+#endif
 		BoundingVolumeSphere boundingVolume;
 		int32_t     vertexOffset;
-		int32_t     pad; // TODO mesh: is this needed?
 	};
 
 	struct alignas(16) ms_MeshData
 	{
 		ms_MeshLOD LODData[kMaxLODCount];
+#if !LOD_ENABLED
+		int32_t pad[2];
+#endif
 		BoundingVolumeSphere boundingVolume;
 		uint32_t firstTask;
-		uint32_t pad[2];
 	};
 
 	struct Vertex

@@ -27,6 +27,7 @@ namespace imp
 
 	void AssetImporter::LoadScenes(const std::vector<std::string>& paths)
 	{
+		const auto path = std::filesystem::current_path();
 		Assimp::Importer importer;
 		if (paths.size())
 		{

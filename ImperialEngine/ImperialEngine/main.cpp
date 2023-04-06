@@ -22,7 +22,7 @@ static constexpr std::array<EngineRenderMode, kEngineRenderModeCount> kRenderMod
 int main(int argc, char** argv)
 {
 	// Engine is configured to work from ImperialEngine/ImperialEngine/
-	if (!IsDebuggerPresent() && std::strstr((const char*)std::filesystem::current_path().c_str(), "x64"))
+	if (!IsDebuggerPresent() || std::filesystem::current_path().string().find("x64") != std::string::npos)
 		std::filesystem::current_path("../../../ImperialEngine");
 
 	EngineSettings settings;

@@ -9,6 +9,7 @@
 #extension GL_KHR_shader_subgroup_ballot: require
 
 #define MESH_PIPELINE
+#include "prefix.h"
 #include "DescriptorSet0.h"
 #include "DescriptorSet1.h"
 

@@ -432,8 +432,10 @@ namespace imp
             ivb.vertices = vtxSub;
             ivb.indices[0] = idxSub;
 
+#if LOD_ENABLED
             static constexpr uint32_t numDesiredLODs = kMaxLODCount - 1;
             utils::GenerateMeshLODS(req.vertices, req.indices, &ivb.indices[1], numDesiredLODs, 0.33, 0.5);
+#endif
 
             ms_MeshData ms_md;
             std::vector<uint32_t> meshletVertexData;// meshlet vertex data

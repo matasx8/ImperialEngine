@@ -314,13 +314,19 @@ namespace imp
 						break;
 					}
 
+#if LOD_ENABLED
 					if (i == 4)
 						distFromCamera = dotProd - BV.diameter;
+#endif
 				}
 
 				if (isVisible)
 				{
+#if LOD_ENABLED
 					auto lodIdx = utils::ChooseMeshLODByNearPlaneDistance(distFromCamera);
+#else
+					auto lodIdx = 0;
+#endif
 
 					DrawDataSingle dds;
 					dds.Transform = transform.transform;
@@ -361,20 +367,28 @@ namespace imp
 							isVisible = false;
 							break;
 						}
+
+#if LOD_ENABLED
+						if (i == 4)
+							distFromCamera = dotProd - BV.diameter;
+#endif
 					}
 
 					if (isVisible)
 					{
-						auto lodIdx = utils::ChooseMeshLODByNearPlaneDistance(transform.transform, BV, VP);
-
-						const auto idx = drawDataIndex.fetch_add(1);
+#if LOD_ENABLED
+						auto lodIdx = utils::ChooseMeshLODByNearPlaneDistance(distFromCamera);
+#else
+						auto lodIdx = 0;
+#endif
 
 						DrawDataSingle dds;
 						dds.Transform = transform.transform;
 						dds.VertexBufferId = mesh.meshId;
 						dds.LodIdx = lodIdx;
-						(*ddPtr)[idx] = dds;
-					}
+
+						visibleData.push_back(dds);
+		}
 				}
 			};
 
