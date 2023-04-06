@@ -5,7 +5,7 @@
 namespace imp
 {
 	QueryManager::QueryManager()
-		: m_Pool(), m_QueryCount(), m_TimestampPeriod(), m_UsedQueries()
+		: m_Pool(), m_StatPool(), m_QueryCount(), m_TimestampPeriod(), m_UsedQueries()
 	{
 	}
 
@@ -18,6 +18,11 @@ namespace imp
 		ci.flags = 0;
 
 		auto res = vkCreateQueryPool(device, &ci, nullptr, &m_Pool);
+		assert(res == VK_SUCCESS);
+
+		ci.queryType = VK_QUERY_TYPE_PIPELINE_STATISTICS;
+		ci.pipelineStatistics = VK_QUERY_PIPELINE_STATISTIC_CLIPPING_INVOCATIONS_BIT;
+		res = vkCreateQueryPool(device, &ci, nullptr, &m_StatPool);
 		assert(res == VK_SUCCESS);
 
 		m_QueryCount = fullQueryCount / settings.swapchainImageCount;
@@ -38,8 +43,21 @@ namespace imp
 		m_UsedQueries[swapchainIndex][queryTypeIndex] = true;
 	}
 
+	void QueryManager::BeginPipelineStatQueries(VkCommandBuffer cb, uint32_t swapchainIndex)
+	{
+		const auto offset = swapchainIndex * m_QueryCount;
+		vkCmdBeginQuery(cb, m_StatPool, kStatQueryTriangles + offset, 0);
+	}
+
+	void QueryManager::EndPipelineStatQueries(VkCommandBuffer cb, uint32_t swapchainIndex)
+	{
+		const auto offset = swapchainIndex * m_QueryCount;
+		vkCmdEndQuery(cb, m_StatPool, kStatQueryTriangles + offset);
+	}
+
 	void QueryManager::ResetQueries(VkCommandBuffer cb, uint32_t swapchainIndex)
 	{
+		vkCmdResetQueryPool(cb, m_StatPool, swapchainIndex * m_QueryCount, m_QueryCount);
 		vkCmdResetQueryPool(cb, m_Pool, swapchainIndex * m_QueryCount, m_QueryCount);
 		m_UsedQueries[swapchainIndex].reset();
 	}
@@ -61,12 +79,19 @@ namespace imp
 		auto& row = table.table_rows[actualIdx];
 #endif
 		uint64_t results[kQueryCount] = {};
+		uint64_t statResults[kStatQueryCount] = {};
 
-		uint32_t offset = swapchainIndex * m_QueryCount;
+		//uint32_t offset = swapchainIndex * m_QueryCount;
 		uint32_t firstQuery = swapchainIndex * m_QueryCount;
 
 		vkGetQueryPoolResults(device, m_Pool, firstQuery, kQueryCount, sizeof(results), results, sizeof(results[0]), VK_QUERY_RESULT_64_BIT);
+		vkGetQueryPoolResults(device, m_StatPool, firstQuery, kStatQueryCount, sizeof(statResults), statResults, sizeof(statResults[0]), VK_QUERY_RESULT_64_BIT);
 		
+#if BENCHMARK_MODE
+		row.triangles = uint64_t(statResults[0]);
+#endif
+
+		//printf("Num Triangles %llu\n", statResults[0]);
 		auto& usedQueries = m_UsedQueries[swapchainIndex];
 		if (usedQueries.any())
 		{
@@ -99,13 +124,6 @@ namespace imp
 #endif
 							break;
 						}
-						case kQueryDrawEnd:
-						{
-#if BENCHMARK_MODE
-							row.draw = (endQ - beginQ) * 1e-6;
-#endif
-							break;
-						}
 						default:
 							break;
 					}
@@ -117,5 +135,6 @@ namespace imp
 	void QueryManager::Destroy(VkDevice device)
 	{
 		vkDestroyQueryPool(device, m_Pool, nullptr);
+		vkDestroyQueryPool(device, m_StatPool, nullptr);
 	}
 }

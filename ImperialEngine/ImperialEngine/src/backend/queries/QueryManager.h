@@ -16,9 +16,13 @@ namespace imp
 		kQueryGPUFrameEnd,
 		kQueryCullBegin,
 		kQueryCullEnd,
-		kQueryDrawBegin,
-		kQueryDrawEnd,
 		kQueryCount
+	};
+
+	enum StatQueryType : uint32_t
+	{
+		kStatQueryTriangles,
+		kStatQueryCount
 	};
 
 	class QueryManager : NonCopyable
@@ -29,6 +33,8 @@ namespace imp
 		void Initialize(VkPhysicalDevice physicalDevice, VkDevice device, const EngineGraphicsSettings& settings);
 
 		void WriteTimestamp(VkCommandBuffer cb, uint32_t queryTypeIndex, uint32_t swapchainIndex);
+		void BeginPipelineStatQueries(VkCommandBuffer cb, uint32_t swapchainIndex);
+		void EndPipelineStatQueries(VkCommandBuffer cb, uint32_t swapchainIndex);
 		void ResetQueries(VkCommandBuffer cb, uint32_t swapchainIndex);
 #if BENCHMARK_MODE
 		void ReadbackQueryResults(VkDevice device, FrameTimeTable& table, uint64_t currFrame, uint64_t frameStartedCollecting, uint32_t swapchainIndex);
@@ -41,6 +47,7 @@ namespace imp
 	private:
 
 		VkQueryPool m_Pool;
+		VkQueryPool m_StatPool;
 		uint32_t m_QueryCount;
 		float m_TimestampPeriod;
 

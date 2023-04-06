@@ -133,7 +133,12 @@ namespace imp
 				if (cam.preview)
 					continue;
 				else
+				{
 					transform = camera.transform;
+#if BENCHMARK_MODE
+					m_Engine.m_InitialCameraTransform = transform.transform;
+#endif
+				}
 			}
 		}
 

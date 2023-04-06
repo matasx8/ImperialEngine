@@ -122,9 +122,12 @@ namespace imp
 		std::vector<DrawDataSingle> m_CulledDrawData;
 
 #if BENCHMARK_MODE
+		glm::mat4x4 m_InitialCameraTransform;
 		std::array<FrameTimeTable, kEngineRenderModeCount> m_FrameTimeTables;
 		SimpleTimer m_FrameTimer;
 		SimpleTimer m_CullTimer;
+		SimpleTimer m_FullFrameTimer;
+		double m_LastFrameTime;
 		bool m_BenchmarkDone;
 		bool m_CollectBenchmarkData;
 #endif

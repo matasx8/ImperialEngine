@@ -742,6 +742,7 @@ namespace imp
 
         VkPhysicalDeviceFeatures devicefeatures = {};
         devicefeatures.samplerAnisotropy = VK_TRUE;
+        devicefeatures.pipelineStatisticsQuery = VK_TRUE;
 
         VkPhysicalDeviceFeatures2 physical_features2 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
         physical_features2.features.samplerAnisotropy = VK_TRUE;
@@ -770,8 +771,8 @@ namespace imp
         features12.storageBuffer8BitAccess = true;
         
         VkPhysicalDeviceMeshShaderFeaturesNV featuresMesh = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV };
-        featuresMesh.meshShader = true && m_GfxCaps.IsMeshShadingSupported();
-        featuresMesh.taskShader = true && m_GfxCaps.IsMeshShadingSupported();
+        featuresMesh.meshShader = m_GfxCaps.IsMeshShadingSupported();
+        featuresMesh.taskShader = m_GfxCaps.IsMeshShadingSupported();
 
         features11.pNext = &featuresMesh;
         features12.pNext = &features11;

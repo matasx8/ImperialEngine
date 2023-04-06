@@ -22,11 +22,11 @@ cwd = cwd + "/"
 
 translation = {
     "Culling" : "Į kameros nupjautinę piramidę nepatenkančių objektų atmetimas",
-    "Drawing" : "Piešimas",
+    "Frame Time" : "Bendras darbas prie kadro",
     "CPU Main Thread" : "CPU Pagrindinė Gija",
     "CPU Render Thread" : "CPU Vaizdavimo Gija",
     "GPU Frame" : "GPU Pilnas Darbas",
-    "Unnamed: 5" : "aa"
+    "Triangles" : "Apdoroti trikampiai"
     }
 
 ## -- data structures --
@@ -116,29 +116,35 @@ def test_suite1():
     compile_engine()
 
     #  -- regular sponza --
-    result = run_test("--file-count=1 --load-files Scene/sponza.glb" + run_count)
-    test_results.append(TestResult(result, "'Sponza' scena, visos optimizacijos, kamera statine"))
+    #result = run_test("--file-count=1 --load-files Scene/sponza.glb" + run_count)
+    #test_results.append(TestResult(result, "'Sponza' scena, visos optimizacijos, kamera statine"))
 
-    result = run_test("--file-count=1  --camera-movement=rotate --load-files Scene/sponza.glb" + run_count)
-    test_results.append(TestResult(result, "'Sponza' scena, visos optimizacijos, kamera sukasi"))
+    #result = run_test("--file-count=1  --camera-movement=rotate --load-files Scene/sponza.glb" + run_count)
+    #test_results.append(TestResult(result, "'Sponza' scena, visos optimizacijos, kamera sukasi"))
 
 
     # -- sponza with curtains --
-    result = run_test("--file-count=1 --load-files Scene/sponza_wc.glb" + run_count)
-    test_results.append(TestResult(result, "'Sponza' scena, visos optimizacijos"))
+    #result = run_test("--file-count=1 --load-files Scene/sponza_wc.glb" + run_count)
+    #test_results.append(TestResult(result, "'Sponza' scena, visos optimizacijos"))
 
 
     # -- sponza with curtains and vines --
-    result = run_test("--file-count=1 --load-files Scene/sponza_wc_v_flat.glb" + run_count)
-    test_results.append(TestResult(result, "'Sponza' scena, visos optimizacijos"))
+    #result = run_test("--file-count=1 --load-files Scene/sponza_wc_v_flat.glb" + run_count)
+    #test_results.append(TestResult(result, "'Sponza' scena, visos optimizacijos"))
 
 
     # -- donut and monkey --
-    result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max" + run_count)
-    test_results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu"))
+    #result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max" + run_count)
+    #test_results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu"))
 
     result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max --camera-movement=rotate" + run_count)
     test_results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu"))
+
+    result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max --camera-movement=away" + run_count)
+    test_results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu"))
+
+    #result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max --camera-movement=static_offset" + run_count)
+    #test_results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu"))
 
 
     # very high poly

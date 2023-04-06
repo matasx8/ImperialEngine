@@ -20,6 +20,7 @@ namespace imp
 		cmb.Begin();
 		BeginRenderPass(gfx, cmb);
 
+		gfx.m_TimestampQueryManager.BeginPipelineStatQueries(cb, gfx.m_Swapchain.GetFrameClock());
 		const auto pipe = gfx.EnsurePipeline(cb, *this);	// since we have to get pipeline, bind here and not in that func
 		if (renderMode == kEngineRenderModeGPUDrivenMeshShading)
 		{
@@ -67,6 +68,8 @@ namespace imp
 			vkCmdDrawMeshTasksIndirectCountNV(cb, gfx.m_DrawBuffer.GetBuffer(), 0, gfx.GetDrawCommandCountBuffer().GetBuffer(), 0, gfx.m_NumDraws, DrawMeshTasksIndirectCountSize);
 			break;
 		}
+
+		gfx.m_TimestampQueryManager.EndPipelineStatQueries(cb, gfx.m_Swapchain.GetFrameClock());
 
 		EndRenderPass(gfx, cmb);
 		cmb.End();

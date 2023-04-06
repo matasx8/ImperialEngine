@@ -68,7 +68,9 @@ int main(int argc, char** argv)
 		if (Benchmark(engine, settings, warmupFrames, benchmarkFrames, currRenderModeIdx)) break;
 #endif
 		engine.StartFrame();
+#if BENCHMARK_MODE
 		CustomUpdates(engine, cameraMovement);
+#endif
 		engine.Update();
 		engine.SyncGameThread();	// wait for render thread and copy over render data
 		engine.Render();			// now give commands to render
@@ -131,19 +133,30 @@ void ConfigureEngineWithArgs(char** argv, std::vector<std::string>& scenesToLoad
 
 void CustomUpdates(imp::Engine& engine, const std::string& cameraMovement)
 {
+	auto& reg = engine.GetEntityRegistry();
+	const auto cameras = reg.view<Comp::Transform, Comp::Camera>();
 	if (cameraMovement == "rotate")
 	{
-		auto& reg = engine.GetEntityRegistry();
+		constexpr float rotationStep = glm::radians(360.0f / 1000.0f);
 
-		const float rotationStep = glm::radians(360.0f / 1000.0f);
-
-		const auto cameras = reg.view<Comp::Transform, Comp::Camera>();
 		for (auto ent : cameras)
 		{
 			auto& transform = cameras.get<Comp::Transform>(ent);
 
 			const auto axis = glm::vec3(0.0f, 1.0f, 0.0f);
 			transform.transform = glm::rotate(transform.transform, rotationStep, axis);
+		}
+	}
+	else if (cameraMovement == "away")
+	{
+		constexpr glm::vec3 awayStep = glm::vec3(0.0f, 0.0f, 0.5f);
+
+		for (auto ent : cameras)
+		{
+			auto& transform = cameras.get<Comp::Transform>(ent);
+
+			const auto axis = glm::vec3(0.0f, 1.0f, 0.0f);
+			transform.transform = glm::translate(transform.transform, awayStep);
 		}
 	}
 }
@@ -216,7 +229,7 @@ int MergeTimingsAndOutput(imp::Engine& engine)
 
 		static constexpr char c = ';';
 		//file << "sep=;" << std::endl; this fails in pandas
-		file << "Culling" << c << "Drawing" << c << "CPU Main Thread" << c << "CPU Render Thread" << c << "GPU Frame" << std::endl;
+		file << "Culling" << c << "Frame Time" << c << "CPU Main Thread" << c << "CPU Render Thread" << c << "GPU Frame" << c << "Triangles" << std::endl;
 
 		for (uint32_t row = 0; row < mainTable.table_rows.size(); row++)
 		{
@@ -224,12 +237,13 @@ int MergeTimingsAndOutput(imp::Engine& engine)
 			const auto& renderRow = renderTable.table_rows[row];
 
 			double cull = mainRow.cull >= 0.0 ? mainRow.cull : renderRow.cull;
-			double draw = mainRow.draw >= 0.0 ? mainRow.draw : renderRow.draw;
+			double draw = mainRow.frame >= 0.0 ? mainRow.frame : renderRow.frame;
 			double frameMainCPU = mainRow.frameMainCPU >= 0.0 ? mainRow.frameMainCPU : renderRow.frameMainCPU;
 			double frameRenderCPU = mainRow.frameRenderCPU >= 0.0 ? mainRow.frameRenderCPU : renderRow.frameRenderCPU;
 			double frameGPU = mainRow.frameGPU >= 0.0 ? mainRow.frameGPU : renderRow.frameGPU;
+			int64_t triangles = renderRow.triangles;
 
-			file << cull << c << draw << c << frameMainCPU << c << frameRenderCPU << c << frameGPU << std::endl;
+			file << cull << c << draw << c << frameMainCPU << c << frameRenderCPU << c << frameGPU << c << triangles << std::endl;
 		}
 
 		file.close();

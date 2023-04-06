@@ -2,7 +2,7 @@
 
 // CPU culling
 #ifndef CPU_CULL_ST
-#define CPU_CULL_ST 0
+#define CPU_CULL_ST 1
 #endif
 
 // Benchmarking mode. Engine will run test scene with each available rendering mode, collect data and output it, then shut down.

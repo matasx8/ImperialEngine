@@ -9,10 +9,11 @@ namespace imp
 		FrameTimeRow();
 
 		double cull;
-		double draw;
 		double frameMainCPU;
 		double frameRenderCPU;
 		double frameGPU;
+		double frame;
+		int64_t triangles;
 	};
 
 	struct FrameTimeTable

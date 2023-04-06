@@ -107,16 +107,15 @@ namespace imp
 			return bmb;
 		}
 
-		uint32_t ChooseMeshLODByNearPlaneDistance(const glm::mat4x4& mTransform, const BoundingVolumeSphere& bv, const glm::mat4x4& vpTransform)
+		uint32_t ChooseMeshLODByNearPlaneDistance(float distFromCamera)
 		{
 			uint32_t idx = 0;
-			const auto hPos = vpTransform * mTransform * glm::vec4(bv.center, 1.0f);
 			
-			if (hPos.z - bv.diameter >= 250)
+			if (distFromCamera >= 250)
 				idx = 3;
-			else if (hPos.z - bv.diameter >= 100)
+			else if (distFromCamera >= 100)
 				idx = 2;
-			else if (hPos.z - bv.diameter >= 25)
+			else if (distFromCamera >= 25)
 				idx = 1;
 			return idx;
 		}
@@ -303,6 +302,7 @@ namespace imp
 				glm::vec4 wCenter = transform.transform * glm::vec4(BV.center, 1.0f);
 
 				float scale = glm::length(glm::vec3(transform.transform[0].x, transform.transform[0].y, transform.transform[0].z));
+				float distFromCamera = 0.0f;
 
 				bool isVisible = true;
 				for (auto i = 0; i < 6; i++)
@@ -313,11 +313,14 @@ namespace imp
 						isVisible = false;
 						break;
 					}
+
+					if (i == 4)
+						distFromCamera = dotProd - BV.diameter;
 				}
 
 				if (isVisible)
 				{
-					auto lodIdx = utils::ChooseMeshLODByNearPlaneDistance(transform.transform, BV, VP);
+					auto lodIdx = utils::ChooseMeshLODByNearPlaneDistance(distFromCamera);
 
 					DrawDataSingle dds;
 					dds.Transform = transform.transform;

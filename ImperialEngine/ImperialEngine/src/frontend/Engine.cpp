@@ -27,9 +27,12 @@ namespace imp
 		, m_Gfx()
 		, m_CulledDrawData()
 #if BENCHMARK_MODE
+		, m_InitialCameraTransform()
 		, m_FrameTimeTables()
 		, m_FrameTimer()
 		, m_CullTimer()
+		, m_FullFrameTimer()
+		, m_LastFrameTime()
 		, m_BenchmarkDone()
 		, m_CollectBenchmarkData()
 #endif
@@ -83,8 +86,18 @@ namespace imp
 	void Engine::StartFrame()
 	{
 #if BENCHMARK_MODE
+		m_FullFrameTimer.stop();
+		m_LastFrameTime = m_FullFrameTimer.miliseconds();
+		m_FullFrameTimer.start();
+
 		if (m_CollectBenchmarkData)
+		{
 			m_FrameTimer.start();
+		}
+		else
+		{
+
+		}
 #endif
 		m_Q->add(std::mem_fn(&Engine::Cmd_StartFrame), std::shared_ptr<void>());
 	}
@@ -128,6 +141,7 @@ namespace imp
 
 			FrameTimeRow row;
 			row.frameMainCPU = m_FrameTimer.miliseconds();
+			row.frame = m_LastFrameTime;
 
 			if (renderMode == kEngineRenderModeTraditional)
 				row.cull = m_CullTimer.miliseconds();
@@ -174,6 +188,15 @@ namespace imp
 	void Engine::StopBenchmark()
 	{
 		m_CollectBenchmarkData = false;
+
+		auto& reg = GetEntityRegistry();
+		const auto cameras = reg.view<Comp::Transform, Comp::Camera>();
+
+		for (auto ent : cameras)
+		{
+			auto& transform = cameras.get<Comp::Transform>(ent);
+			transform.transform = m_InitialCameraTransform;
+		}
 
 		m_Q->add(std::mem_fn(&Engine::Cmd_StopBenchmark), std::shared_ptr<void>());
 	}
@@ -363,6 +386,9 @@ namespace imp
 		m_Entities.emplace<Comp::Transform>(camera, defaultCameraTransform);
 		glm::mat4x4 proj = glm::perspective(glm::radians(45.0f), (float)m_Window.GetWidth() / (float)m_Window.GetHeight(), 5.0f, 1000.0f);
 		m_Entities.emplace<Comp::Camera>(camera, proj, glm::mat4x4(), kCamOutColor, true, false, true);
+#if BENCHMARK_MODE
+		m_InitialCameraTransform = defaultCameraTransform;
+#endif
 
 		m_Entities.emplace<Comp::Transform>(previewCamera, glm::translate(defaultCameraTransform, glm::vec3(0.0f, 0.0f, 100.0f)));
 		m_Entities.emplace<Comp::Camera>(previewCamera, proj, glm::mat4x4(), kCamOutColor, true, true, false);
