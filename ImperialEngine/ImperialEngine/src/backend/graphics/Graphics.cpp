@@ -56,7 +56,6 @@ namespace imp
         m_DeviceMemoryProps(),
         m_VertexBuffer(),
         m_IndexBuffer(),
-        m_MeshBuffer(),
         m_DrawBuffer(),
         m_StagingDrawBuffer(),
         m_BoundingVolumeBuffer(),
@@ -610,7 +609,6 @@ namespace imp
 
         m_VertexBuffer.Destroy(device);
         m_IndexBuffer.Destroy(device);
-        m_MeshBuffer.Destroy(device);
         m_DrawBuffer.Destroy(device);
         std::for_each(m_StagingDrawBuffer.begin(), m_StagingDrawBuffer.end(), [device] (auto& buff) { buff.Destroy(device); });
 
@@ -924,7 +922,6 @@ namespace imp
 
         m_VertexBuffer          = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
         m_IndexBuffer           = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
-        m_MeshBuffer            = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
         m_DrawBuffer            = m_MemoryManager.GetBuffer(m_LogicalDevice, drawAllocSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
 
         for (auto i = 0; i < m_Settings.swapchainImageCount; i++)

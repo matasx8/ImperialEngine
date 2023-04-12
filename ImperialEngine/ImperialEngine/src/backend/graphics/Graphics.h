@@ -158,7 +158,6 @@ namespace imp
 
 		VulkanBuffer m_VertexBuffer;
 		VulkanBuffer m_IndexBuffer;
-		VulkanBuffer m_MeshBuffer;
 		VulkanBuffer m_DrawBuffer;
 		std::array<VulkanBuffer, kEngineSwapchainDoubleBuffering> m_StagingDrawBuffer;
 		VulkanBuffer m_BoundingVolumeBuffer;
