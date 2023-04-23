@@ -6,9 +6,10 @@ import numpy as np
 # Like the application, scripts should be configured to run from ImperialEngine/ImperialEngine/
 
 #  -- Static Settings --
-use_premade_results = False
+use_premade_results = True
 engine_path = "../bin/x64/Release/ImperialEngine.exe"
 msbuild_path = "\"C:/Program Files/Microsoft Visual Studio/2022/Community/Msbuild/Current/Bin/MSBuild.exe\""
+smooth_data = True
 
 save_figures = True
 show_figures = True
@@ -48,6 +49,22 @@ def read_data(data_file_name):
     df = pd.read_csv(data_file_name, encoding="iso-8859-1", sep=";")
     return df
 
+def read_all(filepath):
+    df_cpu = read_data(filepath + "TestData-Traditional.csv")
+    df_gpu = read_data(filepath + "TestData-GPU-Driven.csv")
+    df_mesh = read_data(filepath + "TestData-GPU-Driven-Mesh.csv")
+    return (df_cpu, df_gpu, df_mesh)
+
+def smoothing(df):
+    if smooth_data == True:
+        exclude = ["Triangles"]
+        df_dropped = df.drop(columns=exclude)
+        smoothed = df_dropped.rolling(5, center=True).mean()
+        smoothed[exclude] = df[exclude]
+        return smoothed
+    else:
+        return df
+
 # test ids have 10 digits, have to make sure we add trailing zero
 def test_id_to_filename(test_id):
     test_dir = f"{test_id:0>10}"
@@ -74,11 +91,13 @@ def plot_bar(cpu, gpu, mesh, title, test_id):
     if show_figures == True:
         show_figure()
 
-def plot_lines(cpu, gpu, mesh, title, test_id):
+def plot_lines(cpu, gpu, mesh, title, draw_rt_line, test_id):
         plt.figure()
         plt.title(title)
         plt.xlabel("kadras")
         plt.ylabel("darbo laikas, ms")
+        if draw_rt_line == True and title != "Apdoroti trikampiai":
+            plt.plot(np.full(len(cpu), 16), label="60 FPS riba", color="red")
         plt.plot(cpu, label="Tradicinis")
         plt.plot(gpu, label="GPU valdomas")
         plt.plot(mesh, label="GPU valdomas su tinklų šešėliuokliais")
@@ -89,13 +108,26 @@ def plot_lines(cpu, gpu, mesh, title, test_id):
             show_figure()
 
 def plot_lines2(data_lists, data_labels, title, test_id):
-    #plt.figure(figsize=(8, 6))
     plt.subplots(figsize=(8, 6))
     plt.title(title)
     plt.xlabel("kadras")
     plt.ylabel("darbo laikas, ms")
     for data, l in zip(data_lists, data_labels):
         plt.plot(data, label=l)
+    plt.legend(loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=1)
+    plt.tight_layout()
+    if save_figures == True:
+        save_figure(test_id, title, "linechart")
+    if show_figures == True:
+        show_figure()
+
+def plot_lines3(data_lists, data_labels, x_data_lists, title, test_id):
+    plt.subplots(figsize=(8, 6))
+    plt.title(title)
+    plt.xlabel("kadras")
+    plt.ylabel("darbo laikas, ms")
+    for data, l, x in zip(data_lists, data_labels, x_data_lists):
+        plt.plot(x, data, label=l)
     plt.legend(loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=1)
     plt.tight_layout()
     if save_figures == True:
@@ -125,15 +157,32 @@ def plot_bar2(data_lists, data_labels, title, test_id):
     if show_figures == True:
         show_figure()
 
+def process_results_obj_count(result):
+    if result.test_id == 0:
+        print("Test run was not successful")
+
+    test_id_str = test_id_to_filename(result.test_id)
+    file_path = cwd + "Testing/TestData/" + test_id_str + "/"
+    df_cpu, df_gpu, df_mesh = read_all(file_path)
+    df_cpu = smoothing(df_cpu)
+    df_gpu = smoothing(df_gpu)
+    df_mesh = smoothing(df_mesh)
+    for col in df_cpu.columns:
+        plot_lines(df_cpu[col], df_gpu[col], df_mesh[col], translation[col], True, test_id_str)
+
+    labels = ["Tradicinis", "GPU valdomas", "GPU valdomas su tinklų skaičiavimu"]
+    x_datas = [df_cpu["Triangles"], df_gpu["Triangles"], df_mesh["Triangles"]]
+    plot_lines3([df_cpu["Frame Time"], df_gpu["Frame Time"], df_mesh["Frame Time"]], labels, x_datas, "Darbo laiko ir trikampių santykis", test_id_str)
+
+
+
 def process_results(result):
     if result.test_id == 0:
         print("Test run was not successful")
 
     test_id_str = test_id_to_filename(result.test_id)
     file_path = cwd + "Testing/TestData/" + test_id_str + "/"
-    df_cpu = read_data(file_path + "TestData-Traditional.csv")
-    df_gpu = read_data(file_path + "TestData-GPU-Driven.csv")
-    df_mesh = read_data(file_path + "TestData-GPU-Driven-Mesh.csv")
+    df_cpu, df_gpu, df_mesh = read_all(file_path)
 
     #  -- draw graphs -- 
     # line graphs
@@ -335,16 +384,18 @@ def test_suite_object_count():
         result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --growth-step=1000" + run_count)
         results = TestResult(result, "Augantis objektų skaičius")
 
-        process_results(results)
+        process_results_obj_count(results)
+    else:
+        process_results_obj_count(TestResult(423103839, "Augantis objektų skaičius"))
     
 
 
 
 def main():
-    test_suite1()
+    #test_suite1()
     #test_suite2()
     #test_suite_optimization()
-    #test_suite_object_count()
+    test_suite_object_count()
 
     for result in test_results:
         process_results(result)
