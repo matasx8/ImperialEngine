@@ -9,11 +9,20 @@
 #include <windows.h>
 #include <GLM/gtx/quaternion.hpp>
 
-void ConfigureEngineWithArgs(char** argv, std::vector<std::string>& scenesToLoad, std::string& distribution, std::string& entityCount, std::string& cameraMovement, EngineSettings& settings);
-void CustomUpdates(imp::Engine& engine, const std::string& cameraMovement);
+struct CLI
+{
+	std::vector<std::string> scenesToLoad;
+	std::string distribution;
+	std::string entityCount;
+	std::string cameraMovement;
+	std::string growthStep;
+};
+
+void ConfigureEngineWithArgs(char** argv, CLI& cli, EngineSettings& settings);
+void CustomUpdates(imp::Engine& engine, const CLI& cli);
 
 #if BENCHMARK_MODE
-bool Benchmark(imp::Engine& engine, EngineSettings& settings, int32_t& warmupFrames, int32_t& benchmarkFrames, uint32_t& currRenderModeIdx);
+bool Benchmark(imp::Engine& engine, const CLI& cli, EngineSettings& settings, int32_t& warmupFrames, int32_t& benchmarkFrames, uint32_t& currRenderModeIdx);
 int MergeTimingsAndOutput(imp::Engine& engine);
 
 static constexpr std::array<EngineRenderMode, kEngineRenderModeCount> kRenderModesToBenchmark = { kEngineRenderModeGPUDriven, kEngineRenderModeGPUDrivenMeshShading, kEngineRenderModeTraditional };
@@ -36,20 +45,17 @@ int main(int argc, char** argv)
 #endif
 	imp::Engine engine;
 
-	std::vector<std::string> scenesToLoad;
-	std::string distribution;
-	std::string entityCount;
-	std::string cameraMovement;
-	ConfigureEngineWithArgs(argv, scenesToLoad, distribution, entityCount, cameraMovement, settings);
+	CLI cli;
+	ConfigureEngineWithArgs(argv, cli, settings);
 
 	if (!engine.Initialize(settings))
 		return 1;
 
-	engine.LoadScenes(scenesToLoad);
+	engine.LoadScenes(cli.scenesToLoad);
 	engine.LoadAssets();
 
-	if (distribution.size() && entityCount.size())
-		engine.DistributeEntities(distribution, entityCount);
+	if (cli.distribution.size() && cli.entityCount.size())
+		engine.DistributeEntities(cli.distribution, cli.entityCount);
 
 	engine.SyncRenderThread();
 
@@ -66,11 +72,11 @@ int main(int argc, char** argv)
 	while (!engine.ShouldClose())
 	{
 #if BENCHMARK_MODE
-		if (Benchmark(engine, settings, warmupFrames, benchmarkFrames, currRenderModeIdx)) break;
+		if (Benchmark(engine, cli, settings, warmupFrames, benchmarkFrames, currRenderModeIdx)) break;
 #endif
 		engine.StartFrame();
 #if BENCHMARK_MODE
-		CustomUpdates(engine, cameraMovement);
+		CustomUpdates(engine, cli);
 #endif
 		engine.Update();
 		engine.SyncGameThread();	// wait for render thread and copy over render data
@@ -91,7 +97,7 @@ int main(int argc, char** argv)
 #endif
 }
 
-void ConfigureEngineWithArgs(char** argv, std::vector<std::string>& scenesToLoad, std::string& distribution, std::string& entityCount, std::string& cameraMovement, EngineSettings& settings)
+void ConfigureEngineWithArgs(char** argv, CLI& cli, EngineSettings& settings)
 {
 	argh::parser cmdl(argv);
 
@@ -107,13 +113,16 @@ void ConfigureEngineWithArgs(char** argv, std::vector<std::string>& scenesToLoad
 #endif
 
 	if (cmdl("--distribute"))
-		distribution = cmdl("--distribute").str();
+		cli.distribution = cmdl("--distribute").str();
 
 	if (cmdl("--entity-count"))
-		entityCount = cmdl("--entity-count").str();
+		cli.entityCount = cmdl("--entity-count").str();
 
 	if (cmdl("--camera-movement"))
-		cameraMovement = cmdl("--camera-movement").str();
+		cli.cameraMovement = cmdl("--camera-movement").str();
+
+	if (cmdl("--growth-step"))
+		cli.growthStep = cmdl("--growth-step").str();
 
 	auto lfIdx = std::find(cmdl.args().begin(), cmdl.args().end(), "--load-files");
 	if (lfIdx != cmdl.args().end())
@@ -125,18 +134,18 @@ void ConfigureEngineWithArgs(char** argv, std::vector<std::string>& scenesToLoad
 		for (int i = 0; i < numFilesToLoad; i++)
 		{
 			const auto path = *lfIdx;
-			scenesToLoad.push_back(path);
+			cli.scenesToLoad.push_back(path);
 			lfIdx++;
 		}
 
 	}
 }
 
-void CustomUpdates(imp::Engine& engine, const std::string& cameraMovement)
+void CustomUpdates(imp::Engine& engine, const CLI& cli)
 {
 	auto& reg = engine.GetEntityRegistry();
 	const auto cameras = reg.view<Comp::Transform, Comp::Camera>();
-	if (cameraMovement == "rotate")
+	if (cli.cameraMovement == "rotate")
 	{
 		constexpr float rotationStep = glm::radians(360.0f / 1000.0f);
 
@@ -148,7 +157,7 @@ void CustomUpdates(imp::Engine& engine, const std::string& cameraMovement)
 			transform.transform = glm::rotate(transform.transform, rotationStep, axis);
 		}
 	}
-	else if (cameraMovement == "away")
+	else if (cli.cameraMovement == "away")
 	{
 		constexpr glm::vec3 awayStep = glm::vec3(0.0f, 0.0f, 0.5f);
 
@@ -160,10 +169,15 @@ void CustomUpdates(imp::Engine& engine, const std::string& cameraMovement)
 			transform.transform = glm::translate(transform.transform, awayStep);
 		}
 	}
+
+	if (cli.growthStep.size())
+	{
+		engine.DistributeEntities(cli.distribution, cli.growthStep);
+	}
 }
 
 #if BENCHMARK_MODE
-bool Benchmark(imp::Engine& engine, EngineSettings& settings, int32_t& warmupFrames, int32_t& benchmarkFrames, uint32_t& currRenderModeIdx)
+bool Benchmark(imp::Engine& engine, const CLI& cli, EngineSettings& settings, int32_t& warmupFrames, int32_t& benchmarkFrames, uint32_t& currRenderModeIdx)
 {
 	if (warmupFrames-- == 0)
 	{
@@ -172,11 +186,27 @@ bool Benchmark(imp::Engine& engine, EngineSettings& settings, int32_t& warmupFra
 	
 	if (warmupFrames < 0 && benchmarkFrames-- == 0)
 	{
-		// probably not needed? or maybe needed for multiple rendering modes
 		engine.StopBenchmark();
 
 		warmupFrames = 20;
 		benchmarkFrames = settings.gfxSettings.numberOfFramesToBenchmark;
+
+		auto& reg = engine.GetEntityRegistry();
+		auto renderableChildren = reg.view<Comp::ChildComponent, Comp::Mesh, Comp::Material>();
+		auto transforms = reg.view<Comp::Transform>();
+
+		if (cli.growthStep.size())
+		{	// if we're doing growth step then we have to remove entitiesafter each benchmark
+			std::vector<entt::entity> entitiesToRemove;
+			for (auto ent : renderableChildren)
+			{
+				entitiesToRemove.push_back(ent);
+				const auto& parent = renderableChildren.get<Comp::ChildComponent>(ent).parent;
+				entitiesToRemove.push_back(parent);
+			}
+			reg.destroy(entitiesToRemove.begin(), entitiesToRemove.end());
+		}
+
 
 		currRenderModeIdx++;
 		if (currRenderModeIdx >= kEngineRenderModeCount)

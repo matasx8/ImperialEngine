@@ -6,7 +6,7 @@ import numpy as np
 # Like the application, scripts should be configured to run from ImperialEngine/ImperialEngine/
 
 #  -- Static Settings --
-use_premade_results = True
+use_premade_results = False
 engine_path = "../bin/x64/Release/ImperialEngine.exe"
 msbuild_path = "\"C:/Program Files/Microsoft Visual Studio/2022/Community/Msbuild/Current/Bin/MSBuild.exe\""
 
@@ -204,16 +204,16 @@ def test_suite1():
 
 
     # -- sponza with curtains and vines --
-    #result = run_test("--file-count=1 --load-files Scene/sponza_wc_v_flat.glb" + run_count)
-    #test_results.append(TestResult(result, "'Sponza' scena, visos optimizacijos"))
+    result = run_test("--file-count=1 --load-files Scene/sponza_wc_v_cameranear.glb" + run_count)
+    test_results.append(TestResult(result, "'Sponza' scena, visos optimizacijos"))
 
 
     # -- donut and monkey --
     #result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max" + run_count)
     #test_results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu"))
 
-    result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max --camera-movement=away" + run_count)
-    test_results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu"))
+    #result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max --camera-movement=away" + run_count)
+    #test_results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu"))
 
     #result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max --camera-movement=away" + run_count)
     #test_results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu"))
@@ -322,9 +322,7 @@ def test_suite_optimization():
 
 def test_suite_object_count():
     if use_premade_results == False:
-        run_count = " --run-for=500"
-
-        results = []
+        run_count = " --run-for=1000"
 
         # prepare environment with all optimizations
         defines = "BENCHMARK_MODE#1"
@@ -334,56 +332,19 @@ def test_suite_object_count():
             print("Failed to successfully compile engine")
             return
         
-        result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=100000" + run_count)
-        results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu su visomis optimizacijomis"))
+        result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --growth-step=1000" + run_count)
+        results = TestResult(result, "Augantis objektų skaičius")
 
-        # prepare environment without LOD
-        universal_defines = "LOD_ENABLED#0"
-        defines = "BENCHMARK_MODE#1;" + universal_defines
-        compile_shaders("DEBUG_MESH=0;" + universal_defines)
-        result = compile_engine(defines)
-        if result > 0:
-            print("Failed to successfully compile engine")
-            return
-        
-        result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=100000" + run_count)
-        results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu be LOD"))
-
-        # prepare environment without cone culling
-        universal_defines = "CONE_CULLING_ENABLED#0"
-        defines = "BENCHMARK_MODE#1;" + universal_defines
-        compile_shaders("DEBUG_MESH=0;" + universal_defines)
-        result = compile_engine(defines)
-        if result > 0:
-            print("Failed to successfully compile engine")
-            return
-        
-        result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=100000" + run_count)
-        results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu be klasterių atmetimo"))
-
-        # prepare environment without LOD and without cone culling
-        universal_defines = "LOD_ENABLED#0;CONE_CULLING_ENABLED#0"
-        defines = "BENCHMARK_MODE#1;" + universal_defines
-        compile_shaders("DEBUG_MESH=0;" + universal_defines)
-        result = compile_engine(defines)
-        if result > 0:
-            print("Failed to successfully compile engine")
-            return
-        
-        result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=100000" + run_count)
-        results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu be LOD ir be klasterių atmetimo"))
-    else:
-        results = fake_test_results
-
-    process_combined_results(results)
+        process_results(results)
     
 
 
 
 def main():
-    #test_suite1()
+    test_suite1()
     #test_suite2()
-    test_suite_optimization()
+    #test_suite_optimization()
+    #test_suite_object_count()
 
     for result in test_results:
         process_results(result)
