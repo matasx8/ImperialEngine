@@ -108,7 +108,7 @@ def plot_lines(cpu, gpu, mesh, title, draw_rt_line, test_id):
             show_figure()
 
 def plot_lines2(data_lists, data_labels, title, test_id):
-    plt.subplots(figsize=(8, 6))
+    plt.subplots(figsize=(8, 12))
     plt.title(title)
     plt.xlabel("kadras")
     plt.ylabel("darbo laikas, ms")
@@ -174,6 +174,18 @@ def process_results_obj_count(result):
     x_datas = [df_cpu["Triangles"], df_gpu["Triangles"], df_mesh["Triangles"]]
     plot_lines3([df_cpu["Frame Time"], df_gpu["Frame Time"], df_mesh["Frame Time"]], labels, x_datas, "Darbo laiko ir trikampių santykis", test_id_str)
 
+def process_mesh_results(results):
+    dfs_mesh = []
+    last_test_id_str = ""
+    for result in results:
+        test_id_str = test_id_to_filename(result.test_id)
+        last_test_id_str = test_id_str
+        file_path = cwd + "Testing/TestData/" + test_id_str + "/"
+        dfs_mesh.append(read_data(file_path + "TestData-GPU-Driven-Mesh.csv"))
+
+    plot_lines2([df["Frame Time"] for df in dfs_mesh], [result.desc for result in results], "Mesh", last_test_id_str)
+
+    plot_bar2([df["Frame Time"].mean() for df in dfs_mesh], [result.desc for result in results], "Mesh", last_test_id_str)    
 
 
 def process_results(result):
@@ -212,8 +224,6 @@ def process_combined_results(results):
         dfs_gpu.append(read_data(file_path + "TestData-GPU-Driven.csv"))
         dfs_mesh.append(read_data(file_path + "TestData-GPU-Driven-Mesh.csv"))
 
-    dasd = [df["Frame Time"] for df in dfs_cpu]
-
     plot_lines2([df["Frame Time"] for df in dfs_cpu], [result.desc for result in results], "Tradicinis", last_test_id_str)
     plot_lines2([df["Frame Time"] for df in dfs_gpu], [result.desc for result in results], "GPU", last_test_id_str)
     plot_lines2([df["Frame Time"] for df in dfs_mesh], [result.desc for result in results], "Mesh", last_test_id_str)
@@ -221,10 +231,6 @@ def process_combined_results(results):
     plot_bar2([df["Frame Time"].mean() for df in dfs_cpu], [result.desc for result in results], "Tradicinis", last_test_id_str)
     plot_bar2([df["Frame Time"].mean() for df in dfs_gpu], [result.desc for result in results], "GPU", last_test_id_str)
     plot_bar2([df["Frame Time"].mean() for df in dfs_mesh], [result.desc for result in results], "Mesh", last_test_id_str)
-
-
-
-
 
 
 # All optimizations
@@ -387,7 +393,53 @@ def test_suite_object_count():
         process_results_obj_count(results)
     else:
         process_results_obj_count(TestResult(423103839, "Augantis objektų skaičius"))
-    
+
+def test_suite_mesh():
+    if use_premade_results == False:
+        run_count = " --run-for=100"
+
+        results_random = []
+        results_dragons= []
+        combinations = [(64, 64), (64, 84), (64, 124), (48, 124), (48, 84), (48, 64), (32, 32), (32, 64), (32, 84)]
+        for combo in combinations:
+            universal_defines = "MESHLET_MAX_VERTS#{};MESHLET_MAX_PRIMS#{}".format(combo[0], combo[1])
+            defines = "BENCHMARK_MODE#1;" + universal_defines
+            compile_shaders("DEBUG_MESH=0;" + universal_defines)
+            result = compile_engine(defines)
+            if result > 0:
+                print("Failed to successfully compile engine")
+                return
+            
+            result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max" + run_count)
+            results.append(TestResult(result, "Random su max vir: {} ir max tri: {}". format(combo[0], combo[1])))
+
+            result = run_test("--file-count=1 --load-files Scene/BigDragons.glb" + run_count)
+            results.append(TestResult(result, "Random su max vir: {} ir max tri: {}". format(combo[0], combo[1])))
+
+        process_mesh_results(results)
+
+    else:
+        results_random = [TestResult(423164443, "Random su max vir: 64 ir max tri: 64"),
+                   TestResult(423164528, "Random su max vir: 64 ir max tri: 84"),
+                   TestResult(423164614, "Random su max vir: 64 ir max tri: 124"),
+                   TestResult(423164659, "Random su max vir: 48 ir max tri: 124"),
+                   TestResult(423164744, "Random su max vir: 48 ir max tri: 84"),
+                   TestResult(423164828, "Random su max vir: 48 ir max tri: 64"),
+                   TestResult(423164912, "Random su max vir: 32 ir max tri: 32"),
+                   TestResult(423164956, "Random su max vir: 32 ir max tri: 64"),
+                   TestResult(423165040, "Random su max vir: 32 ir max tri: 84")]
+
+        results_dragons = [TestResult(423164501, "Random su max vir: 64 ir max tri: 64"),
+                   TestResult(423164546, "Random su max vir: 64 ir max tri: 84"),
+                   TestResult(423164631, "Random su max vir: 64 ir max tri: 124"),
+                   TestResult(423164716, "Random su max vir: 48 ir max tri: 124"),
+                   TestResult(423164801, "Random su max vir: 48 ir max tri: 84"),
+                   TestResult(423164846, "Random su max vir: 48 ir max tri: 64"),
+                   TestResult(423164929, "Random su max vir: 32 ir max tri: 32"),
+                   TestResult(423165013, "Random su max vir: 32 ir max tri: 64"),
+                   TestResult(423165058, "Random su max vir: 32 ir max tri: 84")]
+        process_mesh_results(results_random)
+        process_mesh_results(results_dragons)
 
 
 
@@ -395,7 +447,8 @@ def main():
     #test_suite1()
     #test_suite2()
     #test_suite_optimization()
-    test_suite_object_count()
+    #test_suite_object_count()
+    test_suite_mesh()
 
     for result in test_results:
         process_results(result)
