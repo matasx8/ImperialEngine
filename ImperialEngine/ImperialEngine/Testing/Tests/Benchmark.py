@@ -6,7 +6,7 @@ import numpy as np
 # Like the application, scripts should be configured to run from ImperialEngine/ImperialEngine/
 
 #  -- Static Settings --
-use_premade_results = False
+use_premade_results = True
 engine_path = "../bin/x64/Release/ImperialEngine.exe"
 msbuild_path = "\"C:/Program Files/Microsoft Visual Studio/2022/Community/Msbuild/Current/Bin/MSBuild.exe\""
 
@@ -89,13 +89,15 @@ def plot_lines(cpu, gpu, mesh, title, test_id):
             show_figure()
 
 def plot_lines2(data_lists, data_labels, title, test_id):
-    plt.figure()
+    #plt.figure(figsize=(8, 6))
+    plt.subplots(figsize=(8, 6))
     plt.title(title)
     plt.xlabel("kadras")
     plt.ylabel("darbo laikas, ms")
     for data, l in zip(data_lists, data_labels):
         plt.plot(data, label=l)
-    plt.legend()
+    plt.legend(loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=1)
+    plt.tight_layout()
     if save_figures == True:
         save_figure(test_id, title, "linechart")
     if show_figures == True:
