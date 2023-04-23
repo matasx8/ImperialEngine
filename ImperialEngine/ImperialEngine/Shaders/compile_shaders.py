@@ -1,12 +1,18 @@
 #store hash for this folder
 #if hash is different then compile shaders
-import hashlib, os
+import hashlib
+import os
+import sys
 COMPILER_PATH = os.environ.get("VK_SDK_PATH") + "\\Bin\\glslangValidator.exe"
 FORCE_COMPILE = True
 
-# TODO: I think currently this tries to compile spv files cus they have the '.frag' and etc in their name
-
 def CompileDir(directory):
+    
+    additional_args = ""
+    if len(sys.argv) > 1:
+      additional_args = ' '.join(sys.argv[1:])
+      print("Aditional compiler cli args: " + additional_args)
+
     #gather all .frag, .vert files
     #compile them all
     for root, dirs, files in os.walk(directory):
@@ -19,7 +25,7 @@ def CompileDir(directory):
                 fn = names[:pos]
                 ft = names[pos + 1:]
                 renamed = directory + "\\spir-v\\" + fn + "." + ft + ".spv"
-                args = COMPILER_PATH + " -V --target-env vulkan1.2" + " -o" + " " + renamed + " " + directory + "\\glsl\\" + names
+                args = COMPILER_PATH + " -V --target-env vulkan1.2" + " " + additional_args + " -o" + " " + renamed + " " + directory + "\\glsl\\" + names
                 #print(args)
                 os.system(args)
 

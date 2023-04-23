@@ -164,7 +164,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>$(Define0);$(Define1);$(Define2);$(Define3);$(Define4);$(Define5);$(Define6);$(Define7);$(Define8);$(Define9);_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>$(ProjectDir)/src;$(VULKAN_SDK)/Include;$(VK_SDK_PATH)/Include;$(ProjectDir)/src/extern/IMGUI;$(ProjectDir)/src/extern/;$(ProjectDir)/src/extern/ENTT;$(ProjectDir)/extern/AFTERMATH/include;$(ProjectDir)/extern/VOLK;$(ProjectDir)/src/extern/STB;$(ProjectDir)/src/extern/JSON;$(ProjectDir)/src/extern/TINY_GLTF;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -184,7 +184,7 @@
       </AdditionalOptions>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEV;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>$(Define0);$(Define1);$(Define2);$(Define3);$(Define4);$(Define5);$(Define6);$(Define7);$(Define8);$(Define9);_DEV;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>$(ProjectDir)/src;$(VULKAN_SDK)/Include;$(VK_SDK_PATH)/Include;$(ProjectDir)/src/extern/IMGUI;$(ProjectDir)/src/extern/;$(ProjectDir)/src/extern/ENTT;$(ProjectDir)/extern/AFTERMATH/include;$(ProjectDir)/extern/VOLK;$(ProjectDir)/src/extern/STB;$(ProjectDir)/src/extern/JSON;$(ProjectDir)/src/extern/TINY_GLTF;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -205,7 +205,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>$(Define0);$(Define1);$(Define2);$(Define3);$(Define4);$(Define5);$(Define6);$(Define7);$(Define8);$(Define9);NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <AdditionalIncludeDirectories>$(ProjectDir)/src;$(VULKAN_SDK)/Include;$(VK_SDK_PATH)/Include;$(ProjectDir)/src/extern/IMGUI;$(ProjectDir)/src/extern/;$(ProjectDir)/src/extern/ENTT;$(ProjectDir)/extern/AFTERMATH/include;$(ProjectDir)/extern/VOLK;$(ProjectDir)/src/extern/STB;$(ProjectDir)/src/extern/JSON;$(ProjectDir)/src/extern/TINY_GLTF;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>

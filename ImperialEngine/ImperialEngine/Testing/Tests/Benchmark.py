@@ -105,15 +105,44 @@ def process_results(result):
 
     print("done")
 
+def process_combined_results(results):
+    dfs_cpu = []
+    dfs_gpu = []
+    dfs_mesh = []
+    last_test_id_str = ""
+    for result in results:
+        test_id_str = test_id_to_filename(result.test_id)
+        last_test_id_str = test_id_str
+        file_path = cwd + "Testing/TestData/" + test_id_str + "/"
+        dfs_cpu.append(read_data(file_path + "TestData-Traditional.csv"))
+        dfs_gpu.append(read_data(file_path + "TestData-GPU-Driven.csv"))
+        dfs_mesh.append(read_data(file_path + "TestData-GPU-Driven-Mesh.csv"))
+
+    for col in dfs_cpu[0]:
+        plot_lines(dfs_cpu[0], dfs_cpu[1], dfs_cpu[2], translation[col], last_test_id_str)
+
+    for col in dfs_gpu[0]:
+        plot_lines(dfs_gpu[0], dfs_gpu[1], dfs_gpu[2], translation[col], last_test_id_str)
+
+    for col in dfs_mesh[0]:
+        plot_lines(dfs_mesh[0], dfs_mesh[1], dfs_mesh[2], translation[col], last_test_id_str)
+
+
+
 
 
 
 # All optimizations
 def test_suite1():
-    run_count = " --run-for=1000"
+    run_count = " --run-for=250"
 
     # get the test environment ready
-    compile_engine()
+    defines = "BENCHMARK_MODE#1"
+    compile_shaders("DEBUG_MESH=0")
+    result = compile_engine(defines)
+    if result > 0:
+        print("Failed to successfully compile engine")
+        return
 
     #  -- regular sponza --
     #result = run_test("--file-count=1 --load-files Scene/sponza.glb" + run_count)
@@ -137,11 +166,11 @@ def test_suite1():
     #result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max" + run_count)
     #test_results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu"))
 
-    result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max --camera-movement=rotate" + run_count)
-    test_results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu"))
-
     result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max --camera-movement=away" + run_count)
     test_results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu"))
+
+    #result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max --camera-movement=away" + run_count)
+    #test_results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu"))
 
     #result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max --camera-movement=static_offset" + run_count)
     #test_results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu"))
@@ -152,21 +181,129 @@ def test_suite1():
 
     # very low poly
 
+# no LOD
+def test_suite2():
+    run_count = " --run-for=250"
+
+    universal_defines = "LOD_ENABLED#0"
+    defines = "BENCHMARK_MODE#1;" + universal_defines
+    # get the test environment ready
+    compile_shaders(universal_defines)
+    res = compile_engine(defines)
+    if res > 0:
+        print("Failed to successfully compile engine")
+        return
+
+    result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max --camera-movement=away" + run_count)
+    test_results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu"))
+
+# no LOD and no Cone Culling
+def test_suite3():
+    run_count = " --run-for=100"
+
+    universal_defines = "LOD_ENABLED#0;CONE_CULLING_ENABLED#0"
+    defines = "BENCHMARK_MODE#1;" + universal_defines
+    # get the test environment ready
+    compile_engine(defines)
+    result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max --camera-movement=rotate" + run_count)
+    test_results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu"))
+
+# No optimizations
+def test_suite3():
+    run_count = " --run-for=100"
+
+    universal_defines = "LOD_ENABLED#0;CONE_CULLING_ENABLED#0;CULLING_ENABLED#0"
+    defines = "BENCHMARK_MODE#1;" + universal_defines
+    # get the test environment ready
+    compile_engine(defines)
+
+def test_suite_optimization():
+    run_count = " --run-for=250"
+
+    results = []
+
+    # prepare environment with all optimizations
+    defines = "BENCHMARK_MODE#1"
+    compile_shaders("DEBUG_MESH=0")
+    result = compile_engine(defines)
+    if result > 0:
+        print("Failed to successfully compile engine")
+        return
+    
+    result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=100000 --camera-movement=away" + run_count)
+    results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu su visomis optimizacijomis"))
+
+    # prepare environment without LOD
+    universal_defines = "LOD_ENABLED#0"
+    defines = "BENCHMARK_MODE#1;" + universal_defines
+    compile_shaders("DEBUG_MESH=0;" + universal_defines)
+    result = compile_engine(defines)
+    if result > 0:
+        print("Failed to successfully compile engine")
+        return
+    
+    result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=100000 --camera-movement=away" + run_count)
+    results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu be LOD"))
+
+    # prepare environment without cone culling
+    universal_defines = "CONE_CULLING_ENABLED#0"
+    defines = "BENCHMARK_MODE#1;" + universal_defines
+    compile_shaders("DEBUG_MESH=0;" + universal_defines)
+    result = compile_engine(defines)
+    if result > 0:
+        print("Failed to successfully compile engine")
+        return
+    
+    result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=100000 --camera-movement=away" + run_count)
+    results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu be klasterių atmetimo"))
+
+    # prepare environment without LOD and without cone culling
+    universal_defines = "LOD_ENABLED#0;CONE_CULLING_ENABLED#0"
+    defines = "BENCHMARK_MODE#1;" + universal_defines
+    compile_shaders("DEBUG_MESH=0;" + universal_defines)
+    result = compile_engine(defines)
+    if result > 0:
+        print("Failed to successfully compile engine")
+        return
+    
+    result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=100000 --camera-movement=away" + run_count)
+    results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu be LOD ir be klasterių atmetimo"))
+
+    process_combined_results(results)
+    
+
 
 
 def main():
-    test_suite1()
+    #test_suite1()
+    #test_suite2()
+    test_suite_optimization()
 
     for result in test_results:
         process_results(result)
 
-def compile_engine():
+def compile_engine(defines):
+    define_args = ""
+    if len(defines) > 0:
+        split_defines = defines.split(';')
+        post_processed_split = [" /p:Define" + str(ind) + "=" + defi for ind, defi in enumerate(split_defines)]
+        define_args = "".join(post_processed_split)
     project = "ImperialEngine.vcxproj"
-    config = "/p:configuration=Release /p:platform=x64 /p:OutDir=../bin/x64/Release/ /p:IntDir=../bin/intermediates/x64/Release/"
-    config_debug = "/p:configuration=Development /p:platform=x64 /p:OutDir=../bin/x64/Development/ /p:IntDir=../bin/intermediates/x64/Development/ -v:m"
+    config = "/p:configuration=Release /p:platform=x64 /p:OutDir=../bin/x64/Release/ /p:IntDir=../bin/intermediates/x64/Release/" + define_args
+    #config_debug = "/p:configuration=Development /p:platform=x64 /p:OutDir=../bin/x64/Development/ /p:IntDir=../bin/intermediates/x64/Development/ -v:m"
     args = " " + project + " " + config
     exit_code = os.system(msbuild_path + args)
-    print(exit_code)
+    return exit_code
+
+def compile_shaders(defines):
+    defines = defines.replace("#","=")
+    seperated = defines.split(';')
+    post_processed_defines = ""
+    if len(defines) > 0:
+        post_processed_defines = "-D" + " -D".join(seperated)
+
+    compile_script = "py Shaders/compile_shaders.py"
+    os.system(compile_script + " " + post_processed_defines)
 
 def run_test(args):
     command = cwd + engine_path + " " + args

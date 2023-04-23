@@ -28,14 +28,6 @@ namespace imp
 			return item;
 		}
 
-		//T&& Get(VkDevice device, uint64_t currFrame)
-		//{
-		//	if (m_Pool.size() && currFrame - m_Pool.front().GetLastUsed() > 3) // TODO: provide this number
-		//		return m_Pool.pop_back();
-		//	else
-		//		return m_FacFun(device);
-		//}
-
 		void Return(T& item)
 		{
 			m_Pool.push_back(item);

@@ -35,7 +35,7 @@ EngineSettings::EngineSettings(EngineSettingsTemplate settingsTemplate)
 	gfxSettings.swapchainImageCount = kEngineSwapchainDoubleBuffering;
 	
 #if !BENCHMARK_MODE
-	gfxSettings.preferredPresentModes = { kEnginePresentMailbox, kEnginePresentFifo };
+	gfxSettings.preferredPresentModes = { /*kEnginePresentMailbox,*/ kEnginePresentFifo };
 #else
 	// can get more stable results without vsync
 	gfxSettings.preferredPresentModes = { kEnginePresentMailbox, kEnginePresentFifo};

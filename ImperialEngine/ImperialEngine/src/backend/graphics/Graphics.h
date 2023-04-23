@@ -158,7 +158,7 @@ namespace imp
 
 		VulkanBuffer m_VertexBuffer;
 		VulkanBuffer m_IndexBuffer;
-		VulkanBuffer m_DrawBuffer;
+		VulkanBuffer m_DrawBuffer; // buffer with indirect draw commands that indirect draw command will read
 		std::array<VulkanBuffer, kEngineSwapchainDoubleBuffering> m_StagingDrawBuffer;
 		VulkanBuffer m_BoundingVolumeBuffer;
 		uint32_t m_NumDraws;

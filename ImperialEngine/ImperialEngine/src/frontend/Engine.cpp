@@ -371,7 +371,7 @@ namespace imp
 	{			
 #if !BENCHMARK_MODE
 		//AddDemoEntity(5000);
-		AddDemoEntity(kMaxDrawCount - 1);
+		//AddDemoEntity(kMaxDrawCount - 1);
 #endif
 	}
 
