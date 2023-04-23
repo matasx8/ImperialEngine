@@ -37,10 +37,10 @@ class TestResult:
         self.desc = desc
 
 test_results = []
-fake_test_results = [TestResult(423065040, 'Spurga ir Suzanne su atsitiktiniu išmėtymu su visomis optimizacijomis')
-                     , TestResult(423065104, 'Spurga ir Suzanne su atsitiktiniu išmėtymu be LOD')
-                     , TestResult(423065122, 'Spurga ir Suzanne su atsitiktiniu išmėtymu be klasterių atmetimo')
-                     , TestResult(423065145, 'Spurga ir Suzanne su atsitiktiniu išmėtymu be LOD ir be klasterių atmetimo')]
+fake_test_results = [TestResult(423065040, 'Visos optim.')
+                     , TestResult(423065104, 'Be LOD')
+                     , TestResult(423065122, 'Be Klast. Atm.')
+                     , TestResult(423065145, 'Be LOD ir Be Klast. Atm.')]
 
 ## -- Functions -- 
 
@@ -103,6 +103,28 @@ def plot_lines2(data_lists, data_labels, title, test_id):
     if show_figures == True:
         show_figure()
 
+def plot_bar2(data_lists, data_labels, title, test_id):
+    fig, ax = plt.subplots(figsize=(8, 6))
+    plt.title(title)
+    plt.ylabel("darbo laikas, ms")
+
+    x = np.arange(len(data_lists))
+    rects = ax.bar(x, data_lists)
+    for rect in rects:
+        height = rect.get_height()
+        ax.text(rect.get_x() + rect.get_width() / 2., 0.5 * height,
+                '{:.2f}'.format(height),
+                ha='center', va='bottom', color='white', weight='bold')
+
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(data_labels, rotation=45, ha='right')
+    plt.tight_layout()
+    if save_figures == True:
+        save_figure(test_id, title, "barchart")
+    if show_figures == True:
+        show_figure()
+
 def process_results(result):
     if result.test_id == 0:
         print("Test run was not successful")
@@ -146,6 +168,10 @@ def process_combined_results(results):
     plot_lines2([df["Frame Time"] for df in dfs_cpu], [result.desc for result in results], "Tradicinis", last_test_id_str)
     plot_lines2([df["Frame Time"] for df in dfs_gpu], [result.desc for result in results], "GPU", last_test_id_str)
     plot_lines2([df["Frame Time"] for df in dfs_mesh], [result.desc for result in results], "Mesh", last_test_id_str)
+
+    plot_bar2([df["Frame Time"].mean() for df in dfs_cpu], [result.desc for result in results], "Tradicinis", last_test_id_str)
+    plot_bar2([df["Frame Time"].mean() for df in dfs_gpu], [result.desc for result in results], "GPU", last_test_id_str)
+    plot_bar2([df["Frame Time"].mean() for df in dfs_mesh], [result.desc for result in results], "Mesh", last_test_id_str)
 
 
 
@@ -238,6 +264,63 @@ def test_suite3():
     compile_engine(defines)
 
 def test_suite_optimization():
+    if use_premade_results == False:
+        run_count = " --run-for=500"
+
+        results = []
+
+        # prepare environment with all optimizations
+        defines = "BENCHMARK_MODE#1"
+        compile_shaders("DEBUG_MESH=0")
+        result = compile_engine(defines)
+        if result > 0:
+            print("Failed to successfully compile engine")
+            return
+        
+        result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=100000" + run_count)
+        results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu su visomis optimizacijomis"))
+
+        # prepare environment without LOD
+        universal_defines = "LOD_ENABLED#0"
+        defines = "BENCHMARK_MODE#1;" + universal_defines
+        compile_shaders("DEBUG_MESH=0;" + universal_defines)
+        result = compile_engine(defines)
+        if result > 0:
+            print("Failed to successfully compile engine")
+            return
+        
+        result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=100000" + run_count)
+        results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu be LOD"))
+
+        # prepare environment without cone culling
+        universal_defines = "CONE_CULLING_ENABLED#0"
+        defines = "BENCHMARK_MODE#1;" + universal_defines
+        compile_shaders("DEBUG_MESH=0;" + universal_defines)
+        result = compile_engine(defines)
+        if result > 0:
+            print("Failed to successfully compile engine")
+            return
+        
+        result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=100000" + run_count)
+        results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu be klasterių atmetimo"))
+
+        # prepare environment without LOD and without cone culling
+        universal_defines = "LOD_ENABLED#0;CONE_CULLING_ENABLED#0"
+        defines = "BENCHMARK_MODE#1;" + universal_defines
+        compile_shaders("DEBUG_MESH=0;" + universal_defines)
+        result = compile_engine(defines)
+        if result > 0:
+            print("Failed to successfully compile engine")
+            return
+        
+        result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=100000" + run_count)
+        results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu be LOD ir be klasterių atmetimo"))
+    else:
+        results = fake_test_results
+
+    process_combined_results(results)
+
+def test_suite_object_count():
     if use_premade_results == False:
         run_count = " --run-for=500"
 
