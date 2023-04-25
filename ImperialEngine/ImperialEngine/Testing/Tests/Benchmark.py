@@ -38,11 +38,6 @@ class TestResult:
         self.desc = desc
 
 test_results = []
-fake_test_results = [TestResult(423065040, 'Visos optim.')
-                     , TestResult(423065104, 'Be LOD')
-                     , TestResult(423065122, 'Be Klast. Atm.')
-                     , TestResult(423065145, 'Be LOD ir Be Klast. Atm.')]
-
 ## -- Functions -- 
 
 def read_data(data_file_name):
@@ -220,16 +215,19 @@ def process_combined_results(results):
         test_id_str = test_id_to_filename(result.test_id)
         last_test_id_str = test_id_str
         file_path = cwd + "Testing/TestData/" + test_id_str + "/"
-        dfs_cpu.append(read_data(file_path + "TestData-Traditional.csv"))
-        dfs_gpu.append(read_data(file_path + "TestData-GPU-Driven.csv"))
-        dfs_mesh.append(read_data(file_path + "TestData-GPU-Driven-Mesh.csv"))
+        if result.desc.find("Klast") < 0:
+            dfs_cpu.append(smoothing(read_data(file_path + "TestData-Traditional.csv")))
+            dfs_gpu.append(smoothing(read_data(file_path + "TestData-GPU-Driven.csv")))
+        dfs_mesh.append(smoothing(read_data(file_path + "TestData-GPU-Driven-Mesh.csv")))
 
-    plot_lines2([df["Frame Time"] for df in dfs_cpu], [result.desc for result in results], "Tradicinis", last_test_id_str)
-    plot_lines2([df["Frame Time"] for df in dfs_gpu], [result.desc for result in results], "GPU", last_test_id_str)
+    
+    # skip results with cluster culling only changes for non mesh shading pipelines
+    plot_lines2([df["Frame Time"] for df in dfs_cpu], [result.desc for result in results if result.desc.find("Klast") < 0], "Tradicinis", last_test_id_str)
+    plot_lines2([df["Frame Time"] for df in dfs_gpu], [result.desc for result in results if result.desc.find("Klast") < 0], "GPU", last_test_id_str)
     plot_lines2([df["Frame Time"] for df in dfs_mesh], [result.desc for result in results], "Mesh", last_test_id_str)
 
-    plot_bar2([df["Frame Time"].mean() for df in dfs_cpu], [result.desc for result in results], "Tradicinis", last_test_id_str)
-    plot_bar2([df["Frame Time"].mean() for df in dfs_gpu], [result.desc for result in results], "GPU", last_test_id_str)
+    plot_bar2([df["Frame Time"].mean() for df in dfs_cpu], [result.desc for result in results if result.desc.find("Klast") < 0], "Tradicinis", last_test_id_str)
+    plot_bar2([df["Frame Time"].mean() for df in dfs_gpu], [result.desc for result in results if result.desc.find("Klast") < 0], "GPU", last_test_id_str)
     plot_bar2([df["Frame Time"].mean() for df in dfs_mesh], [result.desc for result in results], "Mesh", last_test_id_str)
 
 
@@ -333,7 +331,7 @@ def test_suite_optimization():
             return
         
         result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=100000" + run_count)
-        results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu su visomis optimizacijomis"))
+        results.append(TestResult(result, "Visos optim."))
 
         # prepare environment without LOD
         universal_defines = "LOD_ENABLED#0"
@@ -345,7 +343,7 @@ def test_suite_optimization():
             return
         
         result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=100000" + run_count)
-        results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu be LOD"))
+        results.append(TestResult(result, "Be LOD"))
 
         # prepare environment without cone culling
         universal_defines = "CONE_CULLING_ENABLED#0"
@@ -357,7 +355,7 @@ def test_suite_optimization():
             return
         
         result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=100000" + run_count)
-        results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu be klasterių atmetimo"))
+        results.append(TestResult(result, "Be Klast. Atm."))
 
         # prepare environment without LOD and without cone culling
         universal_defines = "LOD_ENABLED#0;CONE_CULLING_ENABLED#0"
@@ -369,8 +367,103 @@ def test_suite_optimization():
             return
         
         result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=100000" + run_count)
-        results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu be LOD ir be klasterių atmetimo"))
+        results.append(TestResult(result, "Be LOD ir Be Klast. Atm."))
+
+        # prepare environment without LOD and without cone culling and without VF culling
+        universal_defines = "LOD_ENABLED#0;CONE_CULLING_ENABLED#0;CULLING_ENABLED#0"
+        defines = "BENCHMARK_MODE#1;" + universal_defines
+        compile_shaders("DEBUG_MESH=0;" + universal_defines)
+        result = compile_engine(defines)
+        if result > 0:
+            print("Failed to successfully compile engine")
+            return
+        
+        result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=100000" + run_count)
+        results.append(TestResult(result, "Be jokių optimizacijų"))
+
     else:
+        fake_test_results = [  TestResult(425065858, 'Visos optim.')
+                     , TestResult(425065921, 'Be LOD')
+                     , TestResult(425065939, 'Be Klast. Atm.')
+                     , TestResult(425070002, 'Be LOD ir Be Klast. Atm.')
+                     , TestResult(425070100, 'Be jokių optimizacijų')]
+
+        results = fake_test_results
+
+    process_combined_results(results)
+
+def test_suite_optimization_bigmesh():
+    if use_premade_results == False:
+        run_count = " --run-for=500"
+
+        results = []
+
+        # prepare environment with all optimizations
+        defines = "BENCHMARK_MODE#1"
+        compile_shaders("DEBUG_MESH=0")
+        result = compile_engine(defines)
+        if result > 0:
+            print("Failed to successfully compile engine")
+            return
+        
+        result = run_test("--file-count=1 --load-files Scene/BigDragons.glb" + run_count)
+        results.append(TestResult(result, "Visos optim."))
+
+        # prepare environment without LOD
+        universal_defines = "LOD_ENABLED#0"
+        defines = "BENCHMARK_MODE#1;" + universal_defines
+        compile_shaders("DEBUG_MESH=0;" + universal_defines)
+        result = compile_engine(defines)
+        if result > 0:
+            print("Failed to successfully compile engine")
+            return
+        
+        result = run_test("--file-count=1 --load-files Scene/BigDragons.glb" + run_count)
+        results.append(TestResult(result, "Be LOD"))
+
+        # prepare environment without cone culling
+        universal_defines = "CONE_CULLING_ENABLED#0"
+        defines = "BENCHMARK_MODE#1;" + universal_defines
+        compile_shaders("DEBUG_MESH=0;" + universal_defines)
+        result = compile_engine(defines)
+        if result > 0:
+            print("Failed to successfully compile engine")
+            return
+        
+        result = run_test("--file-count=1 --load-files Scene/BigDragons.glb" + run_count)
+        results.append(TestResult(result, "Be Klast. Atm."))
+
+        # prepare environment without LOD and without cone culling
+        universal_defines = "LOD_ENABLED#0;CONE_CULLING_ENABLED#0"
+        defines = "BENCHMARK_MODE#1;" + universal_defines
+        compile_shaders("DEBUG_MESH=0;" + universal_defines)
+        result = compile_engine(defines)
+        if result > 0:
+            print("Failed to successfully compile engine")
+            return
+        
+        result = run_test("--file-count=1 --load-files Scene/BigDragons.glb" + run_count)
+        results.append(TestResult(result, "Be LOD ir Be Klast. Atm."))
+
+        # prepare environment without LOD and without cone culling and without VF culling
+        universal_defines = "LOD_ENABLED#0;CONE_CULLING_ENABLED#0;CULLING_ENABLED#0"
+        defines = "BENCHMARK_MODE#1;" + universal_defines
+        compile_shaders("DEBUG_MESH=0;" + universal_defines)
+        result = compile_engine(defines)
+        if result > 0:
+            print("Failed to successfully compile engine")
+            return
+        
+        result = run_test("--file-count=1 --load-files Scene/BigDragons.glb" + run_count)
+        results.append(TestResult(result, "Be jokių optimizacijų"))
+
+    else:
+        fake_test_results = [ TestResult(425072243, 'Visos optim.') # these premade results are a bit outdated
+                            , TestResult(425072324, 'Be LOD')
+                            , TestResult(425072400, 'Be Klast. Atm.')
+                            , TestResult(425072440, 'Be LOD ir Be Klast. Atm.')
+                            , TestResult(425072519, 'Be jokių optimizacijų')]
+
         results = fake_test_results
 
     process_combined_results(results)
@@ -447,8 +540,9 @@ def main():
     #test_suite1()
     #test_suite2()
     #test_suite_optimization()
+    test_suite_optimization_bigmesh()
     #test_suite_object_count()
-    test_suite_mesh()
+    #test_suite_mesh()
 
     for result in test_results:
         process_results(result)
