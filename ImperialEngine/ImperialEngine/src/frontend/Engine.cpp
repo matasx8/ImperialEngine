@@ -25,7 +25,7 @@ namespace imp
 		, m_UI()
 		, m_ThreadPool(nullptr)
 		, m_Gfx()
-		, m_CulledDrawData()
+		, m_VisibleDrawData()
 #if BENCHMARK_MODE
 		, m_InitialCameraTransform()
 		, m_FrameTimeTables()
@@ -452,7 +452,9 @@ namespace imp
 		if (m_CollectBenchmarkData)
 			m_CullTimer.start();
 #endif
-		utils::Cull(m_Entities, m_CulledDrawData, m_Gfx, *m_ThreadPool);
+#if CULLING_ENABLED
+		utils::Cull(m_Entities, m_VisibleDrawData, m_Gfx, *m_ThreadPool);
+#endif
 
 #if BENCHMARK_MODE
 		if (m_CollectBenchmarkData)
@@ -460,11 +462,31 @@ namespace imp
 #endif
 	}
 
-	inline void GenerateIndirectDrawCommand(IGPUBuffer& dstBuffer, const Comp::MeshGeometry& meshData, uint32_t meshId)
+	inline void GenerateIndirectDrawCommand(IGPUBuffer& dstBuffer, const Comp::MeshGeometry& meshData, uint32_t meshId, bool isMeshPipeline)
 	{
+#if CULLING_ENABLED
 		IndirectDrawCmd cmd;
 		cmd.meshDataIndex = meshId;
 		dstBuffer.push_back(&cmd, sizeof(IndirectDrawCmd));
+#else
+		if (!isMeshPipeline)
+		{
+			VkDrawIndexedIndirectCommand cmd = {};
+			cmd.indexCount = meshData.indices[0].GetCount();
+			cmd.firstIndex = meshData.indices[0].GetOffset();
+			cmd.instanceCount = 1;
+			cmd.firstInstance = 0;
+			cmd.vertexOffset = meshData.vertices.GetOffset();
+			dstBuffer.push_back(&cmd, sizeof(VkDrawIndexedIndirectCommand));
+			return;
+		}
+		ms_IndirectDrawCommand mcmd;
+		mcmd.firstTask = 0;
+		mcmd.taskCount = CONE_CULLING_ENABLED ? (meshData.meshlets[0].GetCount() + MESH_WGROUP - 1) / MESH_WGROUP : meshData.meshlets[0].GetCount();
+		mcmd.meshTaskCount = meshData.meshlets[0].GetCount();
+		mcmd.meshletBufferOffset = meshData.meshlets[0].GetOffset();
+		dstBuffer.push_back(&mcmd, sizeof(ms_IndirectDrawCommand));
+#endif
 	}
 
 	// This member function gets executed when both main and render thread arrive at the barrier.
@@ -480,12 +502,39 @@ namespace imp
 		m_Window.UpdateDeltaTime();
 
 		const auto renderMode = GetCurrentRenderMode();
+		bool isMeshPipe = renderMode == kEngineRenderModeGPUDrivenMeshShading;
 
 		switch (renderMode)
 		{
 		case kEngineRenderModeTraditional:
 		{
-			auto& srcDrawData = m_CulledDrawData;
+#if CULLING_ENABLED
+			auto& srcDrawData = m_VisibleDrawData;
+#else 
+			if (IsDrawDataDirty())
+			{
+				const auto transforms = m_Entities.view<Comp::Transform>();
+				const auto group = m_Entities.group<Comp::ChildComponent, Comp::Mesh, Comp::Material>();
+				const auto groupSize = group.size();
+				m_VisibleDrawData.resize(0);
+
+				for (const auto ent : group)
+				{
+					const auto& mesh = group.get<Comp::Mesh>(ent);
+					const auto& parent = group.get<Comp::ChildComponent>(ent).parent;
+					const auto& transform = transforms.get<Comp::Transform>(parent);
+
+					DrawDataSingle dds;
+					dds.Transform = transform.transform;
+					dds.VertexBufferId = mesh.meshId;
+					dds.LodIdx = 0;
+
+					m_VisibleDrawData.push_back(dds);
+				}
+			}
+			auto& srcDrawData = m_VisibleDrawData;
+#endif
+
 			auto& dstDrawData = m_Gfx.m_DrawData;
 			dstDrawData.resize(0);
 
@@ -516,7 +565,7 @@ namespace imp
 				if (IsDrawDataDirty())
 				{
 					// Needed for GPU-driven
-					GenerateIndirectDrawCommand(drawCmdBuffer, meshData, mesh.meshId);
+					GenerateIndirectDrawCommand(drawCmdBuffer, meshData, mesh.meshId, isMeshPipe);
 				}
 
 				// Also update shader draw data. Also contains mesh id, that CPU-driven can use to generate draw commands

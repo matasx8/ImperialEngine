@@ -119,7 +119,7 @@ namespace imp
 		// graphics stuff
 		Graphics m_Gfx;
 		// Used as a "staging" buffer for CPU VF culling
-		std::vector<DrawDataSingle> m_CulledDrawData;
+		std::vector<DrawDataSingle> m_VisibleDrawData;
 
 #if BENCHMARK_MODE
 		glm::mat4x4 m_InitialCameraTransform;

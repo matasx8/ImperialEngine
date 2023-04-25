@@ -119,7 +119,11 @@ namespace imp
 
         if (releaseAll) // also need to release draw command buffer that might not get updated every time
         {
+#if CULLING_ENABLED
             auto& dcb = m_ShaderManager.GetDrawCommandBuffer();
+#else
+            auto& dcb = m_DrawBuffer;
+#endif
             const auto bmb_dcb = utils::CreateBufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT, dstAccess, tf, gf, dcb.GetBuffer());
             bmbs.push_back(bmb_dcb);
         }
@@ -139,7 +143,11 @@ namespace imp
     {
         // Update the new global draw count
         auto& staging = m_StagingDrawBuffer[m_Swapchain.GetFrameClock()];
+#if CULLING_ENABLED
         auto& dst = m_ShaderManager.GetDrawCommandBuffer();
+#else
+        auto& dst = m_DrawBuffer;
+#endif
 
         // give instructions for CB to wait on previous dst semaphore
         m_TransferCbManager.AddQueueDependencies(staging.GetTimeline());
@@ -156,7 +164,11 @@ namespace imp
         CommandBuffer& cb = m_TransferCbManager.GetCurrentCB(m_LogicalDevice);
 
         VkBufferCopy copy = {};
+#if CULLING_ENABLED
         copy.size = m_NumDraws * sizeof(IndirectDrawCmd);
+#else
+        copy.size = m_NumDraws * sizeof(VkDrawIndexedIndirectCommand);
+#endif
 
         vkCmdCopyBuffer(cb.cmb, staging.GetBuffer(), dst.GetBuffer(), 1, &copy);
 
@@ -188,27 +200,7 @@ namespace imp
         CommandBuffer cb = m_CbManager.AquireCommandBuffer(m_LogicalDevice);
         cb.Begin();
 
-        std::vector<VkBufferMemoryBarrier> bmbs;
-        VkAccessFlags srcAccess = 0; // srcAccess is ignored for Q ownership transfers (when aquiring)
-        uint32_t tf = m_GfxCaps.GetQueueFamilies().transferFamily;
-        uint32_t gf = m_GfxCaps.GetQueueFamilies().graphicsFamily;
-
-        auto& dcb = m_ShaderManager.GetDrawCommandBuffer();
-        m_CbManager.AddQueueDependencies(dcb.GetTimeline());
-        dcb.MarkUsedInQueue();
-        // aquiring DrawCommandBuffer from Transfer Queue
-        if (m_DelayTransferOperation)
-        {
-            m_DelayTransferOperation = false;
-
-            const auto bmb_dcb = utils::CreateBufferMemoryBarrier(srcAccess, VK_ACCESS_SHADER_READ_BIT, tf, gf, dcb.GetBuffer());
-            bmbs.push_back(bmb_dcb);
-
-            utils::InsertBufferBarrier(cb, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, bmbs.data(), static_cast<uint32_t>(bmbs.size()));
-        }
-
-        // not sure if src stage is correct..
-        // maybe try src as just before compute stage
+        AcquireDrawCommandBuffer(cb);
 
         m_TimestampQueryManager.WriteTimestamp(cb.cmb, kQueryCullBegin, m_Swapchain.GetFrameClock());
         vkCmdBindPipeline(cb.cmb, VK_PIPELINE_BIND_POINT_COMPUTE, updateDrawsProgram.GetPipeline());
@@ -308,8 +300,10 @@ namespace imp
     void Graphics::RenderCameras()
     {
         AUTO_TIMER("[RenderCameras]: ");
+#if CULLING_ENABLED
         if(m_Settings.renderMode == kEngineRenderModeGPUDriven || m_Settings.renderMode == kEngineRenderModeGPUDrivenMeshShading)
             Cull();
+#endif
 
         const auto& camera = m_PreviewCamera.isRenderCamera ? m_PreviewCamera : m_MainCamera;
 
@@ -450,7 +444,11 @@ namespace imp
                 ms_md.LODData[i].meshletBufferOffset += mOffset;
 
             for (auto i = 0; i < kMaxLODCount; i++)
+            {
                 ivb.indices[i].m_Offset += iOffset;
+                ivb.meshlets[i].m_Offset = ms_md.LODData[i].meshletBufferOffset;
+                ivb.meshlets[i].m_Count = ms_md.LODData[i].taskCount;
+            }
 
             verts.insert(verts.end(), req.vertices.begin(), req.vertices.end());
             idxs.insert(idxs.end(), req.indices.begin(), req.indices.end());
@@ -493,8 +491,6 @@ namespace imp
             mdAllocSize += static_cast<uint32_t>(sizeof(MeshData));
             ms_mdAllocSize += static_cast<uint32_t>(sizeof(ms_MeshData));
    
-            ivb.meshletCount = meshlets.size();
-            ivb.meshletOffset = mOffset;
             m_VertexBuffers[req.id] = ivb;
         }
 
@@ -918,7 +914,7 @@ namespace imp
         static constexpr VkDeviceSize allocSize = 1024 * 1024 * 1024;
         static constexpr VkDeviceSize idxBuffAllocSize = allocSize / sizeof(Vertex);
         static constexpr VkDeviceSize drawAllocSize = (kMaxDrawCount + 31) * sizeof(VkDrawIndexedIndirectCommand);
-        static constexpr VkDeviceSize stagingDrawSize = sizeof(IndirectDrawCmd) * (kMaxDrawCount + 31);
+        static constexpr VkDeviceSize stagingDrawSize = CULLING_ENABLED ? sizeof(IndirectDrawCmd) * (kMaxDrawCount + 31) : drawAllocSize;
 
         m_VertexBuffer          = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
         m_IndexBuffer           = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
@@ -976,6 +972,32 @@ namespace imp
         vkCmdCopyBuffer(cb.cmb, src.GetBuffer(), dst.GetBuffer(), 1, &bufferCopyRegion);
 
         dst.RegisterNewUpload(src.GetSize());
+    }
+
+    void Graphics::AcquireDrawCommandBuffer(CommandBuffer& cb)
+    {
+        std::vector<VkBufferMemoryBarrier> bmbs;
+        VkAccessFlags srcAccess = 0; // srcAccess is ignored for Q ownership transfers (when aquiring)
+        uint32_t tf = m_GfxCaps.GetQueueFamilies().transferFamily;
+        uint32_t gf = m_GfxCaps.GetQueueFamilies().graphicsFamily;
+
+#if CULLING_ENABLED
+        auto& dcb = m_ShaderManager.GetDrawCommandBuffer();
+#else
+        auto& dcb = m_DrawBuffer;
+#endif
+        m_CbManager.AddQueueDependencies(dcb.GetTimeline());
+        dcb.MarkUsedInQueue();
+        // aquiring DrawCommandBuffer from Transfer Queue
+        if (m_DelayTransferOperation)
+        {
+            m_DelayTransferOperation = false;
+
+            const auto bmb_dcb = utils::CreateBufferMemoryBarrier(srcAccess, VK_ACCESS_SHADER_READ_BIT, tf, gf, dcb.GetBuffer());
+            bmbs.push_back(bmb_dcb);
+
+            utils::InsertBufferBarrier(cb, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, bmbs.data(), static_cast<uint32_t>(bmbs.size()));
+        }
     }
 
     const Pipeline& Graphics::EnsurePipeline(VkCommandBuffer cb, const RenderPass& rp)

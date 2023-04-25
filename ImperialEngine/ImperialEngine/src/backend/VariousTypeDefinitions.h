@@ -77,9 +77,21 @@ namespace imp
 		bool isRenderCamera;
 	};
 
+	// Used when VF Culling is enabled
 	struct IndirectDrawCmd
 	{
 		uint32_t	meshDataIndex;
+	};
+
+	// Used when VF Culling is disabled and instead of VkDrawMeshTasksIndirectCommandNV
+	struct ms_IndirectDrawCommand
+	{
+		// Read by Command Processor
+		uint32_t    taskCount;
+		uint32_t    firstTask;
+		// Used in Mesh shader
+		uint32_t    meshletBufferOffset;
+		uint32_t    meshTaskCount;
 	};
 
 	struct NormalCone

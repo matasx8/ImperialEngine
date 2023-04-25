@@ -28,7 +28,11 @@ bool coneCull(vec4 cone, vec3 apex, vec3 cam_pos)
 
 void main()
 {
+#if CULLING_ENABLED
 	drawIdx = drawDataIndices[gl_DrawIDARB];
+#else
+	drawIdx = gl_DrawIDARB;
+#endif
 
 	uint meshletBufferOffset = ms_DrawDst[gl_DrawIDARB].meshletBufferOffset;
 	uint meshTaskCount = ms_DrawDst[gl_DrawIDARB].meshTaskCount;

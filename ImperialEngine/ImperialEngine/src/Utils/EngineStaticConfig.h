@@ -19,12 +19,16 @@
 #define LOG_TIMINGS 0
 #endif
 
-#ifndef LOD_ENABLED
-#define LOD_ENABLED 1
-#endif
-
 #ifndef CULLING_ENABLED
 #define CULLING_ENABLED 1
+#endif
+
+#ifndef LOD_ENABLED
+	#if CULLING_ENABLED	// lod picking is done right after culling so it's too tightly coupled right now
+	#define LOD_ENABLED 1
+	#else
+	#define LOD_ENABLED 0
+	#endif
 #endif
 
 // if disabled also disabled task shader
@@ -33,11 +37,11 @@
 #endif 
 
 #ifndef MESHLET_MAX_PRIMS
-#define MESHLET_MAX_PRIMS 84
+#define MESHLET_MAX_PRIMS 32
 #endif 
 
 #ifndef MESHLET_MAX_VERTS
-#define MESHLET_MAX_VERTS 64
+#define MESHLET_MAX_VERTS 32
 #endif
 
 #ifndef MESH_WGROUP

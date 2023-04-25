@@ -24,8 +24,13 @@ void main()
     vec3 norm = vec3(vertices[gl_VertexIndex].nx, vertices[gl_VertexIndex].ny, vertices[gl_VertexIndex].nz);
     vec2 tex = vec2(vertices[gl_VertexIndex].tu, vertices[gl_VertexIndex].tv);
 
-	vec3 lol = vec3(materialData[drawData[drawDataIndices[gl_DrawIDARB]].materialIdx].color);
-	mat4 model = drawData[drawDataIndices[gl_DrawIDARB]].Transform;
+#if CULLING_ENABLED
+    uint ddi = drawDataIndices[gl_DrawIDARB];
+#else
+    uint ddi = gl_DrawIDARB;
+#endif
+    vec3 lol = vec3(materialData[drawData[ddi].materialIdx].color);
+	mat4 model = drawData[ddi].Transform;
     vec3 ecPos      = vec3(model * vec4(pos, 1.0));
     vec3 tnorm      = norm;
     vec3 lightVec   = normalize(lol  - ecPos);
