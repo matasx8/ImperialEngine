@@ -911,13 +911,13 @@ namespace imp
 
     void Graphics::InitializeVulkanMemory()
     {
-        static constexpr VkDeviceSize allocSize = 1024 * 1024 * 1024;
-        static constexpr VkDeviceSize idxBuffAllocSize = allocSize / sizeof(Vertex);
+        static constexpr VkDeviceSize allocSize = 1024 * 1024 * (1024 + 512);
+        static constexpr VkDeviceSize idxBuffAllocSize = allocSize / sizeof(Vertex) * 6;
         static constexpr VkDeviceSize drawAllocSize = (kMaxDrawCount + 31) * sizeof(VkDrawIndexedIndirectCommand);
         static constexpr VkDeviceSize stagingDrawSize = CULLING_ENABLED ? sizeof(IndirectDrawCmd) * (kMaxDrawCount + 31) : drawAllocSize;
 
         m_VertexBuffer          = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
-        m_IndexBuffer           = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
+        m_IndexBuffer           = m_MemoryManager.GetBuffer(m_LogicalDevice, idxBuffAllocSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
         m_DrawBuffer            = m_MemoryManager.GetBuffer(m_LogicalDevice, drawAllocSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
 
         for (auto i = 0; i < m_Settings.swapchainImageCount; i++)
@@ -926,7 +926,7 @@ namespace imp
             m_StagingDrawBuffer[i].MapWholeBuffer(m_LogicalDevice);
         }
 
-        printf("[Gfx Memory] Successfully allocated %2.f MB of host domain memory and %.2f MB of device domain memory\n", (stagingDrawSize) * m_Settings.swapchainImageCount / 1024.0f / 1024.0f, (allocSize * 3 + drawAllocSize) / 1024.0f / 1024.0f);
+        printf("[Gfx Memory] Successfully allocated %2.f MB of host domain memory and %.2f MB of device domain memory\n", (stagingDrawSize) * m_Settings.swapchainImageCount / 1024.0f / 1024.0f, (allocSize + idxBuffAllocSize + drawAllocSize) / 1024.0f / 1024.0f);
     }
 
     VulkanBuffer Graphics::UploadVulkanBuffer(VkBufferUsageFlags usageFlags, VkBufferUsageFlags dstUsageFlags, VkMemoryPropertyFlags memoryFlags, VkMemoryPropertyFlags dstMemoryFlags, const CommandBuffer& cb, uint32_t allocSize, const void* dataToUpload)
@@ -963,6 +963,11 @@ namespace imp
     {
         assert(src.GetSize());
         assert(dst.GetSize() >= src.GetSize());
+        if (src.GetSize() >= dst.GetSize())
+        {
+            printf("[Graphics Memory]: Trying to copy a buffer of size %u to a buffer of size %u\n", src.GetSize(), dst.GetSize());
+            throw std::runtime_error("[Graphics Memory]: Fatal Error! CpyVulkanBuffer overflow");
+        }
 
         VkBufferCopy bufferCopyRegion;
         bufferCopyRegion.srcOffset = 0;

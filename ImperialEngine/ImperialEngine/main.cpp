@@ -196,7 +196,7 @@ bool Benchmark(imp::Engine& engine, const CLI& cli, EngineSettings& settings, in
 		auto transforms = reg.view<Comp::Transform>();
 
 		if (cli.growthStep.size())
-		{	// if we're doing growth step then we have to remove entitiesafter each benchmark
+		{	// if we're doing growth step then we have to remove entities after each benchmark
 			std::vector<entt::entity> entitiesToRemove;
 			for (auto ent : renderableChildren)
 			{

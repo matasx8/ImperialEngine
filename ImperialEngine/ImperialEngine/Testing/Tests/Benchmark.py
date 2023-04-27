@@ -2,17 +2,19 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import csv
 
 # Like the application, scripts should be configured to run from ImperialEngine/ImperialEngine/
 
 #  -- Static Settings --
 use_premade_results = True
 engine_path = "../bin/x64/Release/ImperialEngine.exe"
+#TODO: make this local path
 msbuild_path = "\"C:/Program Files/Microsoft Visual Studio/2022/Community/Msbuild/Current/Bin/MSBuild.exe\""
 smooth_data = True
 
 save_figures = True
-show_figures = True
+show_figures = False
 
 cwd = os.getcwd()
 # make sure we start from ImperialEngine/ImperialEngine
@@ -68,8 +70,8 @@ def test_id_to_filename(test_id):
 def save_figure(test_id, title, subtitle):
     if save_figures == False:
         return
-    
-    path = cwd + "Testing/TestData/" + test_id + "/" + title + "-" + subtitle
+    # will truncate title to 64 chars
+    path = cwd + "Testing/TestData/" + test_id + "/" + title[:64] + "-" + subtitle
     plt.savefig(path)
 
 def show_figure():
@@ -77,7 +79,7 @@ def show_figure():
         plt.show()
 
 def plot_bar(cpu, gpu, mesh, title, test_id):
-    plt.figure()
+    plt.subplots()
     plt.title(title)
     plt.ylabel("darbo laikas, ms")
     plt.bar(["Tradicinis", "GPU valdomas", "GPU valdomas su tinklų šešėliuokliais"], [cpu, gpu, mesh])
@@ -85,9 +87,10 @@ def plot_bar(cpu, gpu, mesh, title, test_id):
         save_figure(test_id, title, "barchart")
     if show_figures == True:
         show_figure()
+    plt.close()
 
 def plot_lines(cpu, gpu, mesh, title, draw_rt_line, test_id):
-        plt.figure()
+        plt.subplots()
         plt.title(title)
         plt.xlabel("kadras")
         plt.ylabel("darbo laikas, ms")
@@ -95,12 +98,13 @@ def plot_lines(cpu, gpu, mesh, title, draw_rt_line, test_id):
             plt.plot(np.full(len(cpu), 16), label="60 FPS riba", color="red")
         plt.plot(cpu, label="Tradicinis")
         plt.plot(gpu, label="GPU valdomas")
-        plt.plot(mesh, label="GPU valdomas su tinklų šešėliuokliais")
+        plt.plot(mesh, label="Tinklų apdorojimo")
         plt.legend()
         if save_figures == True:
             save_figure(test_id, title, "linechart")
         if show_figures == True:
             show_figure()
+        plt.close()
 
 def plot_lines2(data_lists, data_labels, title, test_id):
     plt.subplots(figsize=(8, 12))
@@ -116,14 +120,30 @@ def plot_lines2(data_lists, data_labels, title, test_id):
     if show_figures == True:
         show_figure()
 
-def plot_lines3(data_lists, data_labels, x_data_lists, title, test_id):
-    plt.subplots(figsize=(8, 6))
+def plot_lines3(data_lists, data_labels, x_data_lists, title, test_id, xlabel = "kadras", x_tri = False, draw_rt = False):
+    fig, ax = plt.subplots(figsize=(8, 6))
     plt.title(title)
-    plt.xlabel("kadras")
+    plt.xlabel(xlabel)
     plt.ylabel("darbo laikas, ms")
+
+
+    if draw_rt == True:
+        plt.plot(np.full(500, 16), label="60 FPS riba", color="red")
     for data, l, x in zip(data_lists, data_labels, x_data_lists):
         plt.plot(x, data, label=l)
+
+    if x_tri:
+        text_offset = 15
+        for data, l, x in zip(data_lists, data_labels, x_data_lists):
+            for time, tri in zip(data, x):
+                if time >= 16:
+                    plt.scatter(tri, 16, c="black", zorder=3)
+                    ax.annotate(f"{int(tri)} mln. tri.", (tri, 16), textcoords="offset points", xytext=(0, text_offset), ha="center", fontweight="bold", zorder=4)
+                    text_offset *= -1
+                    break
+    
     plt.legend(loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=1)
+
     plt.tight_layout()
     if save_figures == True:
         save_figure(test_id, title, "linechart")
@@ -141,8 +161,37 @@ def plot_bar2(data_lists, data_labels, title, test_id):
         height = rect.get_height()
         ax.text(rect.get_x() + rect.get_width() / 2., 0.5 * height,
                 '{:.2f}'.format(height),
-                ha='center', va='bottom', color='white', weight='bold')
+                ha='center', va='bottom', color='black', weight='bold')
 
+    plt.legend(loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=1)
+    plt.tight_layout()
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(data_labels, rotation=45, ha='right')
+    plt.tight_layout()
+    if save_figures == True:
+        save_figure(test_id, title, "barchart")
+    if show_figures == True:
+        show_figure()
+
+def plot_bar3(data_lists_cpu, data_lists_gpu, data_lists_mesh, data_labels, title, test_id):
+    fig, ax = plt.subplots(figsize=(8, 6))
+    plt.title(title)
+    plt.ylabel("vidutinė greitaveika, ms")
+
+    x = np.arange(len(data_lists_cpu))
+    rects = []
+    rects += ax.bar(x - 0.2, data_lists_cpu, 0.2, label = "Tradicinis")
+    rects += ax.bar(x, data_lists_gpu, 0.2, label="GPU valdomas")
+    rects += ax.bar(x + 0.2, data_lists_mesh, 0.2, label="Tinklų apdorojimo")
+    for rect in rects:
+        height = rect.get_height()
+        ax.text(rect.get_x() + rect.get_width() / 2., 0.5 * height,
+                '{:.2f}'.format(height),
+                ha='center', va='bottom', color='black', weight='bold', rotation=90)
+
+    plt.legend()
+    plt.tight_layout()
 
     ax.set_xticks(x)
     ax.set_xticklabels(data_labels, rotation=45, ha='right')
@@ -165,11 +214,11 @@ def process_results_obj_count(result):
     for col in df_cpu.columns:
         plot_lines(df_cpu[col], df_gpu[col], df_mesh[col], translation[col], True, test_id_str)
 
-    labels = ["Tradicinis", "GPU valdomas", "GPU valdomas su tinklų skaičiavimu"]
-    x_datas = [df_cpu["Triangles"], df_gpu["Triangles"], df_mesh["Triangles"]]
-    plot_lines3([df_cpu["Frame Time"], df_gpu["Frame Time"], df_mesh["Frame Time"]], labels, x_datas, "Darbo laiko ir trikampių santykis", test_id_str)
+    labels = ["Tradicinis", "GPU valdomas", "Tinklų apdorojimo"]
+    x_datas = [df_cpu["Triangles"] / 1e6, df_gpu["Triangles"] / 1e6, df_mesh["Triangles"] / 1e6]
+    plot_lines3([df_cpu["Frame Time"], df_gpu["Frame Time"], df_mesh["Frame Time"]], labels, x_datas, "Darbo laiko prie vieno kadro ir trikampių santykis", test_id_str, "apdorotų trikampių skaičius (milijonais)", True, True)
 
-def process_mesh_results(results):
+def process_mesh_results(results, title):
     dfs_mesh = []
     last_test_id_str = ""
     for result in results:
@@ -178,9 +227,12 @@ def process_mesh_results(results):
         file_path = cwd + "Testing/TestData/" + test_id_str + "/"
         dfs_mesh.append(read_data(file_path + "TestData-GPU-Driven-Mesh.csv"))
 
-    plot_lines2([df["Frame Time"] for df in dfs_mesh], [result.desc for result in results], "Mesh", last_test_id_str)
+    plot_lines2([df["Frame Time"] for df in dfs_mesh], [result.desc for result in results], title, last_test_id_str)
 
-    plot_bar2([df["Frame Time"].mean() for df in dfs_mesh], [result.desc for result in results], "Mesh", last_test_id_str)    
+    a = [df["Frame Time"].mean() for df in dfs_mesh]
+    b = [result.desc for result in results]
+    data, descs = zip(*sorted(zip(a, b)))
+    plot_bar2(data, descs, title, last_test_id_str)    
 
 
 def process_results(result):
@@ -194,7 +246,7 @@ def process_results(result):
     #  -- draw graphs -- 
     # line graphs
     for col in df_cpu.columns:
-        plot_lines(df_cpu[col], df_gpu[col], df_mesh[col], translation[col], test_id_str)
+        plot_lines(df_cpu[col], df_gpu[col], df_mesh[col], translation[col], False, test_id_str)
 
     # bar chart
     for col in df_cpu.columns:
@@ -204,9 +256,7 @@ def process_results(result):
 
         plot_bar(avg_cpu, avg_gpu, avg_mesh, translation[col], test_id_str)
 
-    print("done")
-
-def process_combined_results(results):
+def process_results_into_table(results):
     dfs_cpu = []
     dfs_gpu = []
     dfs_mesh = []
@@ -215,23 +265,48 @@ def process_combined_results(results):
         test_id_str = test_id_to_filename(result.test_id)
         last_test_id_str = test_id_str
         file_path = cwd + "Testing/TestData/" + test_id_str + "/"
-        if result.desc.find("Klast") < 0:
-            dfs_cpu.append(smoothing(read_data(file_path + "TestData-Traditional.csv")))
-            dfs_gpu.append(smoothing(read_data(file_path + "TestData-GPU-Driven.csv")))
+        #if result.desc.find("Klast") < 0:
+        dfs_cpu.append(smoothing(read_data(file_path + "TestData-Traditional.csv")))
+        dfs_gpu.append(smoothing(read_data(file_path + "TestData-GPU-Driven.csv")))
+        dfs_mesh.append(smoothing(read_data(file_path + "TestData-GPU-Driven-Mesh.csv")))
+
+    path = cwd + "Testing/TestData/" + last_test_id_str + "/frametime_results.csv"
+    with open(path, mode='w', newline='', encoding="utf-8-sig") as file:
+        writer = csv.writer(file)
+
+        writer.writerow(["Scenos pavadinimas", "Tradicinis", "GPU valdomas", "Tinklų apdorojimo"])
+        for result, df_cpu, df_gpu, df_mesh in zip(results, dfs_cpu, dfs_gpu, dfs_mesh):
+            writer.writerow([result.desc, df_cpu["Frame Time"].mean(), df_gpu["Frame Time"].mean(), df_mesh["Frame Time"].mean()])
+
+
+def process_combined_results(results, title):
+    dfs_cpu = []
+    dfs_gpu = []
+    dfs_mesh = []
+    last_test_id_str = ""
+    for result in results:
+        test_id_str = test_id_to_filename(result.test_id)
+        last_test_id_str = test_id_str
+        file_path = cwd + "Testing/TestData/" + test_id_str + "/"
+        #if result.desc.find("Klast") < 0:
+        dfs_cpu.append(smoothing(read_data(file_path + "TestData-Traditional.csv")))
+        dfs_gpu.append(smoothing(read_data(file_path + "TestData-GPU-Driven.csv")))
         dfs_mesh.append(smoothing(read_data(file_path + "TestData-GPU-Driven-Mesh.csv")))
 
     
     # skip results with cluster culling only changes for non mesh shading pipelines
-    plot_lines2([df["Frame Time"] for df in dfs_cpu], [result.desc for result in results if result.desc.find("Klast") < 0], "Tradicinis", last_test_id_str)
-    plot_lines2([df["Frame Time"] for df in dfs_gpu], [result.desc for result in results if result.desc.find("Klast") < 0], "GPU", last_test_id_str)
+    plot_lines2([df["Frame Time"] for df in dfs_cpu], [result.desc for result in results], "Tradicinis", last_test_id_str)
+    plot_lines2([df["Frame Time"] for df in dfs_gpu], [result.desc for result in results], "GPU", last_test_id_str)
     plot_lines2([df["Frame Time"] for df in dfs_mesh], [result.desc for result in results], "Mesh", last_test_id_str)
 
-    plot_bar2([df["Frame Time"].mean() for df in dfs_cpu], [result.desc for result in results if result.desc.find("Klast") < 0], "Tradicinis", last_test_id_str)
-    plot_bar2([df["Frame Time"].mean() for df in dfs_gpu], [result.desc for result in results if result.desc.find("Klast") < 0], "GPU", last_test_id_str)
-    plot_bar2([df["Frame Time"].mean() for df in dfs_mesh], [result.desc for result in results], "Mesh", last_test_id_str)
+    cpu_data = [df["Frame Time"].mean() for df in dfs_cpu]
+    gpu_data = [df["Frame Time"].mean() for df in dfs_gpu]
+    mesh_data = [df["Frame Time"].mean() for df in dfs_mesh]
+    plot_bar3(cpu_data, gpu_data, mesh_data, [result.desc for result in results], title, last_test_id_str)
 
 
 # All optimizations
+#use this for "testing"
 def test_suite1():
     run_count = " --run-for=250"
 
@@ -280,41 +355,68 @@ def test_suite1():
 
     # very low poly
 
-# no LOD
-def test_suite2():
-    run_count = " --run-for=250"
+def test_suite_performance():
+    results = []
+    if use_premade_results == False:
+        run_count = " --run-for=250"
 
-    universal_defines = "LOD_ENABLED#0"
-    defines = "BENCHMARK_MODE#1;" + universal_defines
-    # get the test environment ready
-    compile_shaders(universal_defines)
-    res = compile_engine(defines)
-    if res > 0:
-        print("Failed to successfully compile engine")
-        return
+        defines = "BENCHMARK_MODE#1;"
+        # get the test environment ready
+        compile_shaders("DEBUG_MESH=0")
+        res = compile_engine(defines)
+        if res > 0:
+            print("Failed to successfully compile engine")
+            return
 
-    result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max --camera-movement=away" + run_count)
-    test_results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu"))
+        result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max" + run_count)
+        results.append(TestResult(result, "Atsitiktinai sugeneruotos scenos greitaveika su 1M obj."))
+    
+        result = run_test("--file-count=2 --camera-movement=rotate --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max" + run_count)
+        results.append(TestResult(result, "Atsitiktinai sugeneruotos scenos greitaveika su 1M obj., kai kamera sukasi aplink Y ašį"))
+    
+        result = run_test("--file-count=1 --load-files Scene/sponza_wc_v_flat.glb" + run_count)
+        results.append(TestResult(result, "Sponza scenos greitaveika"))
+    
+        result = run_test("--file-count=1 --camera-movement=rotate --load-files Scene/sponza_wc_v_flat.glb" + run_count)
+        results.append(TestResult(result, "Sponza scenos greitaveika, kai kamera sukasi aplink Y ašį"))
+    
+        result = run_test("--file-count=1 --load-files Scene/sponza_wc_v_cameranear.glb" + run_count)
+        results.append(TestResult(result, "Sponza scenos, kai kamera scenos pakraštyje greitaveika"))
+    
+        result = run_test("--file-count=1 --camera-movement=rotate --load-files Scene/sponza_wc_v_cameranear.glb" + run_count)
+        results.append(TestResult(result, "Sponza scenos, kai kamera scenos pakraštyje greitaveika ir sukasi aplink Y ašį"))
+    
+        result = run_test("--file-count=1 --load-files Scene/Sponza_Custom.glb" + run_count)
+        results.append(TestResult(result, "Koreguotos Sponza scenos greitaveika"))
+    
+        result = run_test("--file-count=1 --camera-movement=rotate --load-files Scene/Sponza_Custom.glb" + run_count)
+        results.append(TestResult(result, "Koreguotos Sponza scenos greitaveika, kai kamera sukasi aplink Y ašį"))
 
-# no LOD and no Cone Culling
-def test_suite3():
-    run_count = " --run-for=100"
+        result = run_test("--file-count=1 --load-files Scene/BigDragons.glb" + run_count)
+        results.append(TestResult(result, "Koreguotos Sponza scenos greitaveika"))
 
-    universal_defines = "LOD_ENABLED#0;CONE_CULLING_ENABLED#0"
-    defines = "BENCHMARK_MODE#1;" + universal_defines
-    # get the test environment ready
-    compile_engine(defines)
-    result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max --camera-movement=rotate" + run_count)
-    test_results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu"))
+        result = run_test("--file-count=1 --camera-movement=rotate --load-files Scene/BigDragons.glb" + run_count)
+        results.append(TestResult(result, "Koreguotos Sponza scenos greitaveika, kai kamera sukasi aplink Y ašį"))
 
-# No optimizations
-def test_suite3():
-    run_count = " --run-for=100"
+    else:
+        fake_test_results = [ TestResult(426110245, 'Atsitiktinai sugeneruotos scenos greitaveika su 1M obj.')
+                            , TestResult(426110313, 'Atsitiktinai sugeneruotos scenos greitaveika su 1M obj., kai kamera sukasi aplink Y ašį')
+                            , TestResult(426110347, 'Sponza scenos greitaveika')
+                            , TestResult(426110421, 'Sponza scenos greitaveika, kai kamera sukasi aplink Y ašį')
+                            , TestResult(426110454, 'Sponza scenos, kai kamera scenos pakraštyje greitaveika')
+                            , TestResult(426110528, 'Sponza scenos, kai kamera scenos pakraštyje greitaveika ir sukasi aplink Y ašį')
+                            , TestResult(426110607, 'Koreguotos Sponza scenos greitaveika')
+                            , TestResult(426110646, 'Koreguotos Sponza scenos greitaveika, kai kamera sukasi aplink Y ašį')
+                            , TestResult(426111420, 'Koreguotos Sponza scenos greitaveika')
+                            , TestResult(426111440, 'Koreguotos Sponza scenos greitaveika, kai kamera sukasi aplink Y ašį')]
 
-    universal_defines = "LOD_ENABLED#0;CONE_CULLING_ENABLED#0;CULLING_ENABLED#0"
-    defines = "BENCHMARK_MODE#1;" + universal_defines
-    # get the test environment ready
-    compile_engine(defines)
+        results = fake_test_results
+
+    for result in results:
+        print(result.test_id)
+        process_results(result)
+    
+    process_results_into_table(results)
 
 def test_suite_optimization():
     if use_premade_results == False:
@@ -331,21 +433,8 @@ def test_suite_optimization():
             return
         
         result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=100000" + run_count)
-        results.append(TestResult(result, "Visos optim."))
+        results.append(TestResult(result, "Visos optimizacijos"))
 
-        # prepare environment without LOD
-        universal_defines = "LOD_ENABLED#0"
-        defines = "BENCHMARK_MODE#1;" + universal_defines
-        compile_shaders("DEBUG_MESH=0;" + universal_defines)
-        result = compile_engine(defines)
-        if result > 0:
-            print("Failed to successfully compile engine")
-            return
-        
-        result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=100000" + run_count)
-        results.append(TestResult(result, "Be LOD"))
-
-        # prepare environment without cone culling
         universal_defines = "CONE_CULLING_ENABLED#0"
         defines = "BENCHMARK_MODE#1;" + universal_defines
         compile_shaders("DEBUG_MESH=0;" + universal_defines)
@@ -355,7 +444,7 @@ def test_suite_optimization():
             return
         
         result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=100000" + run_count)
-        results.append(TestResult(result, "Be Klast. Atm."))
+        results.append(TestResult(result, "Be klast. atm."))
 
         # prepare environment without LOD and without cone culling
         universal_defines = "LOD_ENABLED#0;CONE_CULLING_ENABLED#0"
@@ -367,7 +456,7 @@ def test_suite_optimization():
             return
         
         result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=100000" + run_count)
-        results.append(TestResult(result, "Be LOD ir Be Klast. Atm."))
+        results.append(TestResult(result, "Be klast. atm. ir be LOD"))
 
         # prepare environment without LOD and without cone culling and without VF culling
         universal_defines = "LOD_ENABLED#0;CONE_CULLING_ENABLED#0;CULLING_ENABLED#0"
@@ -379,18 +468,17 @@ def test_suite_optimization():
             return
         
         result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=100000" + run_count)
-        results.append(TestResult(result, "Be jokių optimizacijų"))
+        results.append(TestResult(result, "Be klast. atm. ir be LOD ir be nem. obj. atm."))
 
     else:
-        fake_test_results = [  TestResult(425065858, 'Visos optim.')
-                     , TestResult(425065921, 'Be LOD')
-                     , TestResult(425065939, 'Be Klast. Atm.')
-                     , TestResult(425070002, 'Be LOD ir Be Klast. Atm.')
-                     , TestResult(425070100, 'Be jokių optimizacijų')]
+        fake_test_results = [ TestResult(425093655, 'Visos optimizacijos')
+                            , TestResult(425093736, 'Be klast. atm.')
+                            , TestResult(425093759, 'Be klast. atm. ir be LOD')
+                            , TestResult(425093856, 'Be klast. atm. ir be LOD ir be nem. obj. atm.')]
 
         results = fake_test_results
 
-    process_combined_results(results)
+    process_combined_results(results, "Optimizacijų įtaka greitaveikai vaizduojant atsitiktinai sugeneruotą sceną su 100 t. obj.")
 
 def test_suite_optimization_bigmesh():
     if use_premade_results == False:
@@ -407,19 +495,7 @@ def test_suite_optimization_bigmesh():
             return
         
         result = run_test("--file-count=1 --load-files Scene/BigDragons.glb" + run_count)
-        results.append(TestResult(result, "Visos optim."))
-
-        # prepare environment without LOD
-        universal_defines = "LOD_ENABLED#0"
-        defines = "BENCHMARK_MODE#1;" + universal_defines
-        compile_shaders("DEBUG_MESH=0;" + universal_defines)
-        result = compile_engine(defines)
-        if result > 0:
-            print("Failed to successfully compile engine")
-            return
-        
-        result = run_test("--file-count=1 --load-files Scene/BigDragons.glb" + run_count)
-        results.append(TestResult(result, "Be LOD"))
+        results.append(TestResult(result, "Visos optimizacijos"))
 
         # prepare environment without cone culling
         universal_defines = "CONE_CULLING_ENABLED#0"
@@ -431,7 +507,7 @@ def test_suite_optimization_bigmesh():
             return
         
         result = run_test("--file-count=1 --load-files Scene/BigDragons.glb" + run_count)
-        results.append(TestResult(result, "Be Klast. Atm."))
+        results.append(TestResult(result, "Be klast. atm."))
 
         # prepare environment without LOD and without cone culling
         universal_defines = "LOD_ENABLED#0;CONE_CULLING_ENABLED#0"
@@ -443,7 +519,7 @@ def test_suite_optimization_bigmesh():
             return
         
         result = run_test("--file-count=1 --load-files Scene/BigDragons.glb" + run_count)
-        results.append(TestResult(result, "Be LOD ir Be Klast. Atm."))
+        results.append(TestResult(result, "Be klast. atm. ir be LOD"))
 
         # prepare environment without LOD and without cone culling and without VF culling
         universal_defines = "LOD_ENABLED#0;CONE_CULLING_ENABLED#0;CULLING_ENABLED#0"
@@ -455,18 +531,16 @@ def test_suite_optimization_bigmesh():
             return
         
         result = run_test("--file-count=1 --load-files Scene/BigDragons.glb" + run_count)
-        results.append(TestResult(result, "Be jokių optimizacijų"))
-
+        results.append(TestResult(result, "Be klast. atm. ir be LOD ir be nem. obj. atm."))
     else:
-        fake_test_results = [ TestResult(425072243, 'Visos optim.') # these premade results are a bit outdated
-                            , TestResult(425072324, 'Be LOD')
-                            , TestResult(425072400, 'Be Klast. Atm.')
-                            , TestResult(425072440, 'Be LOD ir Be Klast. Atm.')
-                            , TestResult(425072519, 'Be jokių optimizacijų')]
+        fake_test_results = [ TestResult(425104239, 'Visos optimizacijos')
+                            , TestResult(425104315, 'Be klast. atm.')
+                            , TestResult(425104354, 'Be klast. atm. ir be LOD')
+                            , TestResult(425104435, 'Be klast. atm. ir be LOD ir be nem. obj. atm.')]
 
         results = fake_test_results
 
-    process_combined_results(results)
+    process_combined_results(results, "Optimizacijų įtaka greitaveikai vaizduojant Drakonų sceną")
 
 def test_suite_object_count():
     if use_premade_results == False:
@@ -480,12 +554,12 @@ def test_suite_object_count():
             print("Failed to successfully compile engine")
             return
         
-        result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --growth-step=1000" + run_count)
+        result = run_test("--file-count=1 --load-files Scene/big_dragon.obj --distribute=random --growth-step=1" + run_count)
         results = TestResult(result, "Augantis objektų skaičius")
 
         process_results_obj_count(results)
     else:
-        process_results_obj_count(TestResult(423103839, "Augantis objektų skaičius"))
+        process_results_obj_count(TestResult(427064906, "Augantis objektų skaičius"))
 
 def test_suite_mesh():
     if use_premade_results == False:
@@ -493,6 +567,7 @@ def test_suite_mesh():
 
         results_random = []
         results_dragons= []
+        results_sponza = []
         combinations = [(64, 64), (64, 84), (64, 124), (48, 124), (48, 84), (48, 64), (32, 32), (32, 64), (32, 84)]
         for combo in combinations:
             universal_defines = "MESHLET_MAX_VERTS#{};MESHLET_MAX_PRIMS#{}".format(combo[0], combo[1])
@@ -503,45 +578,58 @@ def test_suite_mesh():
                 print("Failed to successfully compile engine")
                 return
             
-            result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max" + run_count)
-            results.append(TestResult(result, "Random su max vir: {} ir max tri: {}". format(combo[0], combo[1])))
+            #result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max" + run_count)
+            #results_random.append(TestResult(result, "Random su max vir: {} ir max tri: {}". format(combo[0], combo[1])))
+            #
+            #result = run_test("--file-count=1 --load-files Scene/BigDragons.glb" + run_count)
+            #results_dragons.append(TestResult(result, "Random su max vir: {} ir max tri: {}". format(combo[0], combo[1])))
 
-            result = run_test("--file-count=1 --load-files Scene/BigDragons.glb" + run_count)
-            results.append(TestResult(result, "Random su max vir: {} ir max tri: {}". format(combo[0], combo[1])))
+            result = run_test("--file-count=1 --load-files Scene/sponza_wc_v_flat.glb" + run_count)
+            results_sponza.append(TestResult(result, "max vir: {} ir max tri: {}". format(combo[0], combo[1])))
 
-        process_mesh_results(results)
 
     else:
-        results_random = [TestResult(423164443, "Random su max vir: 64 ir max tri: 64"),
-                   TestResult(423164528, "Random su max vir: 64 ir max tri: 84"),
-                   TestResult(423164614, "Random su max vir: 64 ir max tri: 124"),
-                   TestResult(423164659, "Random su max vir: 48 ir max tri: 124"),
-                   TestResult(423164744, "Random su max vir: 48 ir max tri: 84"),
-                   TestResult(423164828, "Random su max vir: 48 ir max tri: 64"),
-                   TestResult(423164912, "Random su max vir: 32 ir max tri: 32"),
-                   TestResult(423164956, "Random su max vir: 32 ir max tri: 64"),
-                   TestResult(423165040, "Random su max vir: 32 ir max tri: 84")]
+        results_random = [TestResult(423164443, "max vir: 64 ir max tri: 64"),
+                   TestResult(423164528, "max vir: 64 ir max tri: 84"),
+                   TestResult(423164614, "max vir: 64 ir max tri: 124"),
+                   TestResult(423164659, "max vir: 48 ir max tri: 124"),
+                   TestResult(423164744, "max vir: 48 ir max tri: 84"),
+                   TestResult(423164828, "max vir: 48 ir max tri: 64"),
+                   TestResult(423164912, "max vir: 32 ir max tri: 32"),
+                   TestResult(423164956, "max vir: 32 ir max tri: 64"),
+                   TestResult(423165040, "max vir: 32 ir max tri: 84")]
 
-        results_dragons = [TestResult(423164501, "Random su max vir: 64 ir max tri: 64"),
-                   TestResult(423164546, "Random su max vir: 64 ir max tri: 84"),
-                   TestResult(423164631, "Random su max vir: 64 ir max tri: 124"),
-                   TestResult(423164716, "Random su max vir: 48 ir max tri: 124"),
-                   TestResult(423164801, "Random su max vir: 48 ir max tri: 84"),
-                   TestResult(423164846, "Random su max vir: 48 ir max tri: 64"),
-                   TestResult(423164929, "Random su max vir: 32 ir max tri: 32"),
-                   TestResult(423165013, "Random su max vir: 32 ir max tri: 64"),
-                   TestResult(423165058, "Random su max vir: 32 ir max tri: 84")]
-        process_mesh_results(results_random)
-        process_mesh_results(results_dragons)
+        results_dragons = [TestResult(423164501, "max vir: 64 ir max tri: 64"),
+                   TestResult(423164546, "max vir: 64 ir max tri: 84"),
+                   TestResult(423164631, "max vir: 64 ir max tri: 124"),
+                   TestResult(423164716, "max vir: 48 ir max tri: 124"),
+                   TestResult(423164801, "max vir: 48 ir max tri: 84"),
+                   TestResult(423164846, "max vir: 48 ir max tri: 64"),
+                   TestResult(423164929, "max vir: 32 ir max tri: 32"),
+                   TestResult(423165013, "max vir: 32 ir max tri: 64"),
+                   TestResult(423165058, "max vir: 32 ir max tri: 84")]
+        results_sponza = [TestResult(425120641, "max vir: 64 ir max tri: 64"),
+                   TestResult(425120729, "max vir: 64 ir max tri: 84"),
+                   TestResult(425120818, "max vir: 64 ir max tri: 124"),
+                   TestResult(425120906, "max vir: 48 ir max tri: 124"),
+                   TestResult(425120954, "max vir: 48 ir max tri: 84"),
+                   TestResult(425121042, "max vir: 48 ir max tri: 64"),
+                   TestResult(425121127, "max vir: 32 ir max tri: 32"),
+                   TestResult(425121213, "max vir: 32 ir max tri: 64"),
+                   TestResult(425121258, "max vir: 32 ir max tri: 84")]
+        
+    process_mesh_results(results_random, "Atsitiktinai sugeneruotos scenos su 1M objektų vidutinė greitaveika")
+    process_mesh_results(results_dragons, 'Drakonų scenos vidutinė greitaveika')
+    process_mesh_results(results_sponza, 'Sponza scenos vidutinė greitaveika')
 
 
 
 def main():
     #test_suite1()
-    #test_suite2()
+    #test_suite_performance()
     #test_suite_optimization()
-    test_suite_optimization_bigmesh()
-    #test_suite_object_count()
+    #test_suite_optimization_bigmesh()
+    test_suite_object_count()
     #test_suite_mesh()
 
     for result in test_results:
