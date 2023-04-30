@@ -24,14 +24,13 @@ namespace imp
 		m_ShowDefaultWindow = true;
 	}
 
-	void UI::Update(Engine& engine, entt::registry& reg)
+	void UI::Update(Engine& engine, entt::registry& reg, CircularFrameTimeRowContainer& stats)
 	{
 		ImGui::NewFrame();
-//#define SHOW_DEMO
-//#ifdef SHOW_DEMO
-//		ImGui::ShowDemoWindow();
-//#else
-
+//#define SHOW_DEMO 1
+#if SHOW_DEMO
+		ImGui::ShowDemoWindow();
+#else
 		const auto flags = ImGuiWindowFlags_NoCollapse;
 		ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiCond_FirstUseEver);
 		ImGui::Begin("Imperial Settings", &m_ShowDefaultWindow, flags);
@@ -40,11 +39,6 @@ namespace imp
 		ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
 		if (ImGui::BeginTabBar("Tabs", tab_bar_flags))
 		{
-			if (ImGui::BeginTabItem("Inspector"))
-			{
-				ImGui::Text("This is going to be the inspector. Will show last selected item");
-				ImGui::EndTabItem();
-			}
 			if (ImGui::BeginTabItem("Utilities"))
 			{
 				ImGui::Text("Various utilities..");
@@ -57,53 +51,36 @@ namespace imp
 			}
 			if (ImGui::BeginTabItem("Profiling"))
 			{
-				ImGui::Text("This is going to be profiling data");
-				constexpr ImVec4 mainThreadCol(1.0f, 1.0f, 0.0f, 1.0f);
-				constexpr ImVec4 renderThreadCol(0.0f, 1.0f, 0.0f, 1.0f);
-				constexpr ImVec4 syncCol(1.0f, 1.0f, 1.0f, 1.0f);
+				const auto maxScale = stats.GetMaximumValues();
+				const auto avg = stats.GetAverageValues();
+				char overlay[32];
+				sprintf_s(overlay, "avg %.3f ms", avg.frameMainCPU);
+				ImGui::PlotHistogram("Main Thread CPU", &stats.data()->frameMainCPU, stats.size(), 0, overlay, 0.0f, maxScale.frameMainCPU * 2.0f, ImVec2(0, 80.0f), sizeof(FrameTimeRow));
 
-				const auto& timings = engine.GetFrameTimings();
-				const auto& syncTimings = engine.GetSyncTimings();
-				const auto& gfxTimings = engine.GetGfxFrameTimings();
-				const auto& gfxSyncTimings = engine.GetGfxSyncTimings();
+				if (avg.triangles < 1e+3)
+					sprintf_s(overlay, "avg %llu tris", static_cast<uint64_t>(avg.triangles));
+				else if (avg.triangles < 1e+6)
+					sprintf_s(overlay, "avg %lluk tris", static_cast<uint64_t>(avg.triangles / 1e+3f));
+				else if (avg.triangles < 1e+9)
+					sprintf_s(overlay, "avg %lluM tris", static_cast<uint64_t>(avg.triangles / 1e+6f));
+				else
+					sprintf_s(overlay, "avg. %lluB tris", static_cast<uint64_t>(avg.triangles / 1e+9f));
 
-				std::stringstream ss1;
-				std::stringstream ss2;
-				std::stringstream ss3;
-				std::stringstream ss4;
-				std::stringstream ss5;
-				std::stringstream ss6;
-				std::stringstream ss7;
-				std::stringstream ss8;
+				ImGui::PlotHistogram("Triangles", &stats.data()->triangles, stats.size(), 0, overlay, 0.0f, maxScale.triangles * 2.0f, ImVec2(0, 80.0f), sizeof(FrameTimeRow));
+				
+				sprintf_s(overlay, "avg %.3f ms", avg.frame);
+				ImGui::PlotHistogram("Frame Time", &stats.data()->frame, stats.size(), 0, overlay, 0.0f, maxScale.frame * 2.0f, ImVec2(0, 80.0f), sizeof(FrameTimeRow));
 
-				ss1 << "Main Thread time spent working on frame 'n': ";
-				ss1 << timings.frameWorkTime.ms();
-				ss2 << "Main Thread time spent waiting for Render Thread 'n': ";
-				ss2 << timings.waitTime.ms();
-				ss3 << "Main Thread total time spent working and waiting on frame 'n': ";
-				ss3 << timings.totalFrameTime.ms();
-				ss4 << "Time spent executing sync function: ";
-				ss4 << syncTimings.ms();
-				ss5 << "Render Thread time spent working on frame 'n': ";
-				ss5 << gfxTimings.frameWorkTime.ms();
-				ss6 << "Render Thread time spent waiting for Main Thread 'n': ";
-				ss6 << gfxTimings.waitTime.ms();
-				ss7 << "Render Thread total time spent working and waiting on frame 'n': ";
-				ss7 << gfxTimings.totalFrameTime.ms();
-				ss8 << "Render Thread time spent waiting for GPU: ";
-				ss8 << gfxSyncTimings.ms();
+				sprintf_s(overlay, "avg %.3f ms", avg.frameRenderCPU);
+				ImGui::PlotHistogram("Render Thread CPU", &stats.data()->frameRenderCPU, stats.size(), 0, overlay, 0.0f, maxScale.frameRenderCPU * 2.0f, ImVec2(0, 80.0f), sizeof(FrameTimeRow));
 
-				ImGui::TextColored(mainThreadCol, ss1.str().c_str());
-				ImGui::TextColored(mainThreadCol, ss2.str().c_str());
-				ImGui::TextColored(mainThreadCol, ss3.str().c_str());
-				ImGui::TextColored(syncCol, ss4.str().c_str());
-				ImGui::TextColored(renderThreadCol, ss5.str().c_str());
-				ImGui::TextColored(renderThreadCol, ss6.str().c_str());
-				ImGui::TextColored(renderThreadCol, ss7.str().c_str());
-				ImGui::TextColored(renderThreadCol, ss8.str().c_str());
+				sprintf_s(overlay, "avg %.3f ms", avg.frameGPU);
+				ImGui::PlotHistogram("GPU Frame Time", &stats.data()->frameGPU, stats.size(), 0, overlay, 0.0f, maxScale.frameGPU * 2.0f, ImVec2(0, 80.0f), sizeof(FrameTimeRow));
+				
+				sprintf_s(overlay, "avg %.3f ms", avg.cull);
+				ImGui::PlotHistogram("Cull Time", &stats.data()->cull, stats.size(), 0, overlay, 0.0f, maxScale.cull * 2.0f, ImVec2(0, 80.0f), sizeof(FrameTimeRow));
 
-				// there are some other places we're waiting for gpu
-				// could add time spent working and not waiting
+
 
 				ImGui::EndTabItem();
 			}
@@ -225,7 +202,7 @@ namespace imp
 		}
 
 		ImGui::End();
-//#endif
+#endif
 		ImGui::Render();
 	}
 

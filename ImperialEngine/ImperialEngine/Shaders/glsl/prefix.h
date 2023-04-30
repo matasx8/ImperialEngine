@@ -3,7 +3,7 @@
 #endif
 
 #ifndef LOD_ENABLED
-#define LOD_ENABLED 1
+#define LOD_ENABLED 0
 #endif
 
 #ifndef CULLING_ENABLED

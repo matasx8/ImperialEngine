@@ -35,7 +35,7 @@ namespace imp
 
 		std::vector<CommandBuffer> AquireCommandBuffers(VkDevice device, uint32_t count);
 		void ReturnCommandBuffers(std::vector<CommandBuffer>& donePool, VkSemaphore semaphore, VkFence fence);
-		void Reset(VkDevice device, PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool, PrimitivePool<Fence, FenceFactory>& fencePool, SimpleTimer& timer);
+		void Reset(VkDevice device, PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool, PrimitivePool<Fence, FenceFactory>& fencePool);
 	};
 
 	struct SubmitSynchPrimitives
@@ -47,7 +47,7 @@ namespace imp
 	class CommandBufferManager : NonCopyable
 	{
 	public:
-		CommandBufferManager(PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool, PrimitivePool<Fence, FenceFactory>& fencePool, SimpleTimer& timer);
+		CommandBufferManager(PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool, PrimitivePool<Fence, FenceFactory>& fencePool);
 		void Initialize(VkDevice device, uint32_t familyIndices, EngineSwapchainImageCount imageCount);
 
 		// Submit command buffer to internal command buffer queue. Will keep them until SubmitToQueue is called.
@@ -91,6 +91,5 @@ namespace imp
 
 		PrimitivePool<Semaphore, SemaphoreFactory>& m_SemaphorePool;
 		PrimitivePool<Fence, FenceFactory>& m_FencePool;
-		SimpleTimer& m_Timer;
 	};
 }

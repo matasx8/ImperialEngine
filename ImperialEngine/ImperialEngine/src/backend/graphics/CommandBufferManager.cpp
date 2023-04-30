@@ -6,8 +6,8 @@
 
 namespace imp
 {
-    CommandBufferManager::CommandBufferManager(PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool, PrimitivePool<Fence, FenceFactory>& fencePool, SimpleTimer& timer)
-        : m_BufferingMode(), m_FrameClock(), m_IsNewFrame(true), m_GfxCommandPools(), m_CommandsBuffersToSubmit(), m_SemaphoresToWaitOnSubmit(), m_CurrentFence(), m_TransferCB(), m_QueueDependencies(), m_SemaphorePool(semaphorePool), m_FencePool(fencePool), m_Timer(timer)
+    CommandBufferManager::CommandBufferManager(PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool, PrimitivePool<Fence, FenceFactory>& fencePool)
+        : m_BufferingMode(), m_FrameClock(), m_IsNewFrame(true), m_GfxCommandPools(), m_CommandsBuffersToSubmit(), m_SemaphoresToWaitOnSubmit(), m_CurrentFence(), m_TransferCB(), m_QueueDependencies(), m_SemaphorePool(semaphorePool), m_FencePool(fencePool)
     {
     }
 
@@ -59,7 +59,7 @@ namespace imp
     {
         if (m_IsNewFrame)
         {
-            m_GfxCommandPools[m_FrameClock].Reset(device, m_SemaphorePool, m_FencePool, m_Timer);
+            m_GfxCommandPools[m_FrameClock].Reset(device, m_SemaphorePool, m_FencePool);
             m_IsNewFrame = false;
         }
     }
@@ -295,14 +295,12 @@ namespace imp
             fences.push_back(fence);
     }
 
-    void CommandPool::Reset(VkDevice device, PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool, PrimitivePool<Fence, FenceFactory>& fencePool, SimpleTimer& timer)
+    void CommandPool::Reset(VkDevice device, PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool, PrimitivePool<Fence, FenceFactory>& fencePool)
     {
         if (fences.size())
         {
-            timer.start();
             const auto res = vkWaitForFences(device, static_cast<uint32_t>(fences.size()), fences.data(), VK_TRUE, 9999999);
             assert(res == VK_SUCCESS);
-            timer.stop();
         }
         for (auto& buff : donePool)
         {

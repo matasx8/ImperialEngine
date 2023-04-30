@@ -47,11 +47,6 @@ namespace imp
 		EngineRenderMode GetCurrentRenderMode() const;
 		bool IsRenderingModeSupported(EngineRenderMode mode) const;
 
-		const Timings& GetFrameTimings() { return m_OldTimer; }
-		const Timings& GetGfxFrameTimings() { return m_Gfx.GetFrameTimings(); }
-		const SimpleTimer& GetSyncTimings() { return m_OldSyncTime; }
-		const SimpleTimer& GetGfxSyncTimings() { return m_Gfx.GetSyncTimings(); }
-
 		// Will affect the next frame
 		void SwitchRenderingMode(EngineRenderMode newRenderMode);
 
@@ -111,11 +106,6 @@ namespace imp
 
 		BS::thread_pool* m_ThreadPool;
 
-		Timings m_Timer;
-		SimpleTimer m_SyncTime;
-		Timings m_OldTimer;
-		SimpleTimer m_OldSyncTime;
-
 		// graphics stuff
 		Graphics m_Gfx;
 		// Used as a "staging" buffer for CPU VF culling
@@ -124,10 +114,14 @@ namespace imp
 #if BENCHMARK_MODE
 		glm::mat4x4 m_InitialCameraTransform;
 		std::array<FrameTimeTable, kEngineRenderModeCount> m_FrameTimeTables;
+#else
+		CircularFrameTimeRowContainer m_FrameStats;
+#endif
 		SimpleTimer m_FrameTimer;
 		SimpleTimer m_CullTimer;
 		SimpleTimer m_FullFrameTimer;
 		double m_LastFrameTime;
+#if BENCHMARK_MODE
 		bool m_BenchmarkDone;
 		bool m_CollectBenchmarkData;
 #endif

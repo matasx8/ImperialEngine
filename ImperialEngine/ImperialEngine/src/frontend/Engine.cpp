@@ -29,10 +29,13 @@ namespace imp
 #if BENCHMARK_MODE
 		, m_InitialCameraTransform()
 		, m_FrameTimeTables()
+#endif
+		, m_FrameStats(100)
 		, m_FrameTimer()
 		, m_CullTimer()
 		, m_FullFrameTimer()
 		, m_LastFrameTime()
+#if BENCHMARK_MODE
 		, m_BenchmarkDone()
 		, m_CollectBenchmarkData()
 #endif
@@ -85,20 +88,12 @@ namespace imp
 
 	void Engine::StartFrame()
 	{
-#if BENCHMARK_MODE
+
 		m_FullFrameTimer.stop();
 		m_LastFrameTime = m_FullFrameTimer.miliseconds();
 		m_FullFrameTimer.start();
+		m_FrameTimer.start();
 
-		if (m_CollectBenchmarkData)
-		{
-			m_FrameTimer.start();
-		}
-		else
-		{
-
-		}
-#endif
 		m_Q->add(std::mem_fn(&Engine::Cmd_StartFrame), std::shared_ptr<void>());
 	}
 
@@ -134,6 +129,7 @@ namespace imp
 	{
 #if BENCHMARK_MODE
 		if (m_CollectBenchmarkData)
+#endif
 		{
 			m_FrameTimer.stop();
 
@@ -146,35 +142,15 @@ namespace imp
 			if (renderMode == kEngineRenderModeTraditional)
 				row.cull = m_CullTimer.miliseconds();
 
-			const auto tableIndex = static_cast<uint32_t>(renderMode);
-			auto& table = m_FrameTimeTables[tableIndex];
-			table.table_rows.push_back(row);
+			m_FrameStats.push_back(std::move(row));
 		}
-#endif
 		if (m_EngineSettings.threadingMode == kEngineMultiThreaded)
 			m_Q->add(std::mem_fn(&Engine::Cmd_SyncRenderThread), std::shared_ptr<void>());
 	}
 
 	void Engine::SyncGameThread()
 	{
-		auto& frameWorkTime = m_Timer.frameWorkTime;
-		auto& totalTime = m_Timer.totalFrameTime;
-		auto& waitTime = m_Timer.waitTime;
-
-		frameWorkTime.stop();
-
 		m_SyncPoint->arrive_and_wait();
-
-		totalTime.stop();
-
-		// time spent waiting for other thread is 'total frame time' - 'sync time'
-		waitTime.elapsed_time = totalTime.elapsed_time - m_SyncTime.elapsed_time;
-
-		m_OldTimer = m_Timer;
-		m_OldSyncTime = m_SyncTime;
-
-		// start the timer again
-		m_Timer.StartAll();
 	}
 
 #if BENCHMARK_MODE
@@ -415,7 +391,7 @@ namespace imp
 			cam.dirty = false;
 		}
 
-		m_UI.Update(*this, m_Entities);
+		m_UI.Update(*this, m_Entities, m_FrameStats);
 		m_Q->add(std::mem_fn(&Engine::Cmd_RenderImGUI), std::shared_ptr<void>());
 	}
 
@@ -450,16 +426,16 @@ namespace imp
 	{
 #if BENCHMARK_MODE
 		if (m_CollectBenchmarkData)
-			m_CullTimer.start();
 #endif
+			m_CullTimer.start();
 #if CULLING_ENABLED
 		utils::Cull(m_Entities, m_VisibleDrawData, m_Gfx, *m_ThreadPool);
 #endif
 
 #if BENCHMARK_MODE
 		if (m_CollectBenchmarkData)
-			m_CullTimer.stop();
 #endif
+			m_CullTimer.stop();
 	}
 
 	inline void GenerateIndirectDrawCommand(IGPUBuffer& dstBuffer, const Comp::MeshGeometry& meshData, uint32_t meshId, bool isMeshPipeline)
@@ -498,7 +474,6 @@ namespace imp
 	void Engine::EngineThreadSyncFunc() noexcept
 	{
 		AUTO_TIMER("[ENGINE SYNC]: ");
-		m_SyncTime.start();
 		m_Window.UpdateDeltaTime();
 
 		const auto renderMode = GetCurrentRenderMode();
@@ -602,19 +577,17 @@ namespace imp
 
 			cam.dirty = false;
 		}
-		m_SyncTime.stop();
 
-		auto& gfxTimer = m_Gfx.GetFrameTimings();
-		auto& oldTimer = m_Gfx.GetOldFrameTimings();
-		auto& gfxSyncTimer = m_Gfx.GetSyncTimings();
-		auto& gfxOldSyncTimer = m_Gfx.GetOldSyncTimings();
-
-		gfxTimer.totalFrameTime.stop();
-		gfxTimer.waitTime.elapsed_time = gfxTimer.totalFrameTime.elapsed_time - gfxTimer.frameWorkTime.elapsed_time - m_SyncTime.elapsed_time;
-		oldTimer = gfxTimer;
-		gfxOldSyncTimer = gfxSyncTimer;
-
-		gfxTimer.StartAll();
+		const auto& stats = m_Gfx.GetFrameStats();
+		if (stats.frameGPU > 0.0f)
+		{
+			auto& row = m_FrameStats[m_FrameStats.size() - 1 - kEngineSwapchainDoubleBuffering];
+			row.cull = std::max(row.cull, stats.cull);
+			row.frame = std::max(row.frame, stats.frame);
+			row.frameGPU = stats.frameGPU;
+			row.frameRenderCPU = stats.frameRenderCPU;
+			row.triangles = stats.triangles;
+		}
 	}
 
 }

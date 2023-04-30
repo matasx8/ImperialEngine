@@ -30,21 +30,21 @@ namespace imp
         m_Swapchain(m_SemaphorePool),
         m_CurrentFrame(),
         m_VulkanGarbageCollector(),
-        m_CbManager(m_SemaphorePool, m_FencePool, m_SyncTimer),
-        m_TransferCbManager(m_SemaphorePool, m_FencePool, m_SyncTimer),
+        m_CbManager(m_SemaphorePool, m_FencePool),
+        m_TransferCbManager(m_SemaphorePool, m_FencePool),
         m_SurfaceManager(),
         m_ShaderManager(),
         m_PipelineManager(),
         m_RenderPassManager(&m_VulkanGarbageCollector),
         m_TimestampQueryManager(),
-        m_Timer(),
-        m_OldTimer(),
-        m_SyncTimer(),
-        m_OldSyncTimer(),
 #if BENCHMARK_MODE
         m_FrameTimeTables(),
+#else
+        m_FrameStats(kEngineSwapchainDoubleBuffering + 1),
+#endif
         m_FrameTimer(),
         m_CullTimer(),
+#if BENCHMARK_MODE
         m_CollectBenchmarkData(),
         m_FrameStartedCollecting(),
 #endif
@@ -246,9 +246,8 @@ namespace imp
         AUTO_TIMER("[StartFrame]: ");
         const auto index = m_Swapchain.GetFrameClock();
 
-#if BENCHMARK_MODE
         m_FrameTimer.start();
-#endif
+
         switch (m_Settings.renderMode)
         {
         case kEngineRenderModeTraditional:
@@ -288,7 +287,7 @@ namespace imp
         if (m_CollectBenchmarkData || m_CurrentFrame - m_FrameStoppedCollecting < kEngineSwapchainDoubleBuffering)
             m_TimestampQueryManager.ReadbackQueryResults(m_LogicalDevice, m_FrameTimeTables[m_EngineRenderModeCollectingInto], m_CurrentFrame, m_FrameStartedCollecting, m_Swapchain.GetFrameClock());
 #else
-        m_TimestampQueryManager.ReadbackQueryResults(m_LogicalDevice, m_Swapchain.GetFrameClock());
+        m_TimestampQueryManager.ReadbackQueryResults(m_LogicalDevice, m_FrameStats, m_CurrentFrame, m_Swapchain.GetFrameClock());
 #endif
         m_TimestampQueryManager.ResetQueries(cb.cmb, index);
 
@@ -342,13 +341,12 @@ namespace imp
         m_SurfaceManager.SignalFrameEnded();
         m_VulkanGarbageCollector.DestroySafeResources(m_LogicalDevice, m_CurrentFrame);
         m_CurrentFrame++;
-        m_Timer.frameWorkTime.stop();
 
-#if BENCHMARK_MODE
         m_FrameTimer.stop();
+#if BENCHMARK_MODE
         if (m_CollectBenchmarkData)
-            CollectFrameCPUResults();
 #endif
+            CollectFrameCPUResults();
     }
 
 #if BENCHMARK_MODE
@@ -898,11 +896,6 @@ namespace imp
         ImGui_ImplVulkan_DestroyFontUploadObjects();
     }
 
-    void Graphics::CreateVulkanMemoryManager()
-    {
-        // m_MemoryManager.Initialize();
-    }
-
     void Graphics::CreateRenderPassGenerator()
     {
         std::unique_ptr<RenderPassFactory> RpFactory = std::make_unique<RenderPassFactorySimple>();
@@ -1086,9 +1079,9 @@ namespace imp
         return true;
     }
 
-#if BENCHMARK_MODE
     void Graphics::CollectFrameCPUResults()
     {
+#if BENCHMARK_MODE
         const auto renderMode = m_Settings.renderMode;
 
         FrameTimeRow row;
@@ -1097,13 +1090,24 @@ namespace imp
         const auto tableIndex = static_cast<uint32_t>(renderMode);
         auto& table = m_FrameTimeTables[tableIndex];
         table.table_rows.push_back(row);
+#else
+        FrameTimeRow row;
+        row.frameRenderCPU = m_FrameTimer.miliseconds();
+        m_FrameStats.push_back(row);
+#endif
     }
+#if BENCHMARK_MODE
 
     // this problem will be relevant when switching rendering modes
     void Graphics::CollectFinalResults()
     {
         m_TimestampQueryManager.ReadbackQueryResults(m_LogicalDevice, m_FrameTimeTables[m_Settings.renderMode], m_CurrentFrame, m_FrameStartedCollecting, m_Swapchain.GetFrameClock());
         m_TimestampQueryManager.ReadbackQueryResults(m_LogicalDevice, m_FrameTimeTables[m_Settings.renderMode], m_CurrentFrame + 1, m_FrameStartedCollecting, (m_Swapchain.GetFrameClock() + 1) % kEngineSwapchainDoubleBuffering);
+    }
+#else
+    const FrameTimeRow& Graphics::GetFrameStats() const
+    {
+        return m_FrameStats[0];
     }
 #endif
 }

@@ -5,6 +5,7 @@
 namespace imp
 {
 	class Engine;
+	class CircularFrameTimeRowContainer;
 
 	class UI : NonCopyable
 	{
@@ -12,7 +13,7 @@ namespace imp
 		UI();
 		void Initialize();
 
-		void Update(Engine& engine, entt::registry& reg);
+		void Update(Engine& engine, entt::registry& reg, CircularFrameTimeRowContainer& stats);
 
 		void Destroy();
 

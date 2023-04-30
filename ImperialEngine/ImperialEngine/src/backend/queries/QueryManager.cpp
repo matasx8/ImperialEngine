@@ -65,7 +65,7 @@ namespace imp
 #if BENCHMARK_MODE
 	void QueryManager::ReadbackQueryResults(VkDevice device, FrameTimeTable& table, uint64_t currFrame, uint64_t frameStartedCollecting, uint32_t swapchainIndex)
 #else
-	void QueryManager::ReadbackQueryResults(VkDevice device, uint32_t swapchainIndex)
+	void QueryManager::ReadbackQueryResults(VkDevice device, CircularFrameTimeRowContainer& stats, uint64_t currFrame, uint32_t swapchainIndex)
 #endif
 	{
 #if BENCHMARK_MODE
@@ -77,11 +77,14 @@ namespace imp
 		const auto currIdx = currFrame - frameStartedCollecting;
 		const auto actualIdx = currIdx - kEngineSwapchainDoubleBuffering;
 		auto& row = table.table_rows[actualIdx];
+#else
+		if (currFrame < kEngineSwapchainDoubleBuffering)
+			return;
+
+		auto& row = stats[1];
 #endif
 		uint64_t results[kQueryCount] = {};
 		uint64_t statResults[kStatQueryCount] = {};
-
-		//uint32_t offset = swapchainIndex * m_QueryCount;
 		uint32_t firstQuery = swapchainIndex * m_QueryCount;
 
 		vkGetQueryPoolResults(device, m_Pool, firstQuery, kQueryCount, sizeof(results), results, sizeof(results[0]), VK_QUERY_RESULT_64_BIT);
@@ -89,9 +92,10 @@ namespace imp
 		
 #if BENCHMARK_MODE
 		row.triangles = uint64_t(statResults[0]);
+#else
+		row.triangles = float(statResults[0]);
 #endif
 
-		//printf("Num Triangles %llu\n", statResults[0]);
 		auto& usedQueries = m_UsedQueries[swapchainIndex];
 		if (usedQueries.any())
 		{
@@ -112,16 +116,12 @@ namespace imp
 					{
 						case kQueryGPUFrameEnd:
 						{
-#if BENCHMARK_MODE
 							row.frameGPU = (endQ - beginQ) * 1e-6;
-#endif
 							break;
 						}
 						case kQueryCullEnd:
 						{
-#if BENCHMARK_MODE
 							row.cull = (endQ - beginQ) * 1e-6;
-#endif
 							break;
 						}
 						default:

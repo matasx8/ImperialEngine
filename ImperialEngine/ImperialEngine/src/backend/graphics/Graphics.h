@@ -47,6 +47,9 @@ namespace imp
 		void StartBenchmark();
 		void StopBenchmark();
 		const std::array<FrameTimeTable, kEngineRenderModeCount>& GetBenchmarkTable() const;
+#else
+		// Gets frame stats of frame n - kEngineSwapchainDoubleBuffering
+		const FrameTimeRow& GetFrameStats() const;
 #endif
 
 		void CreateAndUploadMeshes(std::vector<MeshCreationRequest>& meshCreationData);
@@ -61,11 +64,6 @@ namespace imp
 		IGPUBuffer& GetDrawDataBuffer();
 
 		const Comp::MeshGeometry& GetMeshData(uint32_t index) const;
-
-		Timings& GetFrameTimings() { return m_Timer; }
-		Timings& GetOldFrameTimings() { return m_OldTimer; }
-		SimpleTimer& GetSyncTimings() { return m_SyncTimer; }
-		SimpleTimer& GetOldSyncTimings() { return m_SyncTimer; }
 
 		EngineGraphicsSettings& GetGraphicsSettings();
 		const GraphicsCaps& GetGfxCaps() const;
@@ -83,7 +81,6 @@ namespace imp
 		void CreateSurfaceManager();
 		void CreateGarbageCollector();
 		void CreateImGUI();
-		void CreateVulkanMemoryManager();
 		void CreateRenderPassGenerator();
 		
 		void InitializeVulkanMemory();
@@ -130,18 +127,16 @@ namespace imp
 		RenderPassGenerator m_RenderPassManager;
 		QueryManager m_TimestampQueryManager;
 
-		// TODO benchmark: remove these and replace with benchmark_mode added timers
-		Timings m_Timer;
-		Timings m_OldTimer;
-		SimpleTimer m_SyncTimer; // time spent waiting for gpu
-		SimpleTimer m_OldSyncTimer;
-
-#if BENCHMARK_MODE
 		void CollectFrameCPUResults();
+#if BENCHMARK_MODE
 		void CollectFinalResults();
 		std::array<FrameTimeTable, kEngineRenderModeCount> m_FrameTimeTables;
+#else
+		CircularFrameTimeRowContainer m_FrameStats;
+#endif
 		SimpleTimer m_FrameTimer;
 		SimpleTimer m_CullTimer;
+#if BENCHMARK_MODE
 		bool m_CollectBenchmarkData;
 		uint64_t m_FrameStartedCollecting;
 		uint64_t m_FrameStoppedCollecting;

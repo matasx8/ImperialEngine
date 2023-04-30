@@ -270,7 +270,6 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="src\frontend\UI.cpp" />
     <ClCompile Include="src\Utils\EngineStaticConfig.h" />
-    <ClCompile Include="src\Utils\FrameTimeTable.cpp" />
     <ClCompile Include="src\Utils\GfxUtilities.cpp" />
     <ClCompile Include="src\Utils\Utilities.cpp" />
     <ClCompile Include="src\frontend\Window.cpp" />

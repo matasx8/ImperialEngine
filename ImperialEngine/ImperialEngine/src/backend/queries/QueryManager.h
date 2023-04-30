@@ -9,6 +9,7 @@
 namespace imp
 {
 	class FrameTimeTable;
+	class CircularFrameTimeRowContainer;
 
 	enum QueryType : uint32_t
 	{
@@ -39,7 +40,7 @@ namespace imp
 #if BENCHMARK_MODE
 		void ReadbackQueryResults(VkDevice device, FrameTimeTable& table, uint64_t currFrame, uint64_t frameStartedCollecting, uint32_t swapchainIndex);
 #else
-		void ReadbackQueryResults(VkDevice device, uint32_t swapchainIndex);
+		void ReadbackQueryResults(VkDevice device, CircularFrameTimeRowContainer& stats, uint64_t currFrame, uint32_t swapchainIndex);
 #endif
 
 		void Destroy(VkDevice device);
