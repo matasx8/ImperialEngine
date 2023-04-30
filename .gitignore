@@ -424,5 +424,6 @@ FodyWeavers.xsd
 *.bak
 *.gltf
 *.glb
+.VSCodeCounter/
 Crashes/
 TestData/

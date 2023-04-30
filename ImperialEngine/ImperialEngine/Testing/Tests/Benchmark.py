@@ -308,7 +308,7 @@ def process_combined_results(results, title):
 # All optimizations
 #use this for "testing"
 def test_suite1():
-    run_count = " --run-for=250"
+    run_count = " --run-for=100"
 
     # get the test environment ready
     defines = "BENCHMARK_MODE#1"
@@ -332,28 +332,19 @@ def test_suite1():
 
 
     # -- sponza with curtains and vines --
-    result = run_test("--file-count=1 --load-files Scene/sponza_wc_v_cameranear.glb" + run_count)
-    test_results.append(TestResult(result, "'Sponza' scena, visos optimizacijos"))
+    #result = run_test("--file-count=1 --load-files Scene/sponza_wc_v_cameranear.glb" + run_count)
+    #test_results.append(TestResult(result, "'Sponza' scena, visos optimizacijos"))
 
 
     # -- donut and monkey --
-    #result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max" + run_count)
-    #test_results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu"))
+    result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=10000" + run_count)
+    test_results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu"))
 
-    #result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max --camera-movement=away" + run_count)
-    #test_results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu"))
+    result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=10000 --camera-movement=away" + run_count)
+    test_results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu"))
 
-    #result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max --camera-movement=away" + run_count)
-    #test_results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu"))
-
-    #result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max --camera-movement=static_offset" + run_count)
-    #test_results.append(TestResult(result, "Spurga ir Suzanne su atsitiktiniu išmėtymu"))
-
-
-    # very high poly
-
-
-    # very low poly
+    for result in test_results:
+        process_results(result)
 
 def test_suite_performance():
     results = []
@@ -625,11 +616,11 @@ def test_suite_mesh():
 
 
 def main():
-    #test_suite1()
+    test_suite1()
     #test_suite_performance()
     #test_suite_optimization()
     #test_suite_optimization_bigmesh()
-    test_suite_object_count()
+    #test_suite_object_count()
     #test_suite_mesh()
 
     for result in test_results:

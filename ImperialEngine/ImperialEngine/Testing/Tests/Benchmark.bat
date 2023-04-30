@@ -1,3 +1,2 @@
-cd ../../
-py Testing/Tests/Benchmark.py
+py Benchmark.py
 pause
