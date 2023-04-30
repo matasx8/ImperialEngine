@@ -15,7 +15,7 @@ namespace imp
 	struct BoundingVolumeSphere
 	{
 		glm::vec3 center;
-		float diameter;
+		float radius;
 	};
 
 	struct MeshLOD

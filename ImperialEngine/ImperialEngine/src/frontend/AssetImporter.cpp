@@ -115,6 +115,7 @@ namespace imp
 		std::unordered_map<uint32_t, uint32_t> meshIdMap;
 		std::vector<Comp::GLTFEntity> entities;
 		Comp::GLTFCamera camera;
+		camera.valid = false;
 		for (const auto& nodeIdx : model.scenes.front().nodes)
 		{
 			const auto& node = model.nodes[nodeIdx];

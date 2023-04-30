@@ -3,6 +3,7 @@
 #include "extern/MESHOPTIMIZER/meshoptimizer.h"
 #include "extern/THREAD-POOL/BS_thread_pool.hpp"
 #include "GLM/gtc/matrix_access.hpp"
+#include <glm/gtx/matrix_decompose.hpp>
 
 namespace imp
 {
@@ -56,28 +57,24 @@ namespace imp
 
 		BoundingVolumeSphere FindSphereBoundingVolume(const Vertex* vertices, size_t numVertices)
 		{
-			glm::vec3 pos = glm::vec3(vertices->vx, vertices->vy, vertices->vz);
-			glm::vec3 minX = pos;
-			glm::vec3 maxX = pos;
-			glm::vec3 minY = pos;
-			glm::vec3 maxY = pos;
-			glm::vec3 minZ = pos;
-			glm::vec3 maxZ = pos;
+			glm::vec3 center = glm::vec3(0.0f);
+			float radius = 0.0f;
 
 			for (auto i = 0; i < numVertices; i++)
 			{
-				if (vertices[i].vx < minX.x) minX = glm::vec3(vertices[i].vx, vertices[i].vy, vertices[i].vz);
-				if (vertices[i].vx > maxX.x) maxX = glm::vec3(vertices[i].vx, vertices[i].vy, vertices[i].vz);
-				if (vertices[i].vy < minY.y) minY = glm::vec3(vertices[i].vx, vertices[i].vy, vertices[i].vz);
-				if (vertices[i].vy > maxY.y) maxY = glm::vec3(vertices[i].vx, vertices[i].vy, vertices[i].vz);
-				if (vertices[i].vz < minZ.z) minZ = glm::vec3(vertices[i].vx, vertices[i].vy, vertices[i].vz);
-				if (vertices[i].vz > maxZ.z) maxZ = glm::vec3(vertices[i].vx, vertices[i].vy, vertices[i].vz);
+				glm::vec3 pos = glm::vec3(vertices[i].vx, vertices[i].vy, vertices[i].vz);
+				center += pos;
+			}
+			center /= static_cast<float>(numVertices);
+
+			for (auto i = 0; i < numVertices; i++)
+			{
+				glm::vec3 pos = glm::vec3(vertices[i].vx, vertices[i].vy, vertices[i].vz);
+				float dist = glm::length(pos - center);
+				radius = std::max(radius, dist);
 			}
 
-			glm::vec3 diag = (maxX - minX) + (maxY - minY) + (maxZ - minZ);
-			glm::vec3 center = diag / 2.0f;
-			float diameter = glm::length(diag);
-			BoundingVolumeSphere bv = { center, diameter };
+			BoundingVolumeSphere bv = { center, radius * 2.0f };
 			return bv;
 		}
 
@@ -273,6 +270,11 @@ namespace imp
 			return meshletsDst;
 		}
 
+		static float GetScale(const glm::mat4& transformMatrix)
+		{
+			return glm::length(transformMatrix[0]);
+		};
+
 		void Cull(entt::registry& registry, std::vector<DrawDataSingle>& visibleData, const Graphics& gfx, BS::thread_pool& tp)
 		{
 			AUTO_TIMER("[CPU CULL]: ");
@@ -302,14 +304,16 @@ namespace imp
 				glm::vec4 mCenter = glm::vec4(BV.center, 1.0f);
 				glm::vec4 wCenter = transform.transform * glm::vec4(BV.center, 1.0f);
 
-				float scale = glm::length(glm::vec3(transform.transform[0].x, transform.transform[0].y, transform.transform[0].z));
+				float scale = GetScale(transform.transform);
 				float distFromCamera = 0.0f;
 
 				bool isVisible = true;
 				for (auto i = 0; i < 6; i++)
 				{
 					float dotProd = glm::dot(frustumPlanes[i], wCenter);
-					if (dotProd < -BV.diameter * scale)
+					float radius = -BV.radius;
+					//printf("%.3f %.3f %.3f %.3f \n", dotProd, radius, scale, -BV.radius * scale);
+					if (dotProd < -BV.radius * scale)
 					{
 						isVisible = false;
 						break;
@@ -317,7 +321,7 @@ namespace imp
 
 #if LOD_ENABLED
 					if (i == 4)
-						distFromCamera = dotProd - BV.diameter;
+						distFromCamera = dotProd - BV.radius;
 #endif
 				}
 
@@ -363,7 +367,7 @@ namespace imp
 					for (auto i = 0; i < 6; i++)
 					{
 						float dotProd = glm::dot(frustumPlanes[i], wCenter);
-						if (dotProd < -BV.diameter * scale)
+						if (dotProd < -BV.radius * scale)
 						{
 							isVisible = false;
 							break;
@@ -371,7 +375,7 @@ namespace imp
 
 #if LOD_ENABLED
 						if (i == 4)
-							distFromCamera = dotProd - BV.diameter;
+							distFromCamera = dotProd - BV.radius;
 #endif
 					}
 

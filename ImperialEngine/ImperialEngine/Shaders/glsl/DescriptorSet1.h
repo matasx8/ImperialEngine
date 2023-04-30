@@ -25,7 +25,7 @@ struct IndirectDraw
 struct BoundingVolume
 {
     vec3 center;
-    float diameter;
+    float radius;
 };
 
 struct MeshLOD

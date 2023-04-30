@@ -52,7 +52,7 @@ bool is_inside_view_frustum(uint idx)
     float scale = length(drawData[idx].Transform[0].xyz);
 
     // dumbass its supposed to be radius..
-    float diameter = bv.diameter * scale;
+    float radius = bv.radius * scale;
 
     for (int i = 0; i < 6; i++)
     {
@@ -62,13 +62,13 @@ bool is_inside_view_frustum(uint idx)
         float signedDistance = dot(globals.frustum[i], wCenter);
 
         // Negative result already lets us know that point is in negative half space of plane
-        // If it's less than 0 + (-diameter) then BV is outside VF
-        if(signedDistance < -diameter)
+        // If it's less than 0 + (-radius) then BV is outside VF
+        if(signedDistance < -radius)
             return false;
 #if LOD_ENABLED
         // Temporary solution to saving distance from near plane for LOD picking
         if(i == 4)
-            distFromCamera = signedDistance - diameter;
+            distFromCamera = signedDistance - radius;
 #endif
     }
     return true;

@@ -25,7 +25,7 @@
 
 #ifndef LOD_ENABLED
 	#if CULLING_ENABLED	// lod picking is done right after culling so it's too tightly coupled right now
-	#define LOD_ENABLED 1
+	#define LOD_ENABLED 0
 	#else
 	#define LOD_ENABLED 0
 	#endif
