@@ -757,10 +757,10 @@ namespace imp
         // TODO nice-to-have: provide at least some basic errors for when features are not supported 
         // and some basic fallbacks (e.g. mesh shading not supported so fallback to gpu driven regular)
         // TODO mesh: properly disable these
-        features12.descriptorBindingUpdateUnusedWhilePending = true;
-        features12.descriptorBindingUniformBufferUpdateAfterBind = true;
-        features12.descriptorBindingStorageBufferUpdateAfterBind = true;
-        features12.descriptorBindingVariableDescriptorCount = true;
+        //features12.descriptorBindingUpdateUnusedWhilePending = true;
+        //features12.descriptorBindingUniformBufferUpdateAfterBind = true;
+        //features12.descriptorBindingStorageBufferUpdateAfterBind = true;
+        //features12.descriptorBindingVariableDescriptorCount = true;
         features12.timelineSemaphore = true;
         features12.storageBuffer8BitAccess = true;
         
