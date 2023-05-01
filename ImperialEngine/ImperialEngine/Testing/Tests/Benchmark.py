@@ -354,6 +354,7 @@ def process_combined_results(results, title):
 
     cpu_data = [df["Frame Time"].mean() for df in dfs_cpu]
     gpu_data = [df["Frame Time"].mean() for df in dfs_gpu]
+    mesh_data = gpu_data
     if supports_mesh_shading:
         mesh_data = [df["Frame Time"].mean() for df in dfs_mesh]
     plot_bar3(cpu_data, gpu_data, mesh_data, [result.desc for result in results], title, last_test_id_str)
@@ -689,10 +690,10 @@ def main():
     ensure_test_dir_exits()
     supports_mesh_shading = check_mesh_shader_support()
     #test_suite1()
-    test_suite_performance()
-    #test_suite_optimization()
-    #test_suite_optimization_bigmesh()
-    #test_suite_object_count()
+    #test_suite_performance()
+    test_suite_optimization()
+    test_suite_optimization_bigmesh()
+    test_suite_object_count()
     #test_suite_mesh()
 
     for result in test_results:
