@@ -144,6 +144,10 @@ namespace imp
 				row.cull = m_CullTimer.miliseconds();
 #if !BENCHMARK_MODE
 			m_FrameStats.push_back(std::move(row));
+#else
+			const auto tableIndex = static_cast<uint32_t>(renderMode);
+			auto& table = m_FrameTimeTables[tableIndex];
+			table.table_rows.push_back(row);
 #endif
 		}
 		if (m_EngineSettings.threadingMode == kEngineMultiThreaded)
