@@ -26,6 +26,7 @@ namespace imp
 
 	void UI::Update(Engine& engine, entt::registry& reg, CircularFrameTimeRowContainer& stats)
 	{
+#if !BENCHMARK_MODE
 		ImGui::NewFrame();
 //#define SHOW_DEMO 1
 #if SHOW_DEMO
@@ -204,6 +205,7 @@ namespace imp
 		ImGui::End();
 #endif
 		ImGui::Render();
+#endif
 	}
 
 	void UI::Destroy()

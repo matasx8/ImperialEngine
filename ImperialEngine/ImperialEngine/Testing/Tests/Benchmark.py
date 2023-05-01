@@ -11,10 +11,13 @@ use_premade_results = True
 engine_path = "../bin/x64/Release/ImperialEngine.exe"
 #TODO: make this local path
 msbuild_path = "\"C:/Program Files/Microsoft Visual Studio/2022/Community/Msbuild/Current/Bin/MSBuild.exe\""
+vulkan_info_path = os.environ.get("VK_SDK_PATH") + "\\Bin\\vulkaninfoSDK.exe"
 smooth_data = True
 
 save_figures = True
 show_figures = False
+
+supports_mesh_shading = False
 
 cwd = os.getcwd()
 # make sure we start from ImperialEngine/ImperialEngine
@@ -45,6 +48,23 @@ test_results = []
 def read_data(data_file_name):
     df = pd.read_csv(data_file_name, encoding="iso-8859-1", sep=";")
     return df
+
+def check_mesh_shader_support():
+    cmd = vulkan_info_path + " > " + os.devnull
+    result = os.system(cmd)
+
+    if result == 0:
+        with os.popen(cmd) as f:
+            output = f.read()
+            if "VK_NV_mesh_shader" in output:
+                print("VK_NV_mesh_shader is supported on this device.")
+                return True
+            else:
+                print("VK_NV_mesh_shader is not supported on this device.")
+                return False
+    else:
+        print(f"Error running {cmd}: exit code {result}")
+        return False
 
 def read_all(filepath):
     df_cpu = read_data(filepath + "TestData-Traditional.csv")
@@ -616,6 +636,7 @@ def test_suite_mesh():
 
 
 def main():
+    supports_mesh_shading = check_mesh_shader_support()
     test_suite1()
     #test_suite_performance()
     #test_suite_optimization()
@@ -636,6 +657,7 @@ def compile_engine(defines):
     config = "/p:configuration=Release /p:platform=x64 /p:OutDir=../bin/x64/Release/ /p:IntDir=../bin/intermediates/x64/Release/" + define_args
     #config_debug = "/p:configuration=Development /p:platform=x64 /p:OutDir=../bin/x64/Development/ /p:IntDir=../bin/intermediates/x64/Development/ -v:m"
     args = " " + project + " " + config
+    print ("Compiling engine with args: " + args)
     exit_code = os.system(msbuild_path + args)
     return exit_code
 

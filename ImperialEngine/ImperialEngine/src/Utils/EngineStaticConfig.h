@@ -8,7 +8,7 @@
 // Benchmarking mode. Engine will run test scene with each available rendering mode, collect data and output it, then shut down.
 // UI will be disabled.
 #ifndef BENCHMARK_MODE
-#define BENCHMARK_MODE 0
+#define BENCHMARK_MODE 1
 #endif
 
 #ifndef USE_AFTERMATH
@@ -25,7 +25,7 @@
 
 #ifndef LOD_ENABLED
 	#if CULLING_ENABLED	// lod picking is done right after culling so it's too tightly coupled right now
-	#define LOD_ENABLED 0
+	#define LOD_ENABLED 1
 	#else
 	#define LOD_ENABLED 0
 	#endif

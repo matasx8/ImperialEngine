@@ -815,7 +815,7 @@ namespace imp
         VkPhysicalDeviceMemoryProperties memoryProperties;
         vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &memoryProperties);
         m_DeviceMemoryProps.memoryProperties = memoryProperties;
-
+        
         // TODO: in vulkan memory manager I approached this by giving m_DeviceMemoryProps to where it's needed. Maybe that's better
         // and probably it is. This is needed here because we allocate an image but without our memory manager. So would be good to use it later for all allocations
         m_SurfaceManager.Initialize(m_LogicalDevice, m_DeviceMemoryProps);

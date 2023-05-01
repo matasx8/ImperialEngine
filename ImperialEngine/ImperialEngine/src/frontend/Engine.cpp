@@ -29,8 +29,9 @@ namespace imp
 #if BENCHMARK_MODE
 		, m_InitialCameraTransform()
 		, m_FrameTimeTables()
-#endif
+#else
 		, m_FrameStats(100)
+#endif
 		, m_FrameTimer()
 		, m_CullTimer()
 		, m_FullFrameTimer()
@@ -141,8 +142,9 @@ namespace imp
 
 			if (renderMode == kEngineRenderModeTraditional)
 				row.cull = m_CullTimer.miliseconds();
-
+#if !BENCHMARK_MODE
 			m_FrameStats.push_back(std::move(row));
+#endif
 		}
 		if (m_EngineSettings.threadingMode == kEngineMultiThreaded)
 			m_Q->add(std::mem_fn(&Engine::Cmd_SyncRenderThread), std::shared_ptr<void>());
@@ -377,6 +379,7 @@ namespace imp
 
 	void Engine::RenderImGUI()
 	{
+#if !BENCHMARK_MODE
 		// TODO:
 		// Because dear imgui uses static globals I can't copy relevant data
 		// So I need to update imgui right before launching render command
@@ -393,6 +396,7 @@ namespace imp
 
 		m_UI.Update(*this, m_Entities, m_FrameStats);
 		m_Q->add(std::mem_fn(&Engine::Cmd_RenderImGUI), std::shared_ptr<void>());
+#endif
 	}
 
 	void Engine::UpdateRegistry()
@@ -578,6 +582,7 @@ namespace imp
 			cam.dirty = false;
 		}
 
+#if !BENCHMARK_MODE
 		const auto& stats = m_Gfx.GetFrameStats();
 		if (stats.frameGPU > 0.0f)
 		{
@@ -588,6 +593,7 @@ namespace imp
 			row.frameRenderCPU = stats.frameRenderCPU;
 			row.triangles = stats.triangles;
 		}
+#endif
 	}
 
 }
