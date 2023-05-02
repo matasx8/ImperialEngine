@@ -251,10 +251,9 @@ namespace imp
         switch (m_Settings.renderMode)
         {
         case kEngineRenderModeTraditional:
-            // this contains a race condition
-            // TODO final:
-            //m_CbManager.AquireCommandBuffer(m_LogicalDevice);
             m_ShaderManager.UpdateDrawData(m_LogicalDevice, index, m_DrawData, m_VertexBuffers);
+            m_CbManager.AddQueueDependencies(m_ShaderManager.GetDrawDataBuffers(index).GetTimeline());
+            m_ShaderManager.GetDrawDataBuffers(index).MarkUsedInQueue();
             break;
         case kEngineRenderModeGPUDriven:
         case kEngineRenderModeGPUDrivenMeshShading:

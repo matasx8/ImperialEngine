@@ -235,8 +235,21 @@ namespace imp
 		AUTO_TIMER("[CPU UPDATE DRAW DATA]: ");
 		std::vector<ShaderDrawData> shaderData;
 		shaderData.resize(drawData.size());
-		m_DrawDataBuffers[descriptorSetIdx].resize(drawData.size(), sizeof(ShaderDrawData));
+		auto& buf = m_DrawDataBuffers[descriptorSetIdx];
+		buf.MakeSureNotUsedOnGPU(device);
+		buf.resize(drawData.size(), sizeof(ShaderDrawData));
 
+#if CPU_CULL_ST
+		for (auto i = 0; i < drawData.size(); i++)
+		{
+			ShaderDrawData dat;
+			dat.transform = drawData[i].Transform;
+			dat.materialIndex = kDefaultMaterialIndex;
+			dat.vertexOffset = geometryData.at(drawData[i].VertexBufferId).vertices.GetOffset();
+
+			buf.insert(i, &dat, sizeof(ShaderDrawData));
+		}
+#else
 		m_JobSystem->parallelize_loop(drawData.size(), [&](const auto st, const auto en)
 			{
 				for (auto i = st; i < en; i++)
@@ -249,6 +262,7 @@ namespace imp
 					m_DrawDataBuffers[descriptorSetIdx].insert(i, &dat, sizeof(ShaderDrawData));
 				}
 			}).wait();
+#endif
 	}
 
 	void VulkanShaderManager::Destroy(VkDevice device)
