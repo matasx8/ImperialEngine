@@ -7,7 +7,7 @@ import csv
 # Like the application, scripts should be configured to run from ImperialEngine/ImperialEngine/
 
 #  -- Static Settings --
-use_premade_results = False
+use_premade_results = True
 engine_path = "../bin/x64/Release/ImperialEngine.exe"
 #TODO: make this local path
 msbuild_path = "\"C:/Program Files/Microsoft Visual Studio/2022/Community/Msbuild/Current/Bin/MSBuild.exe\""
@@ -54,7 +54,7 @@ def check_mesh_shader_support():
     result = os.system(cmd)
 
     if result == 0:
-        with os.popen(cmd) as f:
+        with os.popen(vulkan_info_path) as f:
             output = f.read()
             if "VK_NV_mesh_shader" in output:
                 print("VK_NV_mesh_shader is supported on this device.")
@@ -232,7 +232,7 @@ def plot_bar3(data_lists_cpu, data_lists_gpu, data_lists_mesh, data_labels, titl
     plt.tight_layout()
 
     ax.set_xticks(x)
-    ax.set_xticklabels(data_labels, rotation=45, ha='right')
+    ax.set_xticklabels(data_labels[0:len(data_lists_cpu)], rotation=45, ha='right')
     plt.tight_layout()
     if save_figures == True:
         save_figure(test_id, title, "barchart")
@@ -328,14 +328,34 @@ def process_results_into_table(results):
             for result, df_cpu, df_gpu in zip(results, dfs_cpu, dfs_gpu):
                 writer.writerow([result.desc, df_cpu["Frame Time"].mean(), df_gpu["Frame Time"].mean()])
 
+def split_list(lst, n):
+    result = []
+    for i in range(0, len(lst), n):
+        result.append(lst[i:i + n])
+    return result
 
+def average_splits(df_list):
+    transposed = list(map(list, zip(*df_list)))
+    averaged_dfs = []
+    for pair in transposed:
+        concatenated_df = pd.concat(pair)
 
+        # Group by the column names and compute the mean
+        averaged_df = concatenated_df.groupby(concatenated_df.columns, axis=1).mean()
+
+        # Add the averaged data frame to the result list
+        averaged_dfs.append(averaged_df)
+    return averaged_dfs
 
 def process_combined_results(results, title):
     dfs_cpu = []
     dfs_gpu = []
     dfs_mesh = []
     last_test_id_str = ""
+    num_tests = 3
+    if supports_mesh_shading:
+        num_tests = 4
+
     for result in results:
         test_id_str = test_id_to_filename(result.test_id)
         last_test_id_str = test_id_str
@@ -345,17 +365,31 @@ def process_combined_results(results, title):
         if supports_mesh_shading:
             dfs_mesh.append(smoothing(read_data(file_path + "TestData-GPU-Driven-Mesh.csv")))
 
+    if len(dfs_cpu) % num_tests != 0:
+        print("Something went wrong, should be divisble by number of test configurations for each scene")
+        return
+
+    dfs_cpu_split = split_list(dfs_cpu, num_tests)
+    dfs_gpu_split = split_list(dfs_gpu, num_tests)
+    if supports_mesh_shading:
+        dfs_mesh_split = split_list(dfs_mesh, num_tests)
+
+    avg_dfs_cpu = average_splits(dfs_cpu_split)
+    avg_dfs_gpu = average_splits(dfs_gpu_split)
+    if supports_mesh_shading:
+        avg_dfs_mesh = average_splits(dfs_mesh_split)
     
     # skip results with cluster culling only changes for non mesh shading pipelines
-    plot_lines2([df["Frame Time"] for df in dfs_cpu], [result.desc for result in results], "Tradicinis", last_test_id_str)
-    plot_lines2([df["Frame Time"] for df in dfs_gpu], [result.desc for result in results], "GPU", last_test_id_str)
+    plot_lines2([df["Frame Time"] for df in avg_dfs_cpu], [result.desc for result in results], "Tradicinis", last_test_id_str)
+    plot_lines2([df["Frame Time"] for df in avg_dfs_gpu], [result.desc for result in results], "GPU", last_test_id_str)
     if supports_mesh_shading:
-        plot_lines2([df["Frame Time"] for df in dfs_mesh], [result.desc for result in results], "Mesh", last_test_id_str)
+        plot_lines2([df["Frame Time"] for df in avg_dfs_mesh], [result.desc for result in results], "Mesh", last_test_id_str)
 
-    cpu_data = [df["Frame Time"].mean() for df in dfs_cpu]
-    gpu_data = [df["Frame Time"].mean() for df in dfs_gpu]
+    cpu_data = [df["Frame Time"].mean() for df in avg_dfs_cpu]
+    gpu_data = [df["Frame Time"].mean() for df in avg_dfs_gpu]
+    mesh_data = []
     if supports_mesh_shading:
-        mesh_data = [df["Frame Time"].mean() for df in dfs_mesh]
+        mesh_data = [df["Frame Time"].mean() for df in avg_dfs_mesh]
     plot_bar3(cpu_data, gpu_data, mesh_data, [result.desc for result in results], title, last_test_id_str)
 
 
@@ -463,25 +497,38 @@ def test_suite_performance():
     
     process_results_into_table(results)
 
-def test_suite_optimization():
+def test_suite_optimization(args):
     if use_premade_results == False:
-        run_count = " --run-for=500"
+        for arg in args:
+            run_count = " --run-for=250"
 
-        results = []
+            results = []
 
-        # prepare environment with all optimizations
-        defines = "BENCHMARK_MODE#1"
-        compile_shaders("DEBUG_MESH=0")
-        result = compile_engine(defines)
-        if result > 0:
-            print("Failed to successfully compile engine")
-            return
-        
-        result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=100000" + run_count)
-        results.append(TestResult(result, "Visos optimizacijos"))
+            # prepare environment with all optimizations
+            defines = "BENCHMARK_MODE#1"
+            compile_shaders("DEBUG_MESH=0")
+            result = compile_engine(defines)
+            if result > 0:
+                print("Failed to successfully compile engine")
+                return
+            
+            result = run_test(arg + run_count)
+            results.append(TestResult(result, "Visos optimizacijos"))
 
-        if supports_mesh_shading:
-            universal_defines = "CONE_CULLING_ENABLED#0"
+            if supports_mesh_shading:
+                universal_defines = "CONE_CULLING_ENABLED#0"
+                defines = "BENCHMARK_MODE#1;" + universal_defines
+                compile_shaders("DEBUG_MESH=0;" + universal_defines)
+                result = compile_engine(defines)
+                if result > 0:
+                    print("Failed to successfully compile engine")
+                    return
+                #"--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=100000"
+                result = run_test(arg + run_count)
+                results.append(TestResult(result, "Be klast. atm."))
+
+            # prepare environment without LOD and without cone culling
+            universal_defines = "LOD_ENABLED#0;CONE_CULLING_ENABLED#0"
             defines = "BENCHMARK_MODE#1;" + universal_defines
             compile_shaders("DEBUG_MESH=0;" + universal_defines)
             result = compile_engine(defines)
@@ -489,117 +536,40 @@ def test_suite_optimization():
                 print("Failed to successfully compile engine")
                 return
             
-            result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=100000" + run_count)
-            results.append(TestResult(result, "Be klast. atm."))
+            result = run_test(arg + run_count)
+            if supports_mesh_shading:
+                results.append(TestResult(result, "Be klast. atm. ir be LOD"))
+            else:
+                results.append(TestResult(result, "Be LOD"))
 
-        # prepare environment without LOD and without cone culling
-        universal_defines = "LOD_ENABLED#0;CONE_CULLING_ENABLED#0"
-        defines = "BENCHMARK_MODE#1;" + universal_defines
-        compile_shaders("DEBUG_MESH=0;" + universal_defines)
-        result = compile_engine(defines)
-        if result > 0:
-            print("Failed to successfully compile engine")
-            return
-        
-        result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=100000" + run_count)
-        if supports_mesh_shading:
-            results.append(TestResult(result, "Be klast. atm. ir be LOD"))
-        else:
-            results.append(TestResult(result, "Be LOD"))
-
-        # prepare environment without LOD and without cone culling and without VF culling
-        universal_defines = "LOD_ENABLED#0;CONE_CULLING_ENABLED#0;CULLING_ENABLED#0"
-        defines = "BENCHMARK_MODE#1;" + universal_defines
-        compile_shaders("DEBUG_MESH=0;" + universal_defines)
-        result = compile_engine(defines)
-        if result > 0:
-            print("Failed to successfully compile engine")
-            return
-        
-        result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=100000" + run_count)
-        if supports_mesh_shading:
-            results.append(TestResult(result, "Be klast. atm. ir be LOD ir be nem. obj. atm."))
-        else:
-            results.append(TestResult(result, "Be LOD ir be nem. obj. atm."))
-
-    else:
-        fake_test_results = [ TestResult(425093655, 'Visos optimizacijos')
-                            , TestResult(425093736, 'Be klast. atm.')
-                            , TestResult(425093759, 'Be klast. atm. ir be LOD')
-                            , TestResult(425093856, 'Be klast. atm. ir be LOD ir be nem. obj. atm.')]
-
-        results = fake_test_results
-
-    process_combined_results(results, "Optimizacijų įtaka greitaveikai vaizduojant atsitiktinai sugeneruotą sceną su 100 t. obj.")
-
-def test_suite_optimization_bigmesh():
-    if use_premade_results == False:
-        run_count = " --run-for=500"
-
-        results = []
-
-        # prepare environment with all optimizations
-        defines = "BENCHMARK_MODE#1"
-        compile_shaders("DEBUG_MESH=0")
-        result = compile_engine(defines)
-        if result > 0:
-            print("Failed to successfully compile engine")
-            return
-        
-        result = run_test("--file-count=1 --load-files Scene/BigDragons.glb" + run_count)
-        results.append(TestResult(result, "Visos optimizacijos"))
-
-        if supports_mesh_shading:
-            # prepare environment without cone culling
-            universal_defines = "CONE_CULLING_ENABLED#0"
+            # prepare environment without LOD and without cone culling and without VF culling
+            universal_defines = "LOD_ENABLED#0;CONE_CULLING_ENABLED#0;CULLING_ENABLED#0"
             defines = "BENCHMARK_MODE#1;" + universal_defines
             compile_shaders("DEBUG_MESH=0;" + universal_defines)
             result = compile_engine(defines)
             if result > 0:
                 print("Failed to successfully compile engine")
                 return
-        
-            result = run_test("--file-count=1 --load-files Scene/BigDragons.glb" + run_count)
-            results.append(TestResult(result, "Be klast. atm."))
+            
+            result = run_test(arg + run_count)
+            if supports_mesh_shading:
+                results.append(TestResult(result, "Be klast. atm. ir be LOD ir be nem. obj. atm."))
+            else:
+                results.append(TestResult(result, "Be LOD ir be nem. obj. atm."))
 
-        # prepare environment without LOD and without cone culling
-        universal_defines = "LOD_ENABLED#0;CONE_CULLING_ENABLED#0"
-        defines = "BENCHMARK_MODE#1;" + universal_defines
-        compile_shaders("DEBUG_MESH=0;" + universal_defines)
-        result = compile_engine(defines)
-        if result > 0:
-            print("Failed to successfully compile engine")
-            return
-        
-        result = run_test("--file-count=1 --load-files Scene/BigDragons.glb" + run_count)
-        if supports_mesh_shading:
-            results.append(TestResult(result, "Be klast. atm. ir be LOD"))
-        else:
-            results.append(TestResult(result, "Be LOD"))
-
-        # prepare environment without LOD and without cone culling and without VF culling
-        universal_defines = "LOD_ENABLED#0;CONE_CULLING_ENABLED#0;CULLING_ENABLED#0"
-        defines = "BENCHMARK_MODE#1;" + universal_defines
-        compile_shaders("DEBUG_MESH=0;" + universal_defines)
-        result = compile_engine(defines)
-        if result > 0:
-            print("Failed to successfully compile engine")
-            return
-        
-        result = run_test("--file-count=1 --load-files Scene/BigDragons.glb" + run_count)
-        if supports_mesh_shading:
-            results.append(TestResult(result, "Be klast. atm. ir be LOD ir be nem. obj. atm."))
-        else:
-            results.append(TestResult(result, "Be LOD ir be nem. obj. atm."))
     else:
-        fake_test_results = [ TestResult(425104239, 'Visos optimizacijos')
+        fake_test_results = [ TestResult(425093655, 'Visos optimizacijos')
+                            , TestResult(425093736, 'Be klast. atm.')
+                            , TestResult(425093759, 'Be klast. atm. ir be LOD')
+                            , TestResult(425093856, 'Be klast. atm. ir be LOD ir be nem. obj. atm.')
+                            , TestResult(425104239, 'Visos optimizacijos')
                             , TestResult(425104315, 'Be klast. atm.')
                             , TestResult(425104354, 'Be klast. atm. ir be LOD')
                             , TestResult(425104435, 'Be klast. atm. ir be LOD ir be nem. obj. atm.')]
 
         results = fake_test_results
 
-    process_combined_results(results, "Optimizacijų įtaka greitaveikai vaizduojant Drakonų sceną")
+    process_combined_results(results, "Optimizacijų įtaka greitaveikai")
 
 def test_suite_object_count():
     if use_premade_results == False:
@@ -613,7 +583,7 @@ def test_suite_object_count():
             print("Failed to successfully compile engine")
             return
         
-        result = run_test("--file-count=1 --load-files Scene/big_dragon.obj --distribute=random --growth-step=1" + run_count)
+        result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj--distribute=random --growth-step=1000" + run_count)
         results = TestResult(result, "Augantis objektų skaičius")
 
         process_results_obj_count(results)
@@ -687,11 +657,15 @@ def test_suite_mesh():
 
 def main():
     ensure_test_dir_exits()
+    global supports_mesh_shading
     supports_mesh_shading = check_mesh_shader_support()
     #test_suite1()
-    test_suite_performance()
-    #test_suite_optimization()
-    #test_suite_optimization_bigmesh()
+    #test_suite_performance()
+    args = ["--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=100000",
+     "--file-count=1 --load-files Scene/BigDragons.glb",
+     "--file-count=3 --load-files Scene/Donut.obj Scene/Suzanne.obj Scene/Dragon.obj --distribute=random --entity-count=5000",
+     "--file-count=1 --load-files Scene/sponza_wc_v_cameranear.glb"]
+    test_suite_optimization(args)
     #test_suite_object_count()
     #test_suite_mesh()
 
