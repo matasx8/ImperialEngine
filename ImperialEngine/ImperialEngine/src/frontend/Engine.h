@@ -48,7 +48,8 @@ namespace imp
 		bool IsRenderingModeSupported(EngineRenderMode mode) const;
 
 		// Will affect the next frame
-		void SwitchRenderingMode(EngineRenderMode newRenderMode);
+		// Returns the mode that will be switched to (some modes can be not supported on a system like mesh shading)
+		EngineRenderMode SwitchRenderingMode(EngineRenderMode newRenderMode);
 
 		// temporary
 		void AddDemoEntity(uint32_t count);
