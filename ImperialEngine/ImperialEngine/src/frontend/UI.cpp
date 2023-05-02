@@ -81,8 +81,6 @@ namespace imp
 				sprintf_s(overlay, "avg %.3f ms", avg.cull);
 				ImGui::PlotHistogram("Cull Time", &stats.data()->cull, stats.size(), 0, overlay, 0.0f, maxScale.cull * 2.0f, ImVec2(0, 80.0f), sizeof(FrameTimeRow));
 
-
-
 				ImGui::EndTabItem();
 			}
 			if (ImGui::BeginTabItem("Camera"))
@@ -98,17 +96,20 @@ namespace imp
 
 					ImGui::Text("Select Rendering Mode:");
 					static int renderItemSelected = static_cast<int>(kDefaultEngineRenderMode);
+					static bool showError = false;
 					if (ImGui::Combo("Rendering Mode", &renderItemSelected, "Traditional CPU-Driven\0GPU-Driven\0GPU-Driven Mesh Shading"))
 					{
-						engine.SwitchRenderingMode(static_cast<EngineRenderMode>(renderItemSelected));
+						const auto mode = engine.SwitchRenderingMode(static_cast<EngineRenderMode>(renderItemSelected));
+						showError = renderItemSelected != static_cast<int>(mode);
 					}
 
-					ImGui::Text("Select Camera Output [not implemeted yet]:");
-					static int itemSelected = 0;
-					if (ImGui::Combo("C/O", &itemSelected, "Color Framebuffer\0Depth Framebuffer\0"))
+					if (showError)
 					{
-						cam.camOutputType = static_cast<uint32_t>(itemSelected) + 1u;
-						cam.dirty = true;
+						ImVec4 col(1.0f, 0.0f, 0.0f, 1.0f);
+						ImGui::PushStyleColor(0, col);
+						ImGui::Text("Your device does not support Mesh Shading!");
+						ImGui::Text("Will use GPU-driven instead.");
+						ImGui::PopStyleColor();
 					}
 
 					ImGui::Text("Camera Position:");

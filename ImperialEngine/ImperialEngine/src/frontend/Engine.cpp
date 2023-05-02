@@ -220,8 +220,9 @@ namespace imp
 		return true;
 	}
 
-	void Engine::SwitchRenderingMode(EngineRenderMode newRenderMode)
+	EngineRenderMode Engine::SwitchRenderingMode(EngineRenderMode newRenderMode)
 	{
+		bool supported = true;
 		if (newRenderMode == kEngineRenderModeGPUDrivenMeshShading)
 		{
 			const auto& caps = m_Gfx.GetGfxCaps();
@@ -232,6 +233,7 @@ namespace imp
 		m_EngineSettings.gfxSettings.renderMode = newRenderMode;
 		m_Q->add(std::mem_fn(&Engine::Cmd_ChangeRenderMode), std::make_shared<EngineRenderMode>(newRenderMode));
 		MarkDrawDataDirty();
+		return newRenderMode;
 	}
 
 	void Engine::AddDemoEntity(uint32_t count)

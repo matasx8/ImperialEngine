@@ -8,7 +8,7 @@
 // Benchmarking mode. Engine will run test scene with each available rendering mode, collect data and output it, then shut down.
 // UI will be disabled.
 #ifndef BENCHMARK_MODE
-#define BENCHMARK_MODE 1
+#define BENCHMARK_MODE 0
 #endif
 
 #ifndef USE_AFTERMATH
