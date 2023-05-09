@@ -40,16 +40,16 @@ namespace imp
 		ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
 		if (ImGui::BeginTabBar("Tabs", tab_bar_flags))
 		{
-			if (ImGui::BeginTabItem("Utilities"))
-			{
-				ImGui::Text("Various utilities..");
-				static int clicked = 0;
-				if (ImGui::Button("Add random meshes"))
-					engine.AddDemoEntity(1);
-				if (ImGui::Button("Add A LOT of random meshes (10k)"))
-					engine.AddDemoEntity(10000);
-				ImGui::EndTabItem();
-			}
+			//if (ImGui::BeginTabItem("Utilities"))
+			//{
+			//	ImGui::Text("Various utilities..");
+			//	static int clicked = 0;
+			//	if (ImGui::Button("Add random meshes"))
+			//		engine.AddDemoEntity(1);
+			//	if (ImGui::Button("Add A LOT of random meshes (10k)"))
+			//		engine.AddDemoEntity(10000);
+			//	ImGui::EndTabItem();
+			//}
 			if (ImGui::BeginTabItem("Profiling"))
 			{
 				const auto maxScale = stats.GetMaximumValues();

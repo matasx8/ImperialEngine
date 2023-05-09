@@ -18,7 +18,7 @@ struct CLI
 	std::string growthStep;
 };
 
-void ConfigureEngineWithArgs(char** argv, CLI& cli, EngineSettings& settings);
+bool ConfigureEngineWithArgs(char** argv, CLI& cli, EngineSettings& settings);
 void CustomUpdates(imp::Engine& engine, const CLI& cli);
 
 #if BENCHMARK_MODE
@@ -46,7 +46,8 @@ int main(int argc, char** argv)
 	imp::Engine engine;
 
 	CLI cli;
-	ConfigureEngineWithArgs(argv, cli, settings);
+	if (!ConfigureEngineWithArgs(argv, cli, settings))
+		return 1;
 
 	if (!engine.Initialize(settings))
 		return 1;
@@ -97,7 +98,12 @@ int main(int argc, char** argv)
 #endif
 }
 
-void ConfigureEngineWithArgs(char** argv, CLI& cli, EngineSettings& settings)
+static void PrintCorrectCLI()
+{
+	printf("ImperialEngine.exe [--wait-for-debugger] [--file-count=<count>] [--load-files <file names>] [--entity-count=<count>] [--distribute=<distribution>]\n");
+}
+
+bool ConfigureEngineWithArgs(char** argv, CLI& cli, EngineSettings& settings)
 {
 	argh::parser cmdl(argv);
 
@@ -113,10 +119,31 @@ void ConfigureEngineWithArgs(char** argv, CLI& cli, EngineSettings& settings)
 #endif
 
 	if (cmdl("--distribute"))
+	{
 		cli.distribution = cmdl("--distribute").str();
+		if (cli.distribution != "random")
+		{
+			printf("[CLI]: Error! only 'random' distribution is supported\n");
+			PrintCorrectCLI();
+			return false;
+		}
+	}
 
 	if (cmdl("--entity-count"))
+	{
 		cli.entityCount = cmdl("--entity-count").str();
+		
+		if (cli.entityCount != "max")
+		{
+			const auto numEntities = int32_t(std::stoul(cli.entityCount));
+			if (numEntities < 0)
+			{
+				printf("[CLI]: Error! entity-count must be a positive integer or 'max'\n");
+				PrintCorrectCLI();
+				return false;
+			}
+		}
+	}
 
 	if (cmdl("--camera-movement"))
 		cli.cameraMovement = cmdl("--camera-movement").str();
@@ -130,6 +157,13 @@ void ConfigureEngineWithArgs(char** argv, CLI& cli, EngineSettings& settings)
 		int numFilesToLoad;
 		cmdl("--file-count") >> numFilesToLoad;
 
+		if (numFilesToLoad < 1)
+		{
+			printf("[CLI]: Error! file-count must be a positive integer\n");
+			PrintCorrectCLI();
+			return false;
+		}
+
 		lfIdx++;
 		for (int i = 0; i < numFilesToLoad; i++)
 		{
@@ -137,8 +171,8 @@ void ConfigureEngineWithArgs(char** argv, CLI& cli, EngineSettings& settings)
 			cli.scenesToLoad.push_back(path);
 			lfIdx++;
 		}
-
 	}
+	return true;
 }
 
 void CustomUpdates(imp::Engine& engine, const CLI& cli)
