@@ -368,13 +368,13 @@ namespace imp
 		static constexpr float defaultCameraYRotationRad = 0;
 		const auto defaultCameraTransform = glm::rotate(glm::translate(identity, glm::vec3(0.0f, 0.0f, 15.0f)), defaultCameraYRotationRad, glm::vec3(0.0f, 1.0f, 0.0f));
 		m_Entities.emplace<Comp::Transform>(camera, defaultCameraTransform);
-		glm::mat4x4 proj = glm::perspective(glm::radians(45.0f), (float)m_Window.GetWidth() / (float)m_Window.GetHeight(), 5.0f, 1000.0f);
+		glm::mat4x4 proj = glm::perspective(glm::radians(45.0f), (float)m_Window.GetWidth() / (float)m_Window.GetHeight(), 1.0f, 1000.0f);
 		m_Entities.emplace<Comp::Camera>(camera, proj, glm::mat4x4(), kCamOutColor, true, false, true);
 #if BENCHMARK_MODE
 		m_InitialCameraTransform = defaultCameraTransform;
 #endif
 
-		m_Entities.emplace<Comp::Transform>(previewCamera, glm::translate(defaultCameraTransform, glm::vec3(0.0f, 0.0f, 100.0f)));
+		m_Entities.emplace<Comp::Transform>(previewCamera, glm::translate(defaultCameraTransform, glm::vec3(0.0f, 60.0f, 0.0f)));
 		m_Entities.emplace<Comp::Camera>(previewCamera, proj, glm::mat4x4(), kCamOutColor, true, true, false);
 	}
 
@@ -415,8 +415,11 @@ namespace imp
 		const auto cameras = m_Entities.view<Comp::Transform, Comp::Camera>();
 		for (auto ent : cameras)
 		{
-			const auto& transform = cameras.get<Comp::Transform>(ent);
+			auto& transform = cameras.get<Comp::Transform>(ent);
 			auto& cam = cameras.get<Comp::Camera>(ent);
+
+			if (cam.isRenderCamera)
+				m_Window.MoveCameraWithControls(transform.transform);
 
 			// Vulkan's fixed-function steps expect to look down -Z, Y is "down" and RH
 			static constexpr glm::vec3 front(0.0f, 0.0f, -1.0f);// look down -z
@@ -427,7 +430,7 @@ namespace imp
 			const auto newUp = glm::rotate(quat, up);
 
 			// update view matrix
-			const auto pos = transform.GetPosition();
+			const glm::vec3 pos = transform.GetPosition();
 			cam.view = glm::lookAtRH(pos, pos + newFront, newUp);
 		}
 	}

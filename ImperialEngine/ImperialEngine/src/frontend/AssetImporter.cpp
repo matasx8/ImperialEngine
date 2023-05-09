@@ -315,6 +315,9 @@ namespace imp
 	{
 		static bool tFirstEntityLoaded = true;
 
+		if (!std::filesystem::exists(path))
+			throw std::runtime_error("Provided file was not found!");
+
 		const auto extension = path.extension().string();
 		if (extension == ".obj")
 		{

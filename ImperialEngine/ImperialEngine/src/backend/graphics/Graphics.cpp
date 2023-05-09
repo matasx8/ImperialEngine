@@ -243,9 +243,12 @@ namespace imp
     // This happens before UpdateDrawCommands
     void Graphics::StartFrame()
     {
+        vkDeviceWaitIdle(m_LogicalDevice); // temporary
         AUTO_TIMER("[StartFrame]: ");
         const auto index = m_Swapchain.GetFrameClock();
 
+        // Doing readback here moves the CPU-GPU synch for aquiring command buffers a teeny tiny bit closer, but that shouldn't make a noticable diff
+        auto cb = m_CbManager.AquireCommandBuffer(m_LogicalDevice);
         m_FrameTimer.start();
 
         switch (m_Settings.renderMode)
@@ -279,8 +282,6 @@ namespace imp
         m_CbManager.AddQueueDependencies(m_ShaderManager.GetGlobalDataBuffer(index).GetTimeline());
         m_ShaderManager.GetGlobalDataBuffer(index).MarkUsedInQueue();
 
-        // Doing readback here moves the CPU-GPU synch for aquiring command buffers a teeny tiny bit closer, but that shouldn't make a noticable diff
-        auto cb = m_CbManager.AquireCommandBuffer(m_LogicalDevice);
         cb.Begin();
 #if BENCHMARK_MODE
         if (m_CollectBenchmarkData || m_CurrentFrame - m_FrameStoppedCollecting < kEngineSwapchainDoubleBuffering)
@@ -424,7 +425,7 @@ namespace imp
 
 #if LOD_ENABLED
             static constexpr uint32_t numDesiredLODs = kMaxLODCount - 1;
-            utils::GenerateMeshLODS(req.vertices, req.indices, &ivb.indices[1], numDesiredLODs, 0.33, 0.5);
+            utils::GenerateMeshLODS(req.vertices, req.indices, &ivb.indices[1], numDesiredLODs, 0.75, 0.75);
 #endif
 
             ms_MeshData ms_md;
@@ -554,7 +555,6 @@ namespace imp
         AUTO_TIMER("[GET DC STAGING]: ");
         auto& drawDataBuffer = m_StagingDrawBuffer[m_Swapchain.GetFrameClock()];
         drawDataBuffer.MakeSureNotUsedOnGPU(m_LogicalDevice);
-
         return drawDataBuffer;
     }
 
