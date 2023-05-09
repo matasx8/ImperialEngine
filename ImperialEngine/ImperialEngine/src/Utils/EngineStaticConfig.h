@@ -47,3 +47,9 @@
 #ifndef MESH_WGROUP
 #define MESH_WGROUP 32
 #endif
+
+// Synch issue on my laptop with NVIDIA GTX 1050
+// TODO: fix me!
+#ifndef GTX_WORKAROUND
+#define GTX_WORKAROUND 0
+#endif

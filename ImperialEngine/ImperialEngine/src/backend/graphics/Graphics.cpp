@@ -243,7 +243,9 @@ namespace imp
     // This happens before UpdateDrawCommands
     void Graphics::StartFrame()
     {
-        vkDeviceWaitIdle(m_LogicalDevice); // temporary
+#if GTX_WORKAROUND
+        vkDeviceWaitIdle(m_LogicalDevice);
+#endif
         AUTO_TIMER("[StartFrame]: ");
         const auto index = m_Swapchain.GetFrameClock();
 
