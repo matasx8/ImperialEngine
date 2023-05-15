@@ -29,11 +29,11 @@ void main()
 #else
     uint ddi = gl_DrawIDARB;
 #endif
-    vec3 lol = vec3(materialData[drawData[ddi].materialIdx].color);
+    vec3 color = vec3(materialData[drawData[ddi].materialIdx].color);
 	mat4 model = drawData[ddi].Transform;
     vec3 ecPos      = vec3(model * vec4(pos, 1.0));
     vec3 tnorm      = norm;
-    vec3 lightVec   = normalize(lol  - ecPos);
+    vec3 lightVec   = normalize(color  - ecPos);
     ReflectVec      = normalize(reflect(-lightVec, tnorm));
     ViewVec         = normalize(-ecPos);
     NdotL           = (dot(lightVec, tnorm) + 1.0) * 0.5;

@@ -69,7 +69,6 @@ namespace imp
 	{
 		m_AssetImporter.LoadMaterials("Shaders/spir-v");
 		m_AssetImporter.LoadComputeProgams("Shaders/spir-v");
-		LoadDefaultStuff();
 		MarkDrawDataDirty();
 	}
 
@@ -89,7 +88,6 @@ namespace imp
 
 	void Engine::StartFrame()
 	{
-
 		m_FullFrameTimer.stop();
 		m_LastFrameTime = m_FullFrameTimer.miliseconds();
 		m_FullFrameTimer.start();
@@ -108,9 +106,7 @@ namespace imp
 		UpdateRegistry();
 
 		if (m_EngineSettings.gfxSettings.renderMode == kEngineRenderModeTraditional)
-		{
 			Cull();
-		}
 	}
 
 	void Engine::Render()
@@ -257,7 +253,6 @@ namespace imp
 			const auto child = reg.create();
 			reg.emplace<Comp::ChildComponent>(child, monkey);
 			reg.emplace<Comp::Mesh>(child, (uint32_t)rand() % numMeshes);
-			//reg.emplace<Comp::Mesh>(child, (uint32_t)0);
 			reg.emplace<Comp::Material>(child, kDefaultMaterialIndex);
 		}
 	}
@@ -310,7 +305,7 @@ namespace imp
 
 	void Engine::InitWindow()
 	{
-		const std::string windowName = "TestWindow";
+		const std::string windowName = "Imperial Engine Demo";
 		m_Window.Initialize(windowName, 1280, 720);
 	}
 
@@ -349,14 +344,6 @@ namespace imp
 	void Engine::CleanUpUI()
 	{
 		m_UI.Destroy();
-	}
-
-	void Engine::LoadDefaultStuff()
-	{			
-#if !BENCHMARK_MODE
-		//AddDemoEntity(5000);
-		//AddDemoEntity(kMaxDrawCount - 1);
-#endif
 	}
 
 	void Engine::CreateCameras()

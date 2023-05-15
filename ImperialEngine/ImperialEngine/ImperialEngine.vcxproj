@@ -240,7 +240,6 @@
     <ClCompile Include="src\backend\graphics\Pipeline.cpp" />
     <ClCompile Include="src\backend\graphics\PipelineManager.cpp" />
     <ClCompile Include="src\backend\graphics\RenderPass\DefaultColorRP.cpp" />
-    <ClCompile Include="src\backend\graphics\RenderPass\DefaultDepthRP.cpp" />
     <ClCompile Include="src\backend\graphics\RenderPass\RenderPass.cpp" />
     <ClCompile Include="src\backend\graphics\RenderPassGeneratorBase.cpp" />
     <ClCompile Include="src\backend\graphics\RenderPassImGUI.cpp" />
@@ -290,7 +289,6 @@
     <ClInclude Include="src\backend\graphics\RenderPassImGUI.h" />
     <ClInclude Include="src\backend\graphics\Image.h" />
     <ClInclude Include="src\backend\graphics\RenderPass\DefaultColorRP.h" />
-    <ClInclude Include="src\backend\graphics\RenderPass\DefaultDepthRP.h" />
     <ClInclude Include="src\backend\graphics\RenderPass\RenderPass.h" />
     <ClInclude Include="src\backend\graphics\RenderPass\RenderPassFactory.h" />
     <ClInclude Include="src\backend\graphics\RenderPass\RenderPassFactorySimple.h" />

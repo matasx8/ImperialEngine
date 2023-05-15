@@ -24,11 +24,11 @@ void main()
     vec3 norm = vec3(vertices[gl_VertexIndex].nx, vertices[gl_VertexIndex].ny, vertices[gl_VertexIndex].nz);
     vec2 tex = vec2(vertices[gl_VertexIndex].tu, vertices[gl_VertexIndex].tv);
 
-	vec3 lol = vec3(materialData[drawData[pushModel.idx].materialIdx].color);
+	vec3 color = vec3(materialData[drawData[pushModel.idx].materialIdx].color);
 	mat4 model = drawData[pushModel.idx].Transform;
     vec3 ecPos      = vec3(model * vec4(pos, 1.0));
     vec3 tnorm      = norm;
-    vec3 lightVec   = normalize(lol  - ecPos);
+    vec3 lightVec   = normalize(color  - ecPos);
     ReflectVec      = normalize(reflect(-lightVec, tnorm));
     ViewVec         = normalize(-ecPos);
     NdotL           = (dot(lightVec, tnorm) + 1.0) * 0.5;

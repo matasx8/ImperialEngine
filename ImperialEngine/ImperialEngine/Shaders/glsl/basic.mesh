@@ -80,11 +80,11 @@ void main()
 		vec3 norm = vec3(vertices[vi].nx, vertices[vi].ny, vertices[vi].nz);
 		//vec2 tex = vec2(vertices[vi].tu, vertices[vi].tv);
 
-		vec3 lol			= vec3(materialData[drawData[drawIdx].materialIdx].color);
+		vec3 color			= vec3(materialData[drawData[drawIdx].materialIdx].color);
 		mat4 model			= drawData[drawIdx].Transform;
 		vec3 ecPos			= vec3(model * vec4(pos, 1.0));
         vec3 tnorm			= norm;
-        vec3 lightVec		= normalize(lol  - ecPos);
+        vec3 lightVec		= normalize(color  - ecPos);
         ReflectVec[i]       = normalize(reflect(-lightVec, tnorm));
         ViewVec[i]          = normalize(-ecPos);
         NdotL[i]            = (dot(lightVec, tnorm) + 1.0) * 0.5;

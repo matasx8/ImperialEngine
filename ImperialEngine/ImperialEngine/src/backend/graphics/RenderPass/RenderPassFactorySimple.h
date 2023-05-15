@@ -14,6 +14,5 @@ namespace imp
 
 	private:
 		std::shared_ptr<RenderPass> GenerateDefaultColorPass(VkDevice device, const CameraData& data, const Swapchain& swapchain);
-		std::shared_ptr<RenderPass> GenerateDefaultDepthPass(VkDevice device, const CameraData& data, const Swapchain& swapchain);
 	};
 }

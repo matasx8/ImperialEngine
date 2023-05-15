@@ -8,8 +8,6 @@
 // 1. F*T pools, where F is the frame queue length and T is the number of threads that can concurrently record commands
 // 2. target <10 submits and <100 cmb per frame
 
-// current plan is to leave managing submits to something else
-
 namespace imp 
 {
 	template<typename T,

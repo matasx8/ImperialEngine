@@ -50,8 +50,6 @@ bool is_inside_view_frustum(uint idx)
     vec4 wCenter = drawData[idx].Transform * mCenter;           // BV center in World space
 
     float scale = length(drawData[idx].Transform[0].xyz);
-
-    // dumbass its supposed to be radius..
     float radius = bv.radius * scale;
 
     for (int i = 0; i < 6; i++)
@@ -67,6 +65,7 @@ bool is_inside_view_frustum(uint idx)
             return false;
 #if LOD_ENABLED
         // Temporary solution to saving distance from near plane for LOD picking
+        // TODO: avoid global variables
         if(i == 4)
             distFromCamera = signedDistance - radius;
 #endif

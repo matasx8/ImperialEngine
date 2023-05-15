@@ -123,9 +123,6 @@
     <ClCompile Include="src\backend\graphics\RenderPass\RenderPassFactorySimple.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\backend\graphics\RenderPass\DefaultDepthRP.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\backend\graphics\Semaphore.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -288,9 +285,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\backend\graphics\RenderPass\RenderPassFactorySimple.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\backend\graphics\RenderPass\DefaultDepthRP.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Utils\Pool.h">

@@ -67,7 +67,6 @@ namespace imp
 		void CleanUpGraphics();
 		void CleanUpUI();
 
-		void LoadDefaultStuff();
 		void CreateCameras();
 
 		// Signal that number of draws have changed

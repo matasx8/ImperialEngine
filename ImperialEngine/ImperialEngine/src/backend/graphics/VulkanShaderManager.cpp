@@ -514,16 +514,6 @@ namespace imp
 
 	void VulkanShaderManager::CreateDefaultMaterial(VkDevice device)
 	{
-		// Create material should probably only ask to add stuff to material data and not global data.
-		//
-		// What can go wrong?
-		// 1. Buffer can run out of memory
-		// 1.1 VulkanBuffer needs implementation for managing memory
-		// 1.2 Should be able to track what part of the memory is used by a descriptor
-		// 1.3 What happen when memory is fragmented or we need more?
-		// 2. DescriptorPool can run out of descriptors
-		// -- For now simple enough to add and add more stuff, remove and leave hole?
-
 		for (auto i = 0; i < kEngineSwapchainDoubleBuffering; i++)
 		{
 			// example data for material

@@ -211,8 +211,6 @@ namespace imp
         utils::InsertBufferBarrier(cb, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, &fillMemBar, 1);
 
         vkCmdFillBuffer(cb.cmb, m_ShaderManager.GetDrawCommandCountBuffer().GetBuffer(), 0, VK_WHOLE_SIZE, 0);
-
-        const auto fillMemBar2 = utils::CreateBufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT, m_ShaderManager.GetDrawCommandCountBuffer().GetBuffer());
         
         std::array<VkBufferMemoryBarrier, 3> memBars2;
         // make sure CS has populated draw buffer
@@ -781,7 +779,6 @@ namespace imp
         deviceCreateInfo.pNext = &physical_features2;
 #endif
 
-
         VkResult result = vkCreateDevice(m_PhysicalDevice, &deviceCreateInfo, nullptr, &m_LogicalDevice);
         if (result != VK_SUCCESS)
             throw std::runtime_error("Failed to create a logical device!");
@@ -1001,10 +998,6 @@ namespace imp
 
     const Pipeline& Graphics::EnsurePipeline(VkCommandBuffer cb, const RenderPass& rp)
     {
-        // Compare old material and new one
-        // if true: return
-        // else: get pipeline from pipeline manager
-        // Material should store precalculates hash of shader name
         PipelineConfig tempConfig = {};
 
         // TODO mesh: rework pipeline management to be more convenient for mesh shaders

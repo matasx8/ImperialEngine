@@ -12,8 +12,5 @@ namespace imp
 		RenderPassImGUI();
 
 		void Execute(Graphics& gfx, const CameraData& cam) override;
-	private:
-
-
 	};
 }

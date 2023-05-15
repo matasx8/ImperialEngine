@@ -123,6 +123,6 @@ namespace imp
 
 	void VulkanSubBuffer::Destroy(VkDevice device)
 	{
-		printf("TODO:");
+		// TODO: this?
 	}
 }

@@ -13,12 +13,6 @@ void imp::SurfaceManager::Initialize(VkDevice device, MemoryProps deviceMemoryPr
     m_MemoryProps = deviceMemoryProps;
 }
 
-//imp::Framebuffer imp::SurfaceManager::GetFramebuffer(const RenderPass& rp, VkDevice device, const std::vector<Surface>& surfaces)
-//{
-//    auto fb = CreateFramebuffer(rp, surfaces, device);
-//    return fb;
-//}
-
 imp::Surface imp::SurfaceManager::GetSurface(const SurfaceDesc& desc, VkDevice device)
 {
 	const auto surf = m_SurfacePool.extract(desc);

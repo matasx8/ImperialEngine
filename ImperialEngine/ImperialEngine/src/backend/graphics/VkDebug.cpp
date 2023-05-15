@@ -52,7 +52,6 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 
 void imp::ValidationLayers::EnableCallback(VkInstance instance, const EngineGraphicsSettings& settings)
 {
-    // TODO: The application must ensure that vkDestroyDebugUtilsMessengerEXT is not executed in parallel with any Vulkan command that is also called with instance or child of instance as the dispatchable argument.
     // TODO: Configure message severity from settings
     const auto createInfo = CreateDebugMessengerCreateInfo(settings);
     CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &m_DebugMessenger);

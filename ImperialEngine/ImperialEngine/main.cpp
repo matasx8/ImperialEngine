@@ -33,8 +33,9 @@ int main(int argc, char** argv)
 	// Engine is configured to work from ImperialEngine/ImperialEngine/
 	if (std::filesystem::current_path().string().find("x64") != std::string::npos)
 		std::filesystem::current_path("../../../ImperialEngine");
-	printf("%s\n", std::filesystem::current_path().string().c_str());
-	//return 1;
+
+	printf("Current wdir: %s\n", std::filesystem::current_path().string().c_str());
+
 	EngineSettings settings;
 #if _DEBUG && !_DEV
 	settings = { EngineSettingsTemplate::kEngineSettingsDebug };
@@ -87,7 +88,6 @@ int main(int argc, char** argv)
 									// now while render thread works the main thread can do its work
 	}
 
-	// TODO benchmark: seems like the last frames also could use a warmup. Last frame GPU time is x8 for some reason
 	engine.ShutDown();
 
 #if BENCHMARK_MODE
@@ -293,7 +293,6 @@ int MergeTimingsAndOutput(imp::Engine& engine)
 		}
 
 		static constexpr char c = ';';
-		//file << "sep=;" << std::endl; this fails in pandas
 		file << "Culling" << c << "Frame Time" << c << "CPU Main Thread" << c << "CPU Render Thread" << c << "GPU Frame" << c << "Triangles" << std::endl;
 
 		for (uint32_t row = 0; row < mainTable.table_rows.size(); row++)
