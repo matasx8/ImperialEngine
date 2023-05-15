@@ -1,4 +1,5 @@
 #pragma once
+#include "Utils/FrameTimeTable.h"
 #include "Utils/NonCopyable.h"
 #include "Utils/SimpleTimer.h"
 #include "extern/ENTT/entt.hpp"
@@ -21,7 +22,10 @@ namespace imp
 	public:
 		Engine();
 		bool Initialize(EngineSettings settings);
-		void LoadScene();
+		void LoadScenes(const std::vector<std::string>& scenes);
+		void LoadAssets();
+
+		void DistributeEntities(const std::string& distribution, const std::string& entityCount);
 
 		void StartFrame();
 		void Update();
@@ -30,16 +34,22 @@ namespace imp
 		void SyncRenderThread();
 		void SyncGameThread();
 
+#if BENCHMARK_MODE
+		void StartBenchmark();
+		void StopBenchmark();
+		const std::array<FrameTimeTable, kEngineRenderModeCount>& GetMainBenchmarkTable() const;
+		const std::array<FrameTimeTable, kEngineRenderModeCount>& GetRenderBenchmarkTable() const;
+#endif
+
+		entt::registry& GetEntityRegistry();
+
 		bool IsCurrentRenderMode(EngineRenderMode mode) const;
 		EngineRenderMode GetCurrentRenderMode() const;
-
-		const Timings& GetFrameTimings() { return m_OldTimer; }
-		const Timings& GetGfxFrameTimings() { return m_Gfx.GetFrameTimings(); }
-		const SimpleTimer& GetSyncTimings() { return m_OldSyncTime; }
-		const SimpleTimer& GetGfxSyncTimings() { return m_Gfx.GetSyncTimings(); }
+		bool IsRenderingModeSupported(EngineRenderMode mode) const;
 
 		// Will affect the next frame
-		void SwitchRenderingMode(EngineRenderMode newRenderMode);
+		// Returns the mode that will be switched to (some modes can be not supported on a system like mesh shading)
+		EngineRenderMode SwitchRenderingMode(EngineRenderMode newRenderMode);
 
 		// temporary
 		void AddDemoEntity(uint32_t count);
@@ -52,13 +62,12 @@ namespace imp
 		void InitImgui();
 		void InitWindow();
 		void InitGraphics();
-		void InitAssetImporter();
 		void CleanUpThreading();
 		void CleanUpWindow();
 		void CleanUpGraphics();
 		void CleanUpUI();
 
-		void LoadDefaultStuff();
+		void CreateCameras();
 
 		// Signal that number of draws have changed
 		void MarkDrawDataDirty() { m_DrawDataDirty = true; }
@@ -97,16 +106,25 @@ namespace imp
 
 		BS::thread_pool* m_ThreadPool;
 
-		Timings m_Timer;
-		SimpleTimer m_SyncTime;
-		Timings m_OldTimer;
-		SimpleTimer m_OldSyncTime;
-
 		// graphics stuff
 		Graphics m_Gfx;
 		// Used as a "staging" buffer for CPU VF culling
-		std::vector<DrawDataSingle> m_CulledDrawData;
+		std::vector<DrawDataSingle> m_VisibleDrawData;
 
+#if BENCHMARK_MODE
+		glm::mat4x4 m_InitialCameraTransform;
+		std::array<FrameTimeTable, kEngineRenderModeCount> m_FrameTimeTables;
+#else
+		CircularFrameTimeRowContainer m_FrameStats;
+#endif
+		SimpleTimer m_FrameTimer;
+		SimpleTimer m_CullTimer;
+		SimpleTimer m_FullFrameTimer;
+		double m_LastFrameTime;
+#if BENCHMARK_MODE
+		bool m_BenchmarkDone;
+		bool m_CollectBenchmarkData;
+#endif
 
 		// asset stuff
 		friend class AssetImporter;
@@ -114,7 +132,7 @@ namespace imp
 
 		EngineSettings m_EngineSettings;
 
-		// can I put this in a different namespace and drop the prefix?
+		// TODO prettier: put this into a namespace
 		void Cmd_InitGraphics(std::shared_ptr<void> rsc);
 		void Cmd_StartFrame(std::shared_ptr<void> rsc);
 		void Cmd_RenderCameras(std::shared_ptr<void> rsc);
@@ -126,7 +144,12 @@ namespace imp
 		void Cmd_UploadComputePrograms(std::shared_ptr<void> rsc);
 		void Cmd_ChangeRenderMode(std::shared_ptr<void> rsc);
 		void Cmd_UpdateDraws(std::shared_ptr<void> rsc);
-		void Cmd_DoTransfers(std::shared_ptr<void> rsc);
+		void Cmd_ShutDown(std::shared_ptr<void> rsc);
+
+#if BENCHMARK_MODE
+		void Cmd_StartBenchmark(std::shared_ptr<void> rsc);
+		void Cmd_StopBenchmark(std::shared_ptr<void> rsc);
+#endif
 	};
 }
 

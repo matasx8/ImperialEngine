@@ -1,20 +1,21 @@
 #pragma once
 #include "extern/GLM/vec3.hpp"
 #include "extern/GLM/mat4x4.hpp"
+#include "Utils/EngineStaticConfig.h"
 #include <memory>
 #include <string>
 #include <vector>
 
 namespace imp
 {
-	inline constexpr uint32_t kMaxLODCount = 4;
-	inline constexpr size_t kMaxMeshletVertices = 64;
-	inline constexpr size_t kMaxMeshletTriangles = 124;
+	inline constexpr uint32_t kMaxLODCount = LOD_ENABLED ? 4 : 1;
+	inline constexpr size_t kMaxMeshletVertices = MESHLET_MAX_VERTS;
+	inline constexpr size_t kMaxMeshletTriangles = MESHLET_MAX_PRIMS;
 
 	struct BoundingVolumeSphere
 	{
 		glm::vec3 center;
-		float diameter;
+		float radius;
 	};
 
 	struct MeshLOD
@@ -33,17 +34,21 @@ namespace imp
 	struct alignas(16) MeshData
 	{
 		MeshLOD LODData[kMaxLODCount];
+#if !LOD_ENABLED
+		int32_t pad[2];
+#endif
 		BoundingVolumeSphere boundingVolume;
 		int32_t     vertexOffset;
-		int32_t     pad; // TODO mesh: is this needed?
 	};
 
 	struct alignas(16) ms_MeshData
 	{
 		ms_MeshLOD LODData[kMaxLODCount];
+#if !LOD_ENABLED
+		int32_t pad[2];
+#endif
 		BoundingVolumeSphere boundingVolume;
 		uint32_t firstTask;
-		uint32_t pad[2];
 	};
 
 	struct Vertex
@@ -72,9 +77,21 @@ namespace imp
 		bool isRenderCamera;
 	};
 
+	// Used when VF Culling is enabled
 	struct IndirectDrawCmd
 	{
 		uint32_t	meshDataIndex;
+	};
+
+	// Used when VF Culling is disabled and instead of VkDrawMeshTasksIndirectCommandNV
+	struct ms_IndirectDrawCommand
+	{
+		// Read by Command Processor
+		uint32_t    taskCount;
+		uint32_t    firstTask;
+		// Used in Mesh shader
+		uint32_t    meshletBufferOffset;
+		uint32_t    meshTaskCount;
 	};
 
 	struct NormalCone

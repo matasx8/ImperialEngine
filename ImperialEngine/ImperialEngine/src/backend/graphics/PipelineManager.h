@@ -17,6 +17,8 @@ namespace imp
 
 		void CreateComputePipeline(VkDevice device, const ComputePipelineConfig& config);
 
+		void Destroy(VkDevice deviec);
+
 	private:
 
 		VkPipelineShaderStageCreateInfo MakeShaderStageCI(VkShaderModule module, VkShaderStageFlagBits stage) const;

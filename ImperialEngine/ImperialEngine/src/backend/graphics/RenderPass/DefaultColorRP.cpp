@@ -18,8 +18,15 @@ namespace imp
 		CommandBuffer cmb = cmbs[0];
 		VkCommandBuffer cb = cmb.cmb;
 		cmb.Begin();
+
+#if !CULLING_ENABLED
+		// This should be in the start of the base class? If culling is enabled then this is always executed in Cull mem fun.
+		// If culling is disabled then we still have to acquire draw command buffer if transfer was done. Even if no tranfer we need to mark this buffer used in queueu.
+		gfx.AcquireDrawCommandBuffer(cmb);
+#endif
 		BeginRenderPass(gfx, cmb);
 
+		gfx.m_TimestampQueryManager.BeginPipelineStatQueries(cb, gfx.m_Swapchain.GetFrameClock());
 		const auto pipe = gfx.EnsurePipeline(cb, *this);	// since we have to get pipeline, bind here and not in that func
 		if (renderMode == kEngineRenderModeGPUDrivenMeshShading)
 		{
@@ -59,14 +66,27 @@ namespace imp
 			}
 		}
 			break;
+#if CULLING_ENABLED
 		case kEngineRenderModeGPUDriven:
 			vkCmdDrawIndexedIndirectCount(cb, gfx.m_DrawBuffer.GetBuffer(), 0, gfx.GetDrawCommandCountBuffer().GetBuffer(), 0, gfx.m_NumDraws, sizeof(VkDrawIndexedIndirectCommand));
 			break;
 		case kEngineRenderModeGPUDrivenMeshShading:
-			static constexpr size_t DrawMeshTasksIndirectCountSize = sizeof(VkDrawMeshTasksIndirectCommandNV) +sizeof(uint32_t) * 2; // DescriptorSet1.h
+			static constexpr size_t DrawMeshTasksIndirectCountSize = sizeof(ms_IndirectDrawCommand);
 			vkCmdDrawMeshTasksIndirectCountNV(cb, gfx.m_DrawBuffer.GetBuffer(), 0, gfx.GetDrawCommandCountBuffer().GetBuffer(), 0, gfx.m_NumDraws, DrawMeshTasksIndirectCountSize);
 			break;
+#else
+		case kEngineRenderModeGPUDriven:
+			vkCmdDrawIndexedIndirect(cb, gfx.m_DrawBuffer.GetBuffer(), 0, gfx.m_NumDraws, sizeof(VkDrawIndexedIndirectCommand));
+			break;
+		case kEngineRenderModeGPUDrivenMeshShading:
+			// TODO nice-to-have: Centralize defines for glsl-c++
+			static constexpr size_t DrawMeshTasksIndirectCountSize = sizeof(ms_IndirectDrawCommand);
+			vkCmdDrawMeshTasksIndirectNV(cb, gfx.m_DrawBuffer.GetBuffer(), 0, gfx.m_NumDraws, DrawMeshTasksIndirectCountSize);
+			break;
+#endif
 		}
+
+		gfx.m_TimestampQueryManager.EndPipelineStatQueries(cb, gfx.m_Swapchain.GetFrameClock());
 
 		EndRenderPass(gfx, cmb);
 		cmb.End();

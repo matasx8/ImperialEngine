@@ -4,37 +4,52 @@
 #include "backend/VariousTypeDefinitions.h"
 #include "frontend/Engine.h"
 #include "frontend/Components/Components.h"
-#include <extern/ASSIMP/Importer.hpp>
-#include <extern/ASSIMP/scene.h>
-#include <extern/ASSIMP/postprocess.h>
-#include <extern/GLM/mat4x4.hpp>
-#include <MESHOPTIMIZER/meshoptimizer.h>
+#define TINYGLTF_USE_CPP14
+#define TINYGLTF_NO_INCLUDE_STB_IMAGE
+#include "extern/STB/stb_image.h"
+#include "extern/TINY_GLTF/tiny_gltf.h"
+#include "extern/ASSIMP/Importer.hpp"
+#include "extern/ASSIMP/scene.h"
+#include "extern/ASSIMP/postprocess.h"
+#include "GLM/gtc/type_ptr.hpp"
+#include "extern/GLM/mat4x4.hpp"
+#include "MESHOPTIMIZER/meshoptimizer.h"
+#include <unordered_map>
 
 namespace imp
 {
+	static std::atomic_uint32_t temporaryMeshCounter = 0;
+
 	AssetImporter::AssetImporter(Engine& engine)
-		: m_Engine(engine)
+		: m_Engine(engine), m_Loader(new tinygltf::TinyGLTF())
 	{
 	}
 
-	void AssetImporter::Initialize()
+	void AssetImporter::LoadScenes(const std::vector<std::string>& paths)
 	{
-	}
-
-	void AssetImporter::LoadScene(const std::string& path)
-	{
-		const auto paths = OS::GetAllFileNamesInDirectory(path);
+		const auto path = std::filesystem::current_path();
 		Assimp::Importer importer;
-		for (const auto& file : paths)
+		if (paths.size())
 		{
-			// must load data using assimp
-			// create entity and from main thread it seems like the object has been loaded and created
-			// meanwhile launch render thread command to create vertex and index buffers and upload to gpu
-			// entity will have a handle to this data and when time comes to render it'll be magically inplace
-			LoadFile(importer, file);
+			for (const auto& file : paths)
+			{
+				std::filesystem::path path(file);
+				// must load data using assimp
+				// create entity and from main thread it seems like the object has been loaded and created
+				// meanwhile launch render thread command to create vertex and index buffers and upload to gpu
+				// entity will have a handle to this data and when time comes to render it'll be magically inplace
+				LoadFile(importer, path);
+			}
+		}
+		else
+		{
+			// By default lets still try load something from Scene/
+			const auto files = OS::GetAllFileNamesInDirectory("Scene/");
+			for (const auto& path : files)
+				LoadFile(importer, path);
 		}
 
-		printf("[Asset Importer] Successfully loaded scene from '%s' with %d files\n", path.c_str(), static_cast<int>(paths.size()));
+		printf("[Asset Importer] Successfully loaded scenes with %d files\n", static_cast<int>(paths.size()));
 	}
 
 	void AssetImporter::LoadMaterials(const std::string& path)
@@ -73,12 +88,235 @@ namespace imp
 		printf("[Asset Importer] Successfully loaded compute programs from '%s' with %i total shaders\n", path.c_str(), static_cast<int>(paths.size()));
 	}
 
+	uint32_t imp::AssetImporter::GetNumberOfUniqueMeshesLoaded() const
+	{
+		return temporaryMeshCounter;
+	}
+
+	void AssetImporter::LoadGLTFScene(const std::filesystem::path& path)
+	{
+		assert(path.extension().string() == ".gltf" || path.extension().string() == ".glb");
+		tinygltf::Model model;
+		std::string err;
+		std::string warn;
+
+		// TODO gltf: implement failure path
+		if(path.extension().string() == ".gltf")
+			m_Loader->LoadASCIIFromFile(&model, &err, &warn, path.string());
+		else
+			m_Loader->LoadBinaryFromFile(&model, &err, &warn, path.string());
+
+		if (err.size()) printf("[Asset Importer] Error: %s\n", err.c_str());
+		if (warn.size()) printf("[Asset Importer] Warning: %s\n", warn.c_str());
+
+		assert(model.scenes.size() == 1);
+		// large potential for parallel for
+		std::vector<MeshCreationRequest> reqs;
+		std::unordered_map<uint32_t, uint32_t> meshIdMap;
+		std::vector<Comp::GLTFEntity> entities;
+		Comp::GLTFCamera camera;
+		camera.valid = false;
+		for (const auto& nodeIdx : model.scenes.front().nodes)
+		{
+			const auto& node = model.nodes[nodeIdx];
+			LoadGLTFNode(node, model, reqs, entities, meshIdMap, camera);
+		}
+
+		// means we loaded somekind of camera, try to override exisitng one
+		if (camera.valid)
+		{
+			auto& reg = m_Engine.m_Entities;
+			const auto cameras = reg.view<Comp::Transform, Comp::Camera>();
+			for (auto ent : cameras)
+			{
+				auto& transform = cameras.get<Comp::Transform>(ent);
+				auto& cam = cameras.get<Comp::Camera>(ent);
+
+				if (cam.preview)
+					continue;
+				else
+				{
+					transform = camera.transform;
+#if BENCHMARK_MODE
+					m_Engine.m_InitialCameraTransform = transform.transform;
+#endif
+				}
+			}
+		}
+
+		for (const auto& ent : entities)
+		{
+			auto& reg = m_Engine.m_Entities;
+			const entt::entity mainEntity = reg.create();
+			reg.emplace<Comp::Transform>(mainEntity, ent.transform.transform);
+
+			const auto childEntity = reg.create();
+			reg.emplace<Comp::Mesh>(childEntity, ent.mesh.meshId);
+			reg.emplace<Comp::Material>(childEntity, kDefaultMaterialIndex);
+			reg.emplace<Comp::ChildComponent>(childEntity, mainEntity);
+		}
+
+		m_Engine.m_Q->add(std::mem_fn(&Engine::Cmd_UploadMeshes), std::make_shared<std::vector<imp::MeshCreationRequest>>(reqs));
+	}
+
+	void AssetImporter::LoadGLTFNode(const tinygltf::Node& node, const tinygltf::Model& model, std::vector<MeshCreationRequest>& reqs, std::vector<Comp::GLTFEntity>& entities, std::unordered_map<uint32_t, uint32_t>& meshIdMap, Comp::GLTFCamera& camera)
+	{
+		auto transform = glm::mat4x4(1.0f);
+
+		if (node.matrix.size())
+			transform = glm::make_mat4x4(node.matrix.data());
+		else
+		{
+			if (node.translation.size())
+				transform = glm::translate(transform, glm::vec3(glm::make_vec3(node.translation.data())));
+
+			if (node.rotation.size())
+				transform *= glm::mat4((glm::quat)glm::make_quat(node.rotation.data()));
+
+			if (node.scale.size()) // TODO: probably VF culling wont work since I don't scale diameter
+				transform = glm::scale(transform, glm::vec3(glm::make_vec3(node.scale.data())));
+		}
+
+		// special quick hack to import camera orientation
+		if (node.name == "Camera")
+		{
+			camera.transform.transform = transform;
+			camera.valid = true;
+		}
+
+		for (const auto child : node.children)
+			LoadGLTFNode(model.nodes[child], model, reqs, entities, meshIdMap, camera);
+
+		if (meshIdMap.find(node.mesh) != meshIdMap.end())
+		{
+			MeshCreationRequest req;
+			req.id = meshIdMap[node.mesh];
+			reqs.push_back(req);
+
+			Comp::GLTFEntity ent;
+			ent.transform = { transform };
+			ent.mesh = { req.id };
+			entities.push_back(ent);
+
+			return;
+		}
+
+		if (node.mesh > -1)
+		{
+
+			const auto& mesh = model.meshes[node.mesh];
+
+			for (const auto& prim : mesh.primitives)
+			{
+				MeshCreationRequest req;
+				req.id = temporaryMeshCounter.fetch_add(1);
+
+				meshIdMap[node.mesh] = req.id; // can keep rewriting this
+
+				const float* positionBuffer = nullptr;
+				const float* normalsBuffer = nullptr;
+				const float* texCoordsBuffer = nullptr;
+				size_t vertexCount = 0;
+
+				// TODO nice-to-have: reduce code size by making this a function
+				if (prim.attributes.find("POSITION") != prim.attributes.end()) {
+					const auto& accessor = model.accessors[prim.attributes.find("POSITION")->second];
+					const auto& view = model.bufferViews[accessor.bufferView];
+					positionBuffer = reinterpret_cast<const float*>(&(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
+					vertexCount = accessor.count;
+				}
+
+				if (prim.attributes.find("NORMAL") != prim.attributes.end()) {
+					const auto& accessor = model.accessors[prim.attributes.find("NORMAL")->second];
+					const auto& view = model.bufferViews[accessor.bufferView];
+					normalsBuffer = reinterpret_cast<const float*>(&(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
+				}
+
+				if (prim.attributes.find("TEXCOORD_0") != prim.attributes.end()) {
+					const auto& accessor = model.accessors[prim.attributes.find("TEXCOORD_0")->second];
+					const auto& view = model.bufferViews[accessor.bufferView];
+					texCoordsBuffer = reinterpret_cast<const float*>(&(model.buffers[view.buffer].data[accessor.byteOffset + view.byteOffset]));
+				}
+
+				assert(vertexCount);
+				for (size_t i = 0; i < vertexCount; i++)
+				{
+					Vertex vertex;
+					std::memcpy(&vertex.vx, &positionBuffer[i * 3], sizeof(float) * 3);
+
+					vertex.nx = meshopt_quantizeHalf(normalsBuffer[i * 3]);
+					vertex.ny = meshopt_quantizeHalf(normalsBuffer[i * 3 + 1]);
+					vertex.nz = meshopt_quantizeHalf(normalsBuffer[i * 3 + 2]);
+					vertex.nw = 0.0f;
+
+					vertex.tu = prim.attributes.find("TEXCOORD_0") != prim.attributes.end() ? meshopt_quantizeHalf(texCoordsBuffer[i * 2]) : 0.0f;
+					vertex.tv = prim.attributes.find("TEXCOORD_0") != prim.attributes.end() ? meshopt_quantizeHalf(texCoordsBuffer[i * 2 + 1]) : 0.0f;
+
+					req.vertices.push_back(vertex);
+				}
+
+				const auto& accessor = model.accessors[prim.indices];
+				const auto& bufferView = model.bufferViews[accessor.bufferView];
+				const auto& buffer = model.buffers[bufferView.buffer];
+
+				const auto indexCount = accessor.count;
+
+				const auto FillIndices = [&](const auto& buf)
+				{
+					for (size_t index = 0; index < accessor.count; index++)
+					{
+						req.indices.push_back(buf[index]);
+					}
+				};
+				switch (accessor.componentType) {
+				case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: 
+				{
+					const uint32_t* buf = reinterpret_cast<const uint32_t*>(&buffer.data[accessor.byteOffset + bufferView.byteOffset]);
+					FillIndices(buf);
+					break;
+				}
+				case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: 
+				{
+					const uint16_t* buf = reinterpret_cast<const uint16_t*>(&buffer.data[accessor.byteOffset + bufferView.byteOffset]);
+					FillIndices(buf);
+					break;
+				}
+				case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: 
+				{
+					const uint8_t* buf = reinterpret_cast<const uint8_t*>(&buffer.data[accessor.byteOffset + bufferView.byteOffset]);
+					FillIndices(buf);
+					break;
+				}
+				default:
+					printf("[Asset Importer] Error: Index component type %i not supported!\n", accessor.componentType);
+					return;
+				}
+
+				req.boundingVolume = utils::FindSphereBoundingVolume(req.vertices.data(), req.vertices.size());
+
+				Comp::GLTFEntity ent;
+				ent.transform = { transform };
+				ent.mesh = { req.id };
+
+				entities.push_back(ent);
+				reqs.push_back(req);
+			}
+		}
+
+		// this is camera index, but we don't care about the actual camera params.
+		// only want orientation
+		if (node.camera >= 0)
+		{
+			camera.transform.transform *= transform;
+		}
+	}
+
 	void AssetImporter::LoadFile(Assimp::Importer& imp, const std::filesystem::path& path)
 	{
-		// TODO: currently we load every obj file in Scenes folder and also create an entity for it
-		// I want to load the meshes but not create an entity for each one. There's a button
-		// in the UI to do that.
-		static bool tFirstEntityLoaded = false;
+		static bool tFirstEntityLoaded = true;
+
+		if (!std::filesystem::exists(path))
+			throw std::runtime_error("Provided file was not found!");
 
 		const auto extension = path.extension().string();
 		if (extension == ".obj")
@@ -88,7 +326,6 @@ namespace imp
 			const entt::entity mainEntity = reg.create();
 			reg.emplace<Comp::Transform>(mainEntity, glm::mat4x4(1.0f));
 
-			static uint32_t temporaryMeshCounter = 0;
 			std::vector<imp::MeshCreationRequest> reqs;
 			LoadModel(reqs, imp, path);
 
@@ -121,6 +358,10 @@ namespace imp
 
 			// TODO: put this somewhere higher in the callstack so we upload all the meshes at the same time
 			m_Engine.m_Q->add(std::mem_fn(&Engine::Cmd_UploadMeshes), std::make_shared<std::vector<imp::MeshCreationRequest>>(reqs));
+		}
+		else if (extension == ".gltf" || extension == ".glb")
+		{
+			LoadGLTFScene(path);
 		}
 	}
 
@@ -225,7 +466,9 @@ namespace imp
 		const auto vertexShaderPath = shader + ".vert.spv";
 		const auto vertexIndirectShaderPath = shader + ".ind.vert.spv";
 		const auto meshShaderPath = shader + ".mesh.spv";
+#if CONE_CULLING_ENABLED
 		const auto taskShaderPath = shader + ".task.spv";
+#endif
 		const auto fragmentShaderPath = shader + ".frag.spv";
 
 		MaterialCreationRequest req;
@@ -233,12 +476,16 @@ namespace imp
 		req.vertexSpv = OS::ReadFileContents(vertexShaderPath);
 		req.vertexIndSpv = OS::ReadFileContents(vertexIndirectShaderPath);
 		req.meshSpv = OS::ReadFileContents(meshShaderPath);
+#if CONE_CULLING_ENABLED
 		req.taskSpv = OS::ReadFileContents(taskShaderPath);
+#endif
 		req.fragmentSpv = OS::ReadFileContents(fragmentShaderPath);
 		assert(req.vertexSpv.get());
 		assert(req.vertexIndSpv.get());
 		assert(req.meshSpv.get());
+#if CONE_CULLING_ENABLED
 		assert(req.taskSpv.get());
+#endif
 		assert(req.fragmentSpv.get());
 		return req;
 	}

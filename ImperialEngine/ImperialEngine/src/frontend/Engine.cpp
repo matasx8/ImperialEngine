@@ -8,64 +8,113 @@
 #include "extern/GLM/ext/matrix_transform.hpp"
 #include "extern/GLM/ext/matrix_clip_space.hpp"
 #include "extern/GLM/gtx/quaternion.hpp"
+#include "Utils/EngineStaticConfig.h"
 #include <barrier>
 #include <execution>
 
 namespace imp
 {
 	Engine::Engine()
-		: m_Entities(), m_DrawDataDirty(false), m_Q(nullptr), m_Worker(nullptr), m_SyncPoint(nullptr), m_EngineSettings(), m_Window(), m_UI(), m_ThreadPool(nullptr), m_Gfx(), m_CulledDrawData()/*, m_BVs()*/, m_AssetImporter(*this)
+		: m_Entities()
+		, m_DrawDataDirty(false)
+		, m_Q(nullptr)
+		, m_Worker(nullptr)
+		, m_SyncPoint(nullptr)
+		, m_EngineSettings()
+		, m_Window()
+		, m_UI()
+		, m_ThreadPool(nullptr)
+		, m_Gfx()
+		, m_VisibleDrawData()
+#if BENCHMARK_MODE
+		, m_InitialCameraTransform()
+		, m_FrameTimeTables()
+#else
+		, m_FrameStats(100)
+#endif
+		, m_FrameTimer()
+		, m_CullTimer()
+		, m_FullFrameTimer()
+		, m_LastFrameTime()
+#if BENCHMARK_MODE
+		, m_BenchmarkDone()
+		, m_CollectBenchmarkData()
+#endif
+		, m_AssetImporter(*this)
 	{
 	}
 
 	bool Engine::Initialize(EngineSettings settings)
 	{
-		// TODO: this is needed as a workaround when launching the actual .exe since it will have different current path it won't know how to access Assets
-		//std::filesystem::current_path("D:\\source\\ImperialEngine\\ImperialEngine\\ImperialEngine");
-		std::filesystem::current_path("C:\\Users\\mtunk\\source\\repos\\ImperialEngine\\ImperialEngine\\ImperialEngine");
 		m_EngineSettings = settings;
 		InitThreading(m_EngineSettings.threadingMode);
+#if !BENCHMARK_MODE
 		InitImgui();
+#endif
 		InitWindow();
 		InitGraphics();
-		InitAssetImporter();
+		CreateCameras();
 
-		// unfortunately we must wait until imgui is initialized on the backend
+		// wait until backend initted
 		m_SyncPoint->arrive_and_wait();
 		return true;
 	}
 
-	void Engine::LoadScene()
+	void Engine::LoadScenes(const std::vector<std::string>& scenes)
 	{
-		m_AssetImporter.LoadScene("Scene/");
+		m_AssetImporter.LoadScenes(scenes);
+	}
+
+	void Engine::LoadAssets()
+	{
 		m_AssetImporter.LoadMaterials("Shaders/spir-v");
 		m_AssetImporter.LoadComputeProgams("Shaders/spir-v");
-		LoadDefaultStuff();
 		MarkDrawDataDirty();
+	}
+
+	void Engine::DistributeEntities(const std::string& distribution, const std::string& entityCount)
+	{
+		uint32_t numEntities = 0;
+		if (entityCount == "max")
+			numEntities = kMaxDrawCount;
+		else
+			numEntities = uint32_t(std::min(std::stoul(entityCount), static_cast<unsigned long>(kMaxDrawCount)));
+
+		if (distribution == "random")
+			AddDemoEntity(numEntities);
+		else
+			printf("[Entity Distribution] Error, trying to use unsupported distribution '%s'\n", distribution.c_str());
 	}
 
 	void Engine::StartFrame()
 	{
+		m_FullFrameTimer.stop();
+		m_LastFrameTime = m_FullFrameTimer.miliseconds();
+		m_FullFrameTimer.start();
+		m_FrameTimer.start();
+
 		m_Q->add(std::mem_fn(&Engine::Cmd_StartFrame), std::shared_ptr<void>());
 	}
 
 	void Engine::Update()
 	{
 		// not sure if this should be here
+#if !BENCHMARK_MODE
 		m_Window.UpdateImGUI();
+#endif
 		m_Window.Update();
 		UpdateRegistry();
 
 		if (m_EngineSettings.gfxSettings.renderMode == kEngineRenderModeTraditional)
-		{
 			Cull();
-		}
 	}
 
 	void Engine::Render()
 	{
 		RenderCameras();
+#if !BENCHMARK_MODE
 		RenderImGUI();
+#endif
 	}
 
 	void Engine::EndFrame()
@@ -75,30 +124,75 @@ namespace imp
 
 	void Engine::SyncRenderThread()
 	{
+#if BENCHMARK_MODE
+		if (m_CollectBenchmarkData)
+#endif
+		{
+			m_FrameTimer.stop();
+
+			const auto renderMode = GetCurrentRenderMode();
+
+			FrameTimeRow row;
+			row.frameMainCPU = m_FrameTimer.miliseconds();
+			row.frame = m_LastFrameTime;
+
+			if (renderMode == kEngineRenderModeTraditional)
+				row.cull = m_CullTimer.miliseconds();
+#if !BENCHMARK_MODE
+			m_FrameStats.push_back(std::move(row));
+#else
+			const auto tableIndex = static_cast<uint32_t>(renderMode);
+			auto& table = m_FrameTimeTables[tableIndex];
+			table.table_rows.push_back(row);
+#endif
+		}
 		if (m_EngineSettings.threadingMode == kEngineMultiThreaded)
 			m_Q->add(std::mem_fn(&Engine::Cmd_SyncRenderThread), std::shared_ptr<void>());
 	}
 
 	void Engine::SyncGameThread()
 	{
-		auto& frameWorkTime = m_Timer.frameWorkTime;
-		auto& totalTime = m_Timer.totalFrameTime;
-		auto& waitTime = m_Timer.waitTime;
-
-		frameWorkTime.stop();
-
 		m_SyncPoint->arrive_and_wait();
+	}
 
-		totalTime.stop();
+#if BENCHMARK_MODE
+	void Engine::StartBenchmark()
+	{
+		m_CollectBenchmarkData = true;
 
-		// time spent waiting for other thread is 'total frame time' - 'sync time'
-		waitTime.elapsed_time = totalTime.elapsed_time - m_SyncTime.elapsed_time;
+		m_Q->add(std::mem_fn(&Engine::Cmd_StartBenchmark), std::shared_ptr<void>());
+	}
 
-		m_OldTimer = m_Timer;
-		m_OldSyncTime = m_SyncTime;
+	void Engine::StopBenchmark()
+	{
+		m_CollectBenchmarkData = false;
 
-		// start the timer again
-		m_Timer.StartAll();
+		auto& reg = GetEntityRegistry();
+		const auto cameras = reg.view<Comp::Transform, Comp::Camera>();
+
+		for (auto ent : cameras)
+		{
+			auto& transform = cameras.get<Comp::Transform>(ent);
+			transform.transform = m_InitialCameraTransform;
+		}
+
+		m_Q->add(std::mem_fn(&Engine::Cmd_StopBenchmark), std::shared_ptr<void>());
+	}
+
+	const std::array<FrameTimeTable, kEngineRenderModeCount>& Engine::GetMainBenchmarkTable() const
+	{
+		return m_FrameTimeTables;
+	}
+
+	const std::array<FrameTimeTable, kEngineRenderModeCount>& Engine::GetRenderBenchmarkTable() const
+	{
+		return m_Gfx.GetBenchmarkTable();
+	}
+#endif
+
+	entt::registry& Engine::GetEntityRegistry()
+	{
+		return m_Entities;
 	}
 
 	bool Engine::IsCurrentRenderMode(EngineRenderMode mode) const
@@ -111,8 +205,20 @@ namespace imp
 		return m_EngineSettings.gfxSettings.renderMode;
 	}
 
-	void Engine::SwitchRenderingMode(EngineRenderMode newRenderMode)
+	bool Engine::IsRenderingModeSupported(EngineRenderMode mode) const
 	{
+		if (mode == kEngineRenderModeGPUDrivenMeshShading)
+		{
+			const auto& caps = m_Gfx.GetGfxCaps();
+			if (!caps.IsMeshShadingSupported())
+				return false;
+		}
+		return true;
+	}
+
+	EngineRenderMode Engine::SwitchRenderingMode(EngineRenderMode newRenderMode)
+	{
+		bool supported = true;
 		if (newRenderMode == kEngineRenderModeGPUDrivenMeshShading)
 		{
 			const auto& caps = m_Gfx.GetGfxCaps();
@@ -123,6 +229,7 @@ namespace imp
 		m_EngineSettings.gfxSettings.renderMode = newRenderMode;
 		m_Q->add(std::mem_fn(&Engine::Cmd_ChangeRenderMode), std::make_shared<EngineRenderMode>(newRenderMode));
 		MarkDrawDataDirty();
+		return newRenderMode;
 	}
 
 	void Engine::AddDemoEntity(uint32_t count)
@@ -130,7 +237,7 @@ namespace imp
 		if (count)
 			MarkDrawDataDirty();
 
-		static constexpr uint32_t numMeshes = 2u;
+		const auto numMeshes = m_AssetImporter.GetNumberOfUniqueMeshesLoaded();
 
 		auto& reg = m_Entities;
 		for (auto i = 0; i < count; i++)
@@ -146,22 +253,27 @@ namespace imp
 			const auto child = reg.create();
 			reg.emplace<Comp::ChildComponent>(child, monkey);
 			reg.emplace<Comp::Mesh>(child, (uint32_t)rand() % numMeshes);
-			//reg.emplace<Comp::Mesh>(child, (uint32_t)0);
 			reg.emplace<Comp::Material>(child, kDefaultMaterialIndex);
 		}
 	}
 
 	bool Engine::ShouldClose() const
 	{
+#if !BENCHMARK_MODE
 		return m_Window.ShouldClose();
+#else
+		return m_Window.ShouldClose() || m_BenchmarkDone;
+#endif
 	}
 
 	void Engine::ShutDown()
 	{
 		CleanUpThreading();
 		CleanUpWindow();
-		CleanUpUI();
 		CleanUpGraphics();
+#if !BENCHMARK_MODE
+		CleanUpUI();
+#endif
 	}
 
 	void Engine::InitThreading(EngineThreadingMode mode)
@@ -193,7 +305,7 @@ namespace imp
 
 	void Engine::InitWindow()
 	{
-		const std::string windowName = "TestWindow";
+		const std::string windowName = "Imperial Engine Demo";
 		m_Window.Initialize(windowName, 1280, 720);
 	}
 
@@ -204,16 +316,11 @@ namespace imp
 		m_Q->add(std::mem_fn(&Engine::Cmd_InitGraphics), std::make_shared<Window>(m_Window));
 	}
 
-	void Engine::InitAssetImporter()
-	{
-		m_AssetImporter.Initialize();
-	}
-
 	void Engine::CleanUpThreading()
 	{
 		if (m_EngineSettings.threadingMode == kEngineMultiThreaded)
 		{
-			m_Worker->End();				// signal to stop working
+			m_Q->add(std::mem_fn(&Engine::Cmd_ShutDown), std::make_shared<Window>(m_Window));
 			m_SyncPoint->arrive_and_wait();
 			m_Worker->Join();
 			m_ThreadPool->wait_for_tasks();
@@ -239,8 +346,8 @@ namespace imp
 		m_UI.Destroy();
 	}
 
-	void Engine::LoadDefaultStuff()
-	{			
+	void Engine::CreateCameras()
+	{
 		const auto camera = m_Entities.create();
 		const auto previewCamera = m_Entities.create();
 		const auto identity = glm::mat4x4(1.0f);
@@ -248,14 +355,14 @@ namespace imp
 		static constexpr float defaultCameraYRotationRad = 0;
 		const auto defaultCameraTransform = glm::rotate(glm::translate(identity, glm::vec3(0.0f, 0.0f, 15.0f)), defaultCameraYRotationRad, glm::vec3(0.0f, 1.0f, 0.0f));
 		m_Entities.emplace<Comp::Transform>(camera, defaultCameraTransform);
-		glm::mat4x4 proj = glm::perspective(glm::radians(45.0f), (float)m_Window.GetWidth() / (float)m_Window.GetHeight(), 5.0f, 1000.0f);
+		glm::mat4x4 proj = glm::perspective(glm::radians(45.0f), (float)m_Window.GetWidth() / (float)m_Window.GetHeight(), 1.0f, 1000.0f);
 		m_Entities.emplace<Comp::Camera>(camera, proj, glm::mat4x4(), kCamOutColor, true, false, true);
+#if BENCHMARK_MODE
+		m_InitialCameraTransform = defaultCameraTransform;
+#endif
 
-		m_Entities.emplace<Comp::Transform>(previewCamera, glm::translate(defaultCameraTransform, glm::vec3(0.0f, 0.0f, 100.0f)));
+		m_Entities.emplace<Comp::Transform>(previewCamera, glm::translate(defaultCameraTransform, glm::vec3(0.0f, 60.0f, 0.0f)));
 		m_Entities.emplace<Comp::Camera>(previewCamera, proj, glm::mat4x4(), kCamOutColor, true, true, false);
-
-		//AddDemoEntity(5000);
-		AddDemoEntity(kMaxDrawCount - 1);
 	}
 
 	void Engine::RenderCameras()
@@ -265,6 +372,7 @@ namespace imp
 
 	void Engine::RenderImGUI()
 	{
+#if !BENCHMARK_MODE
 		// TODO:
 		// Because dear imgui uses static globals I can't copy relevant data
 		// So I need to update imgui right before launching render command
@@ -279,8 +387,9 @@ namespace imp
 			cam.dirty = false;
 		}
 
-		m_UI.Update(*this, m_Entities);
+		m_UI.Update(*this, m_Entities, m_FrameStats);
 		m_Q->add(std::mem_fn(&Engine::Cmd_RenderImGUI), std::shared_ptr<void>());
+#endif
 	}
 
 	void Engine::UpdateRegistry()
@@ -293,8 +402,11 @@ namespace imp
 		const auto cameras = m_Entities.view<Comp::Transform, Comp::Camera>();
 		for (auto ent : cameras)
 		{
-			const auto& transform = cameras.get<Comp::Transform>(ent);
+			auto& transform = cameras.get<Comp::Transform>(ent);
 			auto& cam = cameras.get<Comp::Camera>(ent);
+
+			if (cam.isRenderCamera)
+				m_Window.MoveCameraWithControls(transform.transform);
 
 			// Vulkan's fixed-function steps expect to look down -Z, Y is "down" and RH
 			static constexpr glm::vec3 front(0.0f, 0.0f, -1.0f);// look down -z
@@ -305,84 +417,52 @@ namespace imp
 			const auto newUp = glm::rotate(quat, up);
 
 			// update view matrix
-			const auto pos = transform.GetPosition();
+			const glm::vec3 pos = transform.GetPosition();
 			cam.view = glm::lookAtRH(pos, pos + newFront, newUp);
 		}
 	}
 
 	void Engine::Cull()
 	{
-		AUTO_TIMER("[CPU CULL]: ");
-		assert(IsCurrentRenderMode(kEngineRenderModeTraditional));
+#if BENCHMARK_MODE
+		if (m_CollectBenchmarkData)
+#endif
+			m_CullTimer.start();
+#if CULLING_ENABLED
+		utils::Cull(m_Entities, m_VisibleDrawData, m_Gfx, *m_ThreadPool);
+#endif
 
-		const auto cameras = m_Entities.view<Comp::Transform, Comp::Camera>();
-		const auto& cam = cameras.get<Comp::Camera>(cameras.back());
-		const glm::mat4x4 VP = cam.projection * cam.view;
-
-		const auto frustumPlanes = utils::FindViewFrustumPlanes(VP);
-
-		const auto transforms = m_Entities.view<Comp::Transform>();
-		uint32_t totalMeshes = 0;
-
-		const auto group = m_Entities.group<Comp::ChildComponent, Comp::Mesh, Comp::Material>();
-		const auto groupSize = group.size();
-		m_CulledDrawData.resize(groupSize);
-
-		std::atomic_uint32_t drawDataIndex;
-
-		const auto gfxPtr = &m_Gfx;
-		const auto ddPtr = &m_CulledDrawData;
-
-		const auto loop = [&group, &transforms, gfxPtr, &frustumPlanes, &VP, &drawDataIndex, ddPtr](const auto st, const auto end)
-		{
-			for (auto i = st; i < end; i++)
-			{
-				const auto ent = group[i];
-				const auto& mesh = group.get<Comp::Mesh>(ent);
-				const auto& parent = group.get<Comp::ChildComponent>(ent).parent;
-				const auto& transform = transforms.get<Comp::Transform>(parent);
-				const auto& BV = gfxPtr->m_BVs.at(mesh.meshId);
-
-				glm::vec4 mCenter = glm::vec4(BV.center, 1.0f);
-				glm::vec4 wCenter = transform.transform * glm::vec4(BV.center, 1.0f);
-
-				bool isVisible = true;
-				for (auto i = 0; i < 6; i++)
-				{
-					float dotProd = glm::dot(frustumPlanes[i], wCenter);
-					if (dotProd < -BV.diameter)
-					{
-						isVisible = false;
-						break;
-					}
-				}
-
-				if (isVisible)
-				{
-					auto lodIdx = utils::ChooseMeshLODByNearPlaneDistance(transform.transform, BV, VP);
-
-					const auto idx = drawDataIndex.fetch_add(1);
-
-					DrawDataSingle dds;
-					dds.Transform = transform.transform;
-					dds.VertexBufferId = mesh.meshId;
-					dds.LodIdx = lodIdx;
-					(*ddPtr)[idx] = std::move(dds);
-				}
-			}
-		};
-
-		m_ThreadPool->parallelize_loop(groupSize, loop).wait();
-		m_CulledDrawData.resize(drawDataIndex);
-
-		//printf("[CPU CULL] Total Renderable Meshes: %u; Renderable Meshes after culling: %llu\n", totalMeshes, m_CulledDrawData.size());
+#if BENCHMARK_MODE
+		if (m_CollectBenchmarkData)
+#endif
+			m_CullTimer.stop();
 	}
 
-	inline void GenerateIndirectDrawCommand(IGPUBuffer& dstBuffer, const Comp::MeshGeometry& meshData, uint32_t meshId)
+	inline void GenerateIndirectDrawCommand(IGPUBuffer& dstBuffer, const Comp::MeshGeometry& meshData, uint32_t meshId, bool isMeshPipeline)
 	{
+#if CULLING_ENABLED
 		IndirectDrawCmd cmd;
 		cmd.meshDataIndex = meshId;
 		dstBuffer.push_back(&cmd, sizeof(IndirectDrawCmd));
+#else
+		if (!isMeshPipeline)
+		{
+			VkDrawIndexedIndirectCommand cmd = {};
+			cmd.indexCount = meshData.indices[0].GetCount();
+			cmd.firstIndex = meshData.indices[0].GetOffset();
+			cmd.instanceCount = 1;
+			cmd.firstInstance = 0;
+			cmd.vertexOffset = meshData.vertices.GetOffset();
+			dstBuffer.push_back(&cmd, sizeof(VkDrawIndexedIndirectCommand));
+			return;
+		}
+		ms_IndirectDrawCommand mcmd;
+		mcmd.firstTask = 0;
+		mcmd.taskCount = CONE_CULLING_ENABLED ? (meshData.meshlets[0].GetCount() + MESH_WGROUP - 1) / MESH_WGROUP : meshData.meshlets[0].GetCount();
+		mcmd.meshTaskCount = meshData.meshlets[0].GetCount();
+		mcmd.meshletBufferOffset = meshData.meshlets[0].GetOffset();
+		dstBuffer.push_back(&mcmd, sizeof(ms_IndirectDrawCommand));
+#endif
 	}
 
 	// This member function gets executed when both main and render thread arrive at the barrier.
@@ -394,16 +474,42 @@ namespace imp
 	void Engine::EngineThreadSyncFunc() noexcept
 	{
 		AUTO_TIMER("[ENGINE SYNC]: ");
-		m_SyncTime.start();
 		m_Window.UpdateDeltaTime();
 
 		const auto renderMode = GetCurrentRenderMode();
+		bool isMeshPipe = renderMode == kEngineRenderModeGPUDrivenMeshShading;
 
 		switch (renderMode)
 		{
 		case kEngineRenderModeTraditional:
 		{
-			auto& srcDrawData = m_CulledDrawData;
+#if CULLING_ENABLED
+			auto& srcDrawData = m_VisibleDrawData;
+#else 
+			if (IsDrawDataDirty())
+			{
+				const auto transforms = m_Entities.view<Comp::Transform>();
+				const auto group = m_Entities.group<Comp::ChildComponent, Comp::Mesh, Comp::Material>();
+				const auto groupSize = group.size();
+				m_VisibleDrawData.resize(0);
+
+				for (const auto ent : group)
+				{
+					const auto& mesh = group.get<Comp::Mesh>(ent);
+					const auto& parent = group.get<Comp::ChildComponent>(ent).parent;
+					const auto& transform = transforms.get<Comp::Transform>(parent);
+
+					DrawDataSingle dds;
+					dds.Transform = transform.transform;
+					dds.VertexBufferId = mesh.meshId;
+					dds.LodIdx = 0;
+
+					m_VisibleDrawData.push_back(dds);
+				}
+			}
+			auto& srcDrawData = m_VisibleDrawData;
+#endif
+
 			auto& dstDrawData = m_Gfx.m_DrawData;
 			dstDrawData.resize(0);
 
@@ -434,7 +540,7 @@ namespace imp
 				if (IsDrawDataDirty())
 				{
 					// Needed for GPU-driven
-					GenerateIndirectDrawCommand(drawCmdBuffer, meshData, mesh.meshId);
+					GenerateIndirectDrawCommand(drawCmdBuffer, meshData, mesh.meshId, isMeshPipe);
 				}
 
 				// Also update shader draw data. Also contains mesh id, that CPU-driven can use to generate draw commands
@@ -471,19 +577,19 @@ namespace imp
 
 			cam.dirty = false;
 		}
-		m_SyncTime.stop();
 
-		auto& gfxTimer = m_Gfx.GetFrameTimings();
-		auto& oldTimer = m_Gfx.GetOldFrameTimings();
-		auto& gfxSyncTimer = m_Gfx.GetSyncTimings();
-		auto& gfxOldSyncTimer = m_Gfx.GetOldSyncTimings();
-
-		gfxTimer.totalFrameTime.stop();
-		gfxTimer.waitTime.elapsed_time = gfxTimer.totalFrameTime.elapsed_time - gfxTimer.frameWorkTime.elapsed_time - m_SyncTime.elapsed_time;
-		oldTimer = gfxTimer;
-		gfxOldSyncTimer = gfxSyncTimer;
-
-		gfxTimer.StartAll();
+#if !BENCHMARK_MODE
+		const auto& stats = m_Gfx.GetFrameStats();
+		if (stats.frameGPU > 0.0f)
+		{
+			auto& row = m_FrameStats[m_FrameStats.size() - 1 - kEngineSwapchainDoubleBuffering];
+			row.cull = std::max(row.cull, stats.cull);
+			row.frame = std::max(row.frame, stats.frame);
+			row.frameGPU = stats.frameGPU;
+			row.frameRenderCPU = stats.frameRenderCPU;
+			row.triangles = stats.triangles;
+		}
+#endif
 	}
 
 }

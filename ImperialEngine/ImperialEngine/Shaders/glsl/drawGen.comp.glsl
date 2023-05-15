@@ -6,6 +6,7 @@
 
 layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
 
+#include "prefix.h"
 #include "DescriptorSet0.h"
 #include "DescriptorSet1.h"
 
@@ -23,12 +24,14 @@ void copy_draw_command(uint idx, uint newIdx)
     MeshData meshdata = md[drawsSrc[idx].meshDataIndex];
 
     uint lodIdx = 0;
+#if LOD_ENABLED
     if(distFromCamera >= 250)
         lodIdx = 3;
     else if(distFromCamera >= 100)
         lodIdx = 2;
     else if(distFromCamera >= 25)
         lodIdx = 1;
+#endif
 
     MeshLOD lod = meshdata.LODData[lodIdx];
 
@@ -46,23 +49,26 @@ bool is_inside_view_frustum(uint idx)
     vec4 mCenter = vec4(bv.center, 1.0); // BV center in Model space
     vec4 wCenter = drawData[idx].Transform * mCenter;           // BV center in World space
 
-    float diameter = bv.diameter;
+    float scale = length(drawData[idx].Transform[0].xyz);
+    float radius = bv.radius * scale;
 
     for (int i = 0; i < 6; i++)
     {
         // Compute signed distance of center of BV from plane.
-        // Plane equation: Ax + By + Cy + d = 0
+        // Plane equation: Ax + By + Cz + d = 0
         // Inserting our point into equation gives us the signed distance for wCenter
         float signedDistance = dot(globals.frustum[i], wCenter);
 
         // Negative result already lets us know that point is in negative half space of plane
-        // If it's less than 0 + (-diameter) then BV is outside VF
-        if(signedDistance < -diameter)
+        // If it's less than 0 + (-radius) then BV is outside VF
+        if(signedDistance < -radius)
             return false;
-        
+#if LOD_ENABLED
         // Temporary solution to saving distance from near plane for LOD picking
+        // TODO: avoid global variables
         if(i == 4)
-            distFromCamera = signedDistance - diameter;
+            distFromCamera = signedDistance - radius;
+#endif
     }
     return true;
 }

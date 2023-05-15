@@ -14,14 +14,19 @@ namespace imp
 	{
 		// TODO: have a 'base' pipeline that I can use to create pipeline derivatives?
 
+		constexpr auto meshPipelineStageCount = CONE_CULLING_ENABLED ? 3 : 2;
+		constexpr auto regularPipelineStageCount = 2;
+
 		const bool meshPipeline = config.meshModule != VK_NULL_HANDLE;
-		const auto shaderStageCount = meshPipeline ? 3 : 2;
+		const auto shaderStageCount = meshPipeline ? meshPipelineStageCount : regularPipelineStageCount;
 
 		VkPipelineShaderStageCreateInfo shaderStages[3];
 		shaderStages[0] = MakeShaderStageCI(meshPipeline ? config.meshModule : config.vertModule, meshPipeline ? VK_SHADER_STAGE_MESH_BIT_EXT : VK_SHADER_STAGE_VERTEX_BIT);
 		shaderStages[1] = MakeShaderStageCI(config.fragModule, VK_SHADER_STAGE_FRAGMENT_BIT);
+#if CONE_CULLING_ENABLED
 		if (meshPipeline)
 			shaderStages[2] = MakeShaderStageCI(config.taskModule, VK_SHADER_STAGE_TASK_BIT_EXT);
+#endif
 
 		const auto vertInputBindingDesc = MakeVertexBindingDesc();
 		const auto vertInputAttrDesc = MakeVertexAttrDescs();
@@ -108,6 +113,15 @@ namespace imp
 		m_ComputePipelineMap[config] = pipe;
 	}
 
+	void PipelineManager::Destroy(VkDevice device)
+	{
+		for (auto& pipe : m_PipelineMap)
+			pipe.second.Destroy(device);
+
+		for (auto& pipe : m_ComputePipelineMap)
+			pipe.second.Destroy(device);
+	}
+
 	VkPipelineShaderStageCreateInfo PipelineManager::MakeShaderStageCI(VkShaderModule module, VkShaderStageFlagBits stage) const
 	{
 		VkPipelineShaderStageCreateInfo ci;
@@ -151,8 +165,8 @@ namespace imp
 		ci.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 		ci.vertexBindingDescriptionCount = 0;
 		ci.pVertexBindingDescriptions = nullptr;
-		ci.vertexAttributeDescriptionCount = 0;// static_cast<uint32_t>(vertInputAttrDesc.size());
-		ci.pVertexAttributeDescriptions = nullptr;// vertInputAttrDesc.data();
+		ci.vertexAttributeDescriptionCount = 0;
+		ci.pVertexAttributeDescriptions = nullptr;
 		ci.pNext = nullptr;
 		ci.flags = 0;
 		return ci;

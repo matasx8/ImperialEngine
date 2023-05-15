@@ -1,9 +1,9 @@
 #pragma once
+#include "Utils/EngineStaticConfig.h"
 #include <chrono>
 
 namespace imp
 {
-#define LOG_TIMINGS 0
 #if LOG_TIMINGS
 #define AUTO_TIMER(message) SimpleAutoTimer timer(message); 
 #else
@@ -27,6 +27,11 @@ namespace imp
         i64 ms() const
         {
             return (std::chrono::duration_cast<std::chrono::milliseconds>(elapsed_time)).count();
+        }
+
+        inline double miliseconds() const
+        {
+            return double((std::chrono::duration_cast<std::chrono::nanoseconds>(elapsed_time)).count()) * 1e-6;
         }
 
         std::chrono::time_point<std::chrono::steady_clock> start_time = std::chrono::steady_clock::now();

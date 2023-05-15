@@ -1,6 +1,4 @@
 #pragma once
-//#define VK_USE_PLATFORM_WIN32_KHR
-//#define VOLK_IMPLEMENTATION
 #include "backend/graphics/RenderPassGeneratorBase.h"
 #include "backend/graphics/CommandBufferManager.h"
 #include "backend/graphics/VulkanShaderManager.h"
@@ -10,12 +8,14 @@
 #include "backend/graphics/Semaphore.h"
 #include "backend/graphics/Swapchain.h"
 #include "backend/graphics/VkDebug.h"
+#include "backend/queries/QueryManager.h"
 #include "backend/VariousTypeDefinitions.h"
 #include "backend/VulkanGarbageCollector.h"
 #include "backend/VulkanMemory.h"
 #include "backend/VkWindow.h"
 #include "Utils/Pool.h"
 #include "Utils/SimpleTimer.h"
+#include "Utils/FrameTimeTable.h"
 #include "frontend/Components/Components.h"
 #include <extern/ENTT/entt.hpp>
 #include <barrier>
@@ -43,6 +43,15 @@ namespace imp
 		void RenderImGUI();
 		void EndFrame();
 
+#if BENCHMARK_MODE
+		void StartBenchmark();
+		void StopBenchmark();
+		const std::array<FrameTimeTable, kEngineRenderModeCount>& GetBenchmarkTable() const;
+#else
+		// Gets frame stats of frame n - kEngineSwapchainDoubleBuffering
+		const FrameTimeRow& GetFrameStats() const;
+#endif
+
 		void CreateAndUploadMeshes(std::vector<MeshCreationRequest>& meshCreationData);
 		void CreateAndUploadMaterials(const std::vector<MaterialCreationRequest>& materialCreationData);
 		void CreateComputePrograms(const std::vector<ComputeProgramCreationRequest>& computeProgramRequests);
@@ -55,11 +64,6 @@ namespace imp
 		IGPUBuffer& GetDrawDataBuffer();
 
 		const Comp::MeshGeometry& GetMeshData(uint32_t index) const;
-
-		Timings& GetFrameTimings() { return m_Timer; }
-		Timings& GetOldFrameTimings() { return m_OldTimer; }
-		SimpleTimer& GetSyncTimings() { return m_SyncTimer; }
-		SimpleTimer& GetOldSyncTimings() { return m_SyncTimer; }
 
 		EngineGraphicsSettings& GetGraphicsSettings();
 		const GraphicsCaps& GetGfxCaps() const;
@@ -77,16 +81,16 @@ namespace imp
 		void CreateSurfaceManager();
 		void CreateGarbageCollector();
 		void CreateImGUI();
-		void CreateVulkanMemoryManager();
 		void CreateRenderPassGenerator();
 		
 		void InitializeVulkanMemory();
-
 
 		// transfer commands
 		VulkanBuffer UploadVulkanBuffer(VkBufferUsageFlags usageFlags, VkBufferUsageFlags dstUsageFlags, VkMemoryPropertyFlags memoryFlags, VkMemoryPropertyFlags dstMemoryFlags, const CommandBuffer& cb, uint32_t allocSize, const void* dataToUpload);
 		void UploadVulkanBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags, VulkanBuffer& dst, const CommandBuffer& cb, uint32_t allocSize, const void* dataToUpload);
 		void CopyVulkanBuffer(const VulkanBuffer& src, VulkanBuffer& dst, const CommandBuffer& cb);
+
+		void AcquireDrawCommandBuffer(CommandBuffer& cb);
 
 		const Pipeline& EnsurePipeline(VkCommandBuffer cb, const RenderPass& rp /*, Material material*/);
 		void PushConstants(VkCommandBuffer cb, const void* data, uint32_t size, VkPipelineLayout pipeLayout) const;
@@ -121,11 +125,23 @@ namespace imp
 		VulkanShaderManager m_ShaderManager;
 		PipelineManager m_PipelineManager;
 		RenderPassGenerator m_RenderPassManager;
+		QueryManager m_TimestampQueryManager;
 
-		Timings m_Timer;
-		Timings m_OldTimer;
-		SimpleTimer m_SyncTimer; // time spent waiting for gpu
-		SimpleTimer m_OldSyncTimer;
+		void CollectFrameCPUResults();
+#if BENCHMARK_MODE
+		void CollectFinalResults();
+		std::array<FrameTimeTable, kEngineRenderModeCount> m_FrameTimeTables;
+#else
+		CircularFrameTimeRowContainer m_FrameStats;
+#endif
+		SimpleTimer m_FrameTimer;
+		SimpleTimer m_CullTimer;
+#if BENCHMARK_MODE
+		bool m_CollectBenchmarkData;
+		uint64_t m_FrameStartedCollecting;
+		uint64_t m_FrameStoppedCollecting;
+		EngineRenderMode m_EngineRenderModeCollectingInto;
+#endif
 
 		// Pools
 		PrimitivePool<Semaphore, SemaphoreFactory> m_SemaphorePool;
@@ -139,14 +155,13 @@ namespace imp
 
 		VulkanBuffer m_VertexBuffer;
 		VulkanBuffer m_IndexBuffer;
-		VulkanBuffer m_MeshBuffer;
-		VulkanBuffer m_DrawBuffer;
-		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_StagingDrawBuffer;
+		VulkanBuffer m_DrawBuffer; // buffer with indirect draw commands that indirect draw command will read
+		std::array<VulkanBuffer, kEngineSwapchainDoubleBuffering> m_StagingDrawBuffer;
 		VulkanBuffer m_BoundingVolumeBuffer;
 		uint32_t m_NumDraws;
 
-		std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1> m_GlobalBuffers;
-		std::array<VkDescriptorSet, kEngineSwapchainExclusiveMax - 1> m_DescriptorSets;
+		std::array<VulkanBuffer, kEngineSwapchainDoubleBuffering> m_GlobalBuffers;
+		std::array<VkDescriptorSet, kEngineSwapchainDoubleBuffering> m_DescriptorSets;
 
 		GpuCrashTracker m_AfterMathTracker;
 

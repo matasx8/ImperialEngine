@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include "GLM/mat4x4.hpp"
 
 struct GLFWwindow;
 
@@ -20,6 +21,8 @@ namespace imp
 		void UpdateDeltaTime();
 		void DisplayFrameInfo() const;
 		void UpdateImGUI();
+
+		void MoveCameraWithControls(glm::mat4x4& transform);
 
 		bool ShouldClose() const;
 

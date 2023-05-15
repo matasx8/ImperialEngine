@@ -25,7 +25,7 @@ struct IndirectDraw
 struct BoundingVolume
 {
     vec3 center;
-    float diameter;
+    float radius;
 };
 
 struct MeshLOD
@@ -42,20 +42,16 @@ struct ms_MeshLOD
 
 struct MeshData
 {
-    MeshLOD LODData[4];
+    MeshLOD LODData[MESH_LOD_COUNT];
     BoundingVolume boundingVolume;
     int     vertexOffset;
-    int     pad;
 };
 
 struct ms_MeshData
 {
-    ms_MeshLOD LODData[4];
+    ms_MeshLOD LODData[MESH_LOD_COUNT];
     BoundingVolume boundingVolume;
-
-    // VkDrawMeshTasksIndirectCommandNV
     uint firstTask;
-    uint pad[2];
 };
 
 struct NormalCone

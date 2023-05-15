@@ -8,11 +8,6 @@ namespace imp
 	{
 	}
 
-	void VulkanMemory::Initialize(VkDevice device)
-	{
-
-	}
-
 	VulkanBuffer VulkanMemory::GetBuffer(VkDevice device, VkDeviceSize bufferSize, VkBufferUsageFlags bufferUsageFlags, VkMemoryPropertyFlags buffMemPropFlags, const MemoryProps& memoryProps)
 	{
 		VkBuffer buffer;
@@ -74,9 +69,5 @@ namespace imp
 		assert(res == VK_SUCCESS);
 
 		return mem;
-	}
-
-	void VulkanMemory::Destroy()
-	{
 	}
 }

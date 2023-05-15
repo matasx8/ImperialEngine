@@ -44,8 +44,8 @@ namespace imp
 		uint32_t m_FrameClock;
 		bool m_NeedsAcquiring;
 
-		std::array<Surface, kEngineSwapchainExclusiveMax - 1> m_SwapchainImages;
-		std::array<VkSemaphore, kEngineSwapchainExclusiveMax - 1> m_Semaphores;
+		std::array<Surface, kEngineSwapchainDoubleBuffering> m_SwapchainImages;
+		std::array<VkSemaphore, kEngineSwapchainDoubleBuffering> m_Semaphores;
 		PrimitivePool<Semaphore, SemaphoreFactory>& m_SemaphorePool;
 	};
 }

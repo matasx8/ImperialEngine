@@ -42,6 +42,18 @@ namespace Comp
 		uint32_t meshId;
 	};
 
+	struct GLTFEntity
+	{
+		Transform transform;
+		Mesh mesh;
+	};
+
+	struct GLTFCamera
+	{
+		Transform transform;
+		bool valid;
+	};
+
 	// child component points to main entity - allows to have multiple components
 	struct ChildComponent
 	{
@@ -52,7 +64,6 @@ namespace Comp
 	{
 		imp::VulkanSubBuffer vertices;
 		imp::VulkanSubBuffer indices[imp::kMaxLODCount];
-		uint32_t meshletCount;
-		uint32_t meshletOffset; // offset into meshlet buffer
+		imp::VulkanSubBuffer meshlets[imp::kMaxLODCount];
 	};
 }

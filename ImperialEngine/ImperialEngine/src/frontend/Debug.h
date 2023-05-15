@@ -1,22 +1,9 @@
 #pragma once
 #include <stdio.h>
 #include <type_traits>
-//#include "Representable.h"
 
 namespace Debug
 {
-	//// Debug Log information about Representable object
-	//// T must derive from Representable
-	//template <typename T,
-	//	typename = typename std::enable_if<std::is_base_of<Representable, T>::value>::type>
-	//void Log(T obj)
-	//{
-	//	size_t size = obj.GetRepresentCstrLen();
-	//	char* buff = (char*)alloca(size);
-	//	obj.RepresentCstr(buff, size);
-	//	printf("[Debug %s]: %s", typeid(obj).name(), buff);
-	//}
-
 	// dt - delta time in seconds
 	static void FrameInfo(float dt)
 	{
@@ -31,9 +18,4 @@ namespace Debug
 	{
 		printf("[Debug Message] %s\n", msg);
 	}
-
-	/*template void Log<Representable>()
-	{
-
-	}*/
 }

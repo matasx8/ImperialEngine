@@ -8,8 +8,6 @@
 // 1. F*T pools, where F is the frame queue length and T is the number of threads that can concurrently record commands
 // 2. target <10 submits and <100 cmb per frame
 
-// current plan is to leave managing submits to something else
-
 namespace imp 
 {
 	template<typename T,
@@ -35,7 +33,7 @@ namespace imp
 
 		std::vector<CommandBuffer> AquireCommandBuffers(VkDevice device, uint32_t count);
 		void ReturnCommandBuffers(std::vector<CommandBuffer>& donePool, VkSemaphore semaphore, VkFence fence);
-		void Reset(VkDevice device, PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool, PrimitivePool<Fence, FenceFactory>& fencePool, SimpleTimer& timer);
+		void Reset(VkDevice device, PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool, PrimitivePool<Fence, FenceFactory>& fencePool);
 	};
 
 	struct SubmitSynchPrimitives
@@ -47,12 +45,14 @@ namespace imp
 	class CommandBufferManager : NonCopyable
 	{
 	public:
-		CommandBufferManager(PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool, PrimitivePool<Fence, FenceFactory>& fencePool, SimpleTimer& timer);
+		CommandBufferManager(PrimitivePool<Semaphore, SemaphoreFactory>& semaphorePool, PrimitivePool<Fence, FenceFactory>& fencePool);
 		void Initialize(VkDevice device, uint32_t familyIndices, EngineSwapchainImageCount imageCount);
 
 		// Submit command buffer to internal command buffer queue. Will keep them until SubmitToQueue is called.
 		void SubmitInternal(CommandBuffer& cb);
 		void SubmitInternal(CommandBuffer& cb, const std::vector<Semaphore>& semaphores);
+
+		void EnsureReset(VkDevice device);
 
 		// Submit accumulated command buffers to VkQueue
 		SubmitSynchPrimitives SubmitToQueue(VkQueue submitQueue, VkDevice device, SubmitType submitType, uint64_t currFrame);
@@ -89,6 +89,5 @@ namespace imp
 
 		PrimitivePool<Semaphore, SemaphoreFactory>& m_SemaphorePool;
 		PrimitivePool<Fence, FenceFactory>& m_FencePool;
-		SimpleTimer& m_Timer;
 	};
 }

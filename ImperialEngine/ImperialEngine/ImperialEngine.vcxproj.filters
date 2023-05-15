@@ -123,9 +123,6 @@
     <ClCompile Include="src\backend\graphics\RenderPass\RenderPassFactorySimple.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\backend\graphics\RenderPass\DefaultDepthRP.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\backend\graphics\Semaphore.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -142,6 +139,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="extern\VOLK\volk.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Utils\EngineStaticConfig.h">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\backend\queries\QueryManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -284,9 +287,6 @@
     <ClInclude Include="src\backend\graphics\RenderPass\RenderPassFactorySimple.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\backend\graphics\RenderPass\DefaultDepthRP.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\Utils\Pool.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -321,6 +321,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="extern\VOLK\volk.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\extern\ARGH\argh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\backend\queries\QueryManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Utils\FrameTimeTable.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

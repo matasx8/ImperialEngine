@@ -421,4 +421,9 @@ FodyWeavers.xsd
 
 # custom
 *.ini
+*.bak
+*.gltf
+*.glb
+.VSCodeCounter/
 Crashes/
+TestData/

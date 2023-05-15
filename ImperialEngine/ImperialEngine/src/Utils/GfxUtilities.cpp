@@ -1,6 +1,9 @@
 #include "GfxUtilities.h"
+#include "EngineStaticConfig.h"
 #include "extern/MESHOPTIMIZER/meshoptimizer.h"
-#include <GLM/gtc/matrix_access.hpp>
+#include "extern/THREAD-POOL/BS_thread_pool.hpp"
+#include "GLM/gtc/matrix_access.hpp"
+#include <glm/gtx/matrix_decompose.hpp>
 
 namespace imp
 {
@@ -54,28 +57,24 @@ namespace imp
 
 		BoundingVolumeSphere FindSphereBoundingVolume(const Vertex* vertices, size_t numVertices)
 		{
-			glm::vec3 pos = glm::vec3(vertices->vx, vertices->vy, vertices->vz);
-			glm::vec3 minX = pos;
-			glm::vec3 maxX = pos;
-			glm::vec3 minY = pos;
-			glm::vec3 maxY = pos;
-			glm::vec3 minZ = pos;
-			glm::vec3 maxZ = pos;
+			glm::vec3 center = glm::vec3(0.0f);
+			float radius = 0.0f;
 
 			for (auto i = 0; i < numVertices; i++)
 			{
-				if (vertices[i].vx < minX.x) minX = glm::vec3(vertices[i].vx, vertices[i].vy, vertices[i].vz);
-				if (vertices[i].vx > maxX.x) maxX = glm::vec3(vertices[i].vx, vertices[i].vy, vertices[i].vz);
-				if (vertices[i].vy < minY.y) minY = glm::vec3(vertices[i].vx, vertices[i].vy, vertices[i].vz);
-				if (vertices[i].vy > maxY.y) maxY = glm::vec3(vertices[i].vx, vertices[i].vy, vertices[i].vz);
-				if (vertices[i].vz < minZ.z) minZ = glm::vec3(vertices[i].vx, vertices[i].vy, vertices[i].vz);
-				if (vertices[i].vz > maxZ.z) maxZ = glm::vec3(vertices[i].vx, vertices[i].vy, vertices[i].vz);
+				glm::vec3 pos = glm::vec3(vertices[i].vx, vertices[i].vy, vertices[i].vz);
+				center += pos;
+			}
+			center /= static_cast<float>(numVertices);
+
+			for (auto i = 0; i < numVertices; i++)
+			{
+				glm::vec3 pos = glm::vec3(vertices[i].vx, vertices[i].vy, vertices[i].vz);
+				float dist = glm::length(pos - center);
+				radius = std::max(radius, dist);
 			}
 
-			glm::vec3 diag = (maxX - minX) + (maxY - minY) + (maxZ - minZ);
-			glm::vec3 center = diag / 2.0f;
-			float diameter = glm::length(diag);
-			BoundingVolumeSphere bv = { center, diameter };
+			BoundingVolumeSphere bv = { center, radius * 2.0f };
 			return bv;
 		}
 
@@ -105,16 +104,15 @@ namespace imp
 			return bmb;
 		}
 
-		uint32_t ChooseMeshLODByNearPlaneDistance(const glm::mat4x4& mTransform, const BoundingVolumeSphere& bv, const glm::mat4x4& vpTransform)
+		uint32_t ChooseMeshLODByNearPlaneDistance(float distFromCamera)
 		{
 			uint32_t idx = 0;
-			const auto hPos = vpTransform * mTransform * glm::vec4(bv.center, 1.0f);
 			
-			if (hPos.z - bv.diameter >= 250)
+			if (distFromCamera >= 250)
 				idx = 3;
-			else if (hPos.z - bv.diameter >= 100)
+			else if (distFromCamera >= 100)
 				idx = 2;
-			else if (hPos.z - bv.diameter >= 25)
+			else if (distFromCamera >= 25)
 				idx = 1;
 			return idx;
 		}
@@ -142,7 +140,7 @@ namespace imp
 
 				// Didn't change the number of indices, means won't go anymore.
 				// Setting rest of LODs to last successful
-				if (newIndexCount == currIndexCount)
+				if (newIndexCount == currIndexCount || newIndexCount == 0)
 				{
 					FillRestOfBuffers(currIndexBuffOffset, i, (uint32_t)newIndexCount);
 					break;
@@ -193,9 +191,12 @@ namespace imp
 				const uint32_t* indicesWithLODOfsset = &indices[geometry.indices[lodIdx].m_Offset];
 				const size_t indexCount = geometry.indices[lodIdx].m_Count;
 
-				size_t meshletCount = meshopt_buildMeshlets(meshlets.data(), vertices.data(), triangles.data(), indicesWithLODOfsset, indexCount, (float*)verts.data(), verts.size(), sizeof(Vertex), kMaxMeshletVertices, kMaxMeshletTriangles, cone_weight);
+				size_t meshletCount = 0;
+				
+				if (indexCount != 0)
+					meshletCount = meshopt_buildMeshlets(meshlets.data(), vertices.data(), triangles.data(), indicesWithLODOfsset, indexCount, (float*)verts.data(), verts.size(), sizeof(Vertex), kMaxMeshletVertices, kMaxMeshletTriangles, cone_weight);
 
-				if (currMeshletCount == meshletCount)
+				if (currMeshletCount == meshletCount || meshletCount == 0)
 				{
 					for (uint32_t cli = lodIdx; cli < kMaxLODCount; cli++)
 					{
@@ -247,18 +248,19 @@ namespace imp
 
 					const uint32_t* meshletVertexPtr = &vertices[meshlets[i].vertex_offset];
 					const uint8_t* meshletTrianglePtr = &triangles[meshlets[i].triangle_offset];
-					meshopt_Bounds bounds = meshopt_computeMeshletBounds(meshletVertexPtr, meshletTrianglePtr, meshlet.triangleCount, (float*)verts.data(), verts.size(), sizeof(Vertex));
 
 					NormalCone cone;
+#if CONE_CULLING_ENABLED
+					meshopt_Bounds bounds = meshopt_computeMeshletBounds(meshletVertexPtr, meshletTrianglePtr, meshlet.triangleCount, (float*)verts.data(), verts.size(), sizeof(Vertex));
 					cone.cone[0] = bounds.cone_axis_s8[0];
 					cone.cone[1] = bounds.cone_axis_s8[1];
 					cone.cone[2] = bounds.cone_axis_s8[2];
 					cone.cone[3] = bounds.cone_cutoff_s8;
-
 					// I chose not to do per-meshlet VF culling so I wont be needing meshlet BV so it makes a lot more sense to use
 					// cone apex instead of BV for cone culling
 					static_assert(sizeof(cone.apex) == sizeof(bounds.cone_apex));
 					std::memcpy(&cone.apex.x, bounds.cone_apex, sizeof(cone.apex));
+#endif
 					normalCones.push_back(cone);
 
 					meshletsDst.push_back(meshlet);
@@ -266,6 +268,139 @@ namespace imp
 			}
 
 			return meshletsDst;
+		}
+
+		static float GetScale(const glm::mat4& transformMatrix)
+		{
+			return glm::length(transformMatrix[0]);
+		};
+
+		void Cull(entt::registry& registry, std::vector<DrawDataSingle>& visibleData, const Graphics& gfx, BS::thread_pool& tp)
+		{
+			AUTO_TIMER("[CPU CULL]: ");
+
+			const auto cameras = registry.view<Comp::Transform, Comp::Camera>();
+			const auto& cam = cameras.get<Comp::Camera>(cameras.back());
+			const glm::mat4x4 VP = cam.projection * cam.view;
+
+			const auto frustumPlanes = utils::FindViewFrustumPlanes(VP);
+
+			const auto transforms = registry.view<Comp::Transform>();
+			uint32_t totalMeshes = 0;
+
+			const auto group = registry.group<Comp::ChildComponent, Comp::Mesh, Comp::Material>();
+			const auto groupSize = group.size();
+
+#if CPU_CULL_ST
+			visibleData.resize(0);
+
+			for (auto i = 0; const auto ent : group)
+			{
+				const auto& mesh = group.get<Comp::Mesh>(ent);
+				const auto& parent = group.get<Comp::ChildComponent>(ent).parent;
+				const auto& transform = transforms.get<Comp::Transform>(parent);
+				const auto& BV = gfx.m_BVs.at(mesh.meshId);
+
+				glm::vec4 mCenter = glm::vec4(BV.center, 1.0f);
+				glm::vec4 wCenter = transform.transform * glm::vec4(BV.center, 1.0f);
+
+				float scale = GetScale(transform.transform);
+				float distFromCamera = 0.0f;
+
+				bool isVisible = true;
+				for (auto i = 0; i < 6; i++)
+				{
+					float dotProd = glm::dot(frustumPlanes[i], wCenter);
+					float radius = -BV.radius;
+					//printf("%.3f %.3f %.3f %.3f \n", dotProd, radius, scale, -BV.radius * scale);
+					if (dotProd < -BV.radius * scale)
+					{
+						isVisible = false;
+						break;
+					}
+
+#if LOD_ENABLED
+					if (i == 4)
+						distFromCamera = dotProd - BV.radius;
+#endif
+				}
+
+				if (isVisible)
+				{
+#if LOD_ENABLED
+					auto lodIdx = utils::ChooseMeshLODByNearPlaneDistance(distFromCamera);
+#else
+					auto lodIdx = 0;
+#endif
+
+					DrawDataSingle dds;
+					dds.Transform = transform.transform;
+					dds.VertexBufferId = mesh.meshId;
+					dds.LodIdx = lodIdx;
+
+					visibleData.push_back(dds);
+				}
+			}
+#else
+			visibleData.resize(groupSize);
+
+			std::atomic_uint32_t drawDataIndex = 0;
+
+			const auto gfxPtr = &gfx;
+			const auto ddPtr = &visibleData;
+			const auto loop = [&group, &transforms, gfxPtr, &frustumPlanes, &VP, &drawDataIndex, ddPtr](const auto st, const auto end)
+			{
+				for (auto i = st; i < end; i++)
+				{
+					const auto ent = group[i];
+					const auto& mesh = group.get<Comp::Mesh>(ent);
+					const auto& parent = group.get<Comp::ChildComponent>(ent).parent;
+					const auto& transform = transforms.get<Comp::Transform>(parent);
+					const auto& BV = gfxPtr->m_BVs.at(mesh.meshId);
+
+					glm::vec4 mCenter = glm::vec4(BV.center, 1.0f);
+					glm::vec4 wCenter = transform.transform * glm::vec4(BV.center, 1.0f);
+
+					float scale = glm::length(glm::vec3(transform.transform[0].x, transform.transform[0].y, transform.transform[0].z));
+
+					bool isVisible = true;
+					for (auto i = 0; i < 6; i++)
+					{
+						float dotProd = glm::dot(frustumPlanes[i], wCenter);
+						if (dotProd < -BV.radius * scale)
+						{
+							isVisible = false;
+							break;
+						}
+
+#if LOD_ENABLED
+						if (i == 4)
+							distFromCamera = dotProd - BV.radius;
+#endif
+					}
+
+					if (isVisible)
+					{
+#if LOD_ENABLED
+						auto lodIdx = utils::ChooseMeshLODByNearPlaneDistance(distFromCamera);
+#else
+						auto lodIdx = 0;
+#endif
+
+						DrawDataSingle dds;
+						dds.Transform = transform.transform;
+						dds.VertexBufferId = mesh.meshId;
+						dds.LodIdx = lodIdx;
+
+						visibleData.push_back(dds);
+		}
+				}
+			};
+
+			tp.parallelize_loop(groupSize, loop).wait();
+			visibleData.resize(drawDataIndex);
+#endif
+			//printf("[CPU CULL] Total Renderable Meshes: %u; Renderable Meshes after culling: %llu\n", totalMeshes, visibleData.size());
 		}
 	}
 }

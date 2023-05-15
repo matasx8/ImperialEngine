@@ -240,22 +240,8 @@ std::vector<VkAttachmentDescription> imp::RenderPass::CreateAttachmentDescs(cons
 
 std::vector<VkAttachmentDescription> imp::RenderPass::CreateResolveAttachmentDescs(const SurfaceDesc* descs, const uint32_t descCount) const
 {
+	// not implemented..
 	auto attDescs = std::vector<VkAttachmentDescription>();
 
-	//for (auto& descr : surfaceDescs)
-	//{
-	//	VkAttachmentDescription attDesc = {};
-	//	attDesc.flags = 1;
-	//	attDesc.format = descr.format;
-	//	attDesc.samples = VK_SAMPLE_COUNT_1_BIT;
-	//	attDesc.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	//	attDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	//	attDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	//	attDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	//	attDesc.finalLayout = static_cast<VkImageLayout>(descr.finalLayout);
-
-	//	descs.emplace_back(attDesc);
-	//}
-	// TODO: not implemented
 	return attDescs;
 }

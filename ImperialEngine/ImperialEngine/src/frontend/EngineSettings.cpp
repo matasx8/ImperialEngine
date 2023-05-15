@@ -29,13 +29,31 @@ EngineSettings::EngineSettings(EngineSettingsTemplate settingsTemplate)
 	// common
 	gfxSettings.requiredDeviceExtensions = 
 	{
-	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-	VK_NV_MESH_SHADER_EXTENSION_NAME
-	//VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME,	// TODO: Add some system that removes nsight if not available because when launching renderdoc it crashes my app because it doesnt have these extensions for some reason
-	//VK_NV_DEVICE_DIAGNOSTICS_CONFIG_EXTENSION_NAME
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+		VK_NV_MESH_SHADER_EXTENSION_NAME
 	};
 	gfxSettings.swapchainImageCount = kEngineSwapchainDoubleBuffering;
-	// TODO nice-to-have: add dropdown to select presentation mode in ui in runtime
-	gfxSettings.preferredPresentModes = { /*kEnginePresentMailbox, */kEnginePresentFifo};
+	
+#if !BENCHMARK_MODE
+	gfxSettings.preferredPresentModes = { /*kEnginePresentMailbox,*/ kEnginePresentFifo};
+#else
+	// can get more stable results without vsync
+	gfxSettings.preferredPresentModes = { kEnginePresentMailbox, kEnginePresentFifo};
+#endif
 	gfxSettings.renderMode = static_cast<EngineRenderMode>(kDefaultEngineRenderMode);
+}
+
+std::string EngineGraphicsSettings::RenderingModeToString(EngineRenderMode mode)
+{
+	switch (mode)
+	{
+	case kEngineRenderModeTraditional:
+		return "Traditional";
+	case kEngineRenderModeGPUDriven:
+		return "GPU-Driven";
+	case kEngineRenderModeGPUDrivenMeshShading:
+		return "GPU-Driven-Mesh";
+	case kEngineRenderModeCount:
+		return "Render-Mode-Count";
+	}
 }

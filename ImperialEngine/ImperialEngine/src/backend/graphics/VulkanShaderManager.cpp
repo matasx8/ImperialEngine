@@ -36,7 +36,7 @@ namespace imp
 		m_JobSystem = jobSystem;
 
 		static constexpr uint32_t kGlobalBufferSize = sizeof(GlobalData) * kGlobalBufferBindCount;
-		static constexpr uint32_t kVertexBufferSize = 4 * 1024 * 1024; // TODO: get proper size
+		static constexpr uint32_t kVertexBufferSize = 1024 * 1024 * 1024; // TODO: get proper size
 		static constexpr uint32_t kMaterialBufferSize = sizeof(ShaderDrawData) * kMaterialBufferBindCount;
 		static constexpr uint32_t kDrawDataIndicesBufferSize = sizeof(uint32_t) * kMaxDrawCount;
 		static constexpr uint32_t kDrawDataBufferSize = sizeof(ShaderDrawData) * kMaxDrawCount;
@@ -48,10 +48,10 @@ namespace imp
 
 		// these allocations related to meshlets are probably not correct if we're trying to allocate max allowed
 		// (this means we have max unique meshes then they can have only 1 meshlet each)
-		static constexpr uint32_t kMeshletDataBufferSize = sizeof(Meshlet) * kMaxMeshCount;
-		static constexpr uint32_t kMeshletVertexDataBufferSize = sizeof(uint32_t) * kMaxMeshCount * kMaxMeshletVertices;
-		static constexpr uint32_t kMeshletTriangleDataBufferSize = sizeof(uint8_t) * kMaxMeshCount * kMaxMeshletTriangles;
-		static constexpr uint32_t kMeshletNormalConeDataBufferSize = sizeof(NormalCone) * kMaxMeshCount;
+		static constexpr uint32_t kMeshletDataBufferSize = sizeof(Meshlet) * kMaxMeshCount * 6;
+		static constexpr uint32_t kMeshletVertexDataBufferSize = sizeof(uint32_t) * kMaxMeshCount * kMaxMeshletVertices * 6;
+		static constexpr uint32_t kMeshletTriangleDataBufferSize = sizeof(uint8_t) * kMaxMeshCount * kMaxMeshletTriangles * 9;
+		static constexpr uint32_t kMeshletNormalConeDataBufferSize = sizeof(NormalCone) * kMaxMeshCount * 6;
 
 		static constexpr auto kHostVisisbleCoherentFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 		static constexpr auto kStorageDstFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
@@ -92,23 +92,23 @@ namespace imp
 
 		CreateMegaDescriptorSets(device);
 
-		WriteUpdateDescriptorSets(device, m_DescriptorSets.data(), VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_GlobalBuffers, sizeof(GlobalData), kGlobalBufferBindingSlot, kGlobalBufferBindCount, kEngineSwapchainExclusiveMax - 1);
-		WriteUpdateDescriptorSetsSingleBuffer(device, m_DescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, vertices, kVertexBufferSize, kVertexBufferBindingSlot, kVertexBufferBindingCount, kEngineSwapchainExclusiveMax - 1);
-		WriteUpdateDescriptorSets(device, m_DescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MaterialDataBuffers, sizeof(MaterialData), kMaterialBufferBindingSlot, kMaterialBufferBindCount, kEngineSwapchainExclusiveMax - 1);
-		WriteUpdateDescriptorSetsSingleBuffer(device, m_DescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawDataIndices, kDrawDataIndicesBufferSize, kDrawDataIndicesBindingSlot, kDrawDataIndicesBindCount, kEngineSwapchainExclusiveMax - 1);
-		WriteUpdateDescriptorSets(device, m_DescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawDataBuffers, sizeof(ShaderDrawData), kDrawDataBufferBindingSlot, kMaxDrawCount, kEngineSwapchainExclusiveMax - 1);
+		WriteUpdateDescriptorSets(device, m_DescriptorSets.data(), VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_GlobalBuffers, sizeof(GlobalData), kGlobalBufferBindingSlot, kGlobalBufferBindCount, kEngineSwapchainDoubleBuffering);
+		WriteUpdateDescriptorSetsSingleBuffer(device, m_DescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, vertices, kVertexBufferSize, kVertexBufferBindingSlot, kVertexBufferBindingCount, kEngineSwapchainDoubleBuffering);
+		WriteUpdateDescriptorSets(device, m_DescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MaterialDataBuffers, sizeof(MaterialData), kMaterialBufferBindingSlot, kMaterialBufferBindCount, kEngineSwapchainDoubleBuffering);
+		WriteUpdateDescriptorSetsSingleBuffer(device, m_DescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawDataIndices, kDrawDataIndicesBufferSize, kDrawDataIndicesBindingSlot, kDrawDataIndicesBindCount, kEngineSwapchainDoubleBuffering);
+		WriteUpdateDescriptorSets(device, m_DescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawDataBuffers, sizeof(ShaderDrawData), kDrawDataBufferBindingSlot, kMaxDrawCount, kEngineSwapchainDoubleBuffering);
 
-		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawCommands, kHostDrawCommandBufferSize, 0, 1, kEngineSwapchainExclusiveMax - 1);
+		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawCommands, kHostDrawCommandBufferSize, 0, 1, kEngineSwapchainDoubleBuffering);
 		// TODO mesh: for mesh variant of my drawGen compute shader I'm using the same buffer, but interpreting it as mesh draw commands.
 		// figure out if that's all good.
-		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, drawCommands, kDrawCommandBufferSize, 1, 1, kEngineSwapchainExclusiveMax - 1);
-		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MeshData, kMeshDataBufferSize, 2, 1, kEngineSwapchainExclusiveMax - 1);
-		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawCommandCount, kDrawCommandCountBufferSize, 3, 1, kEngineSwapchainExclusiveMax - 1);
-		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MeshletData, kMeshletDataBufferSize, 4, 1, kEngineSwapchainExclusiveMax - 1);
-		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_msMeshData, kmsMeshDataBufferSize, 5, 1, kEngineSwapchainExclusiveMax - 1);
-		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MeshletVertexData, kMeshletVertexDataBufferSize, 6, 1, kEngineSwapchainExclusiveMax - 1);
-		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MeshletTriangleData, kMeshletTriangleDataBufferSize, 7, 1, kEngineSwapchainExclusiveMax - 1);
-		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MeshletNormalConeData, kMeshletNormalConeDataBufferSize, 8, 1, kEngineSwapchainExclusiveMax - 1);
+		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, drawCommands, kDrawCommandBufferSize, 1, 1, kEngineSwapchainDoubleBuffering);
+		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MeshData, kMeshDataBufferSize, 2, 1, kEngineSwapchainDoubleBuffering);
+		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_DrawCommandCount, kDrawCommandCountBufferSize, 3, 1, kEngineSwapchainDoubleBuffering);
+		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MeshletData, kMeshletDataBufferSize, 4, 1, kEngineSwapchainDoubleBuffering);
+		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_msMeshData, kmsMeshDataBufferSize, 5, 1, kEngineSwapchainDoubleBuffering);
+		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MeshletVertexData, kMeshletVertexDataBufferSize, 6, 1, kEngineSwapchainDoubleBuffering);
+		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MeshletTriangleData, kMeshletTriangleDataBufferSize, 7, 1, kEngineSwapchainDoubleBuffering);
+		WriteUpdateDescriptorSetsSingleBuffer(device, m_ComputeDescriptorSets.data(), VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_MeshletNormalConeData, kMeshletNormalConeDataBufferSize, 8, 1, kEngineSwapchainDoubleBuffering);
 
 		CreateDefaultMaterial(device);
 
@@ -204,12 +204,14 @@ namespace imp
 		const VulkanShader vertexIndShader(CreateShaderModule(device, *req.vertexIndSpv.get()));
 		const VulkanShader fragmentShader(CreateShaderModule(device, *req.fragmentSpv.get()));
 		const VulkanShader meshShader(CreateShaderModule(device, *req.meshSpv.get()));
+#if CONE_CULLING_ENABLED
 		const VulkanShader taskShader(CreateShaderModule(device, *req.taskSpv.get()));
+		m_ShaderMap[req.shaderName + ".task"] = taskShader;
+#endif
 		m_ShaderMap[req.shaderName + ".vert"] = vertexShader;
 		m_ShaderMap[req.shaderName + ".ind.vert"] = vertexIndShader;
 		m_ShaderMap[req.shaderName + ".frag"] = fragmentShader;
 		m_ShaderMap[req.shaderName + ".mesh"] = meshShader;
-		m_ShaderMap[req.shaderName + ".task"] = taskShader;
 	}
 
 	void VulkanShaderManager::CreateComputePrograms(VkDevice device, PipelineManager& pipeManager, const ComputeProgramCreationRequest& req)
@@ -233,8 +235,21 @@ namespace imp
 		AUTO_TIMER("[CPU UPDATE DRAW DATA]: ");
 		std::vector<ShaderDrawData> shaderData;
 		shaderData.resize(drawData.size());
-		m_DrawDataBuffers[descriptorSetIdx].resize(drawData.size(), sizeof(ShaderDrawData));
+		auto& buf = m_DrawDataBuffers[descriptorSetIdx];
+		buf.MakeSureNotUsedOnGPU(device);
+		buf.resize(drawData.size(), sizeof(ShaderDrawData));
 
+#if CPU_CULL_ST
+		for (auto i = 0; i < drawData.size(); i++)
+		{
+			ShaderDrawData dat;
+			dat.transform = drawData[i].Transform;
+			dat.materialIndex = kDefaultMaterialIndex;
+			dat.vertexOffset = geometryData.at(drawData[i].VertexBufferId).vertices.GetOffset();
+
+			buf.insert(i, &dat, sizeof(ShaderDrawData));
+		}
+#else
 		m_JobSystem->parallelize_loop(drawData.size(), [&](const auto st, const auto en)
 			{
 				for (auto i = st; i < en; i++)
@@ -247,6 +262,39 @@ namespace imp
 					m_DrawDataBuffers[descriptorSetIdx].insert(i, &dat, sizeof(ShaderDrawData));
 				}
 			}).wait();
+#endif
+	}
+
+	void VulkanShaderManager::Destroy(VkDevice device)
+	{
+		vkDestroyDescriptorSetLayout(device, m_DescriptorSetLayout, nullptr);
+		vkDestroyDescriptorSetLayout(device, m_ComputeDescriptorSetLayout, nullptr);
+
+		static constexpr uint32_t dSetCount = kEngineSwapchainDoubleBuffering;
+		vkFreeDescriptorSets(device, m_DescriptorPool, dSetCount, m_DescriptorSets.data());
+		vkFreeDescriptorSets(device, m_DescriptorPool, dSetCount, m_ComputeDescriptorSets.data());
+
+		for (uint32_t i = 0; i < dSetCount; i++)
+		{
+			m_GlobalBuffers[i].Destroy(device);
+			m_MaterialDataBuffers[i].Destroy(device);
+			m_DrawDataBuffers[i].Destroy(device);
+		}
+
+		for (auto& shader : m_ShaderMap)
+			shader.second.Destroy(device);
+
+		m_DrawDataIndices.Destroy(device);
+		m_DrawCommands.Destroy(device);
+		m_MeshData.Destroy(device);
+		m_msMeshData.Destroy(device);
+		m_DrawCommandCount.Destroy(device);
+		m_MeshletData.Destroy(device);
+		m_MeshletVertexData.Destroy(device);
+		m_MeshletTriangleData.Destroy(device);
+		m_MeshletNormalConeData.Destroy(device);
+
+		vkDestroyDescriptorPool(device, m_DescriptorPool, nullptr);
 	}
 
 	VkDescriptorPool VulkanShaderManager::CreateDescriptorPool(VkDevice device)
@@ -315,10 +363,10 @@ namespace imp
 		std::array<uint32_t, kBindingCount> descriptorCounts = { kMaxDrawCount, kMaxDrawCount, kMaxDrawCount };
 		variable_info.pDescriptorCounts = descriptorCounts.data();
 
-		std::array<VkDescriptorSetLayout, kEngineSwapchainExclusiveMax - 1> layouts = { m_DescriptorSetLayout, m_DescriptorSetLayout};
+		std::array<VkDescriptorSetLayout, kEngineSwapchainDoubleBuffering> layouts = { m_DescriptorSetLayout, m_DescriptorSetLayout};
 		AllocateDescriptorSets(device, m_DescriptorSets.data(), m_DescriptorPool, m_DescriptorSets.size(), layouts.data(), &variable_info);
 
-		std::array<VkDescriptorSetLayout, kEngineSwapchainExclusiveMax - 1> computeLayouts = { m_ComputeDescriptorSetLayout, m_ComputeDescriptorSetLayout};
+		std::array<VkDescriptorSetLayout, kEngineSwapchainDoubleBuffering> computeLayouts = { m_ComputeDescriptorSetLayout, m_ComputeDescriptorSetLayout};
 		AllocateDescriptorSets(device, m_ComputeDescriptorSets.data(), m_DescriptorPool, m_ComputeDescriptorSets.size(), computeLayouts.data(), nullptr);
 	}
 
@@ -332,8 +380,8 @@ namespace imp
 
 		std::array<VkDescriptorSetLayoutBinding, kBindingCount> bindings = { globalBufferBinding, vertexBufferBinding, materialDataBufferBinding, drawDataIndicesBufferBinding, drawDataBufferBinding };
 
-		const VkDescriptorBindingFlags nonVariableBindingFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT;
-		const VkDescriptorBindingFlags variableBindingFlags = nonVariableBindingFlags | VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
+		const VkDescriptorBindingFlags nonVariableBindingFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;// | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT;
+		const VkDescriptorBindingFlags variableBindingFlags = nonVariableBindingFlags;// | VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
 
 		std::array<VkDescriptorBindingFlags, kBindingCount> multipleFlags = { nonVariableBindingFlags, nonVariableBindingFlags, nonVariableBindingFlags, nonVariableBindingFlags, variableBindingFlags };
 
@@ -355,20 +403,20 @@ namespace imp
 
 	void VulkanShaderManager::CreateComputeDescriptorSetLayout(VkDevice device)
 	{
+		constexpr auto taskFlagBit = CONE_CULLING_ENABLED ? VK_SHADER_STAGE_TASK_BIT_EXT : 0;
 		const auto drawCommandStagingBufferBinding = CreateDescriptorBinding(0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT);
-		const auto drawCommandBufferBinding = CreateDescriptorBinding(1, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_TASK_BIT_EXT);
+		const auto drawCommandBufferBinding = CreateDescriptorBinding(1, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT | taskFlagBit | VK_SHADER_STAGE_MESH_BIT_EXT);
 		const auto boundingVolumeBinding = CreateDescriptorBinding(2, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT);
 		const auto drawCommandCountBufferBinding = CreateDescriptorBinding(3, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT);
-		// TODO mesh: figure out proper stages
-		const auto meshletBufferBinding = CreateDescriptorBinding(4, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_TASK_BIT_EXT);
+		const auto meshletBufferBinding = CreateDescriptorBinding(4, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_MESH_BIT_EXT | taskFlagBit);
 		const auto msMeshDataBufferBinding = CreateDescriptorBinding(5, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_MESH_BIT_EXT);
-		const auto meshletVertexDataBufferBinding = CreateDescriptorBinding(6, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_TASK_BIT_EXT);
-		const auto meshletTriangleDataBufferBinding = CreateDescriptorBinding(7, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_TASK_BIT_EXT);
-		const auto meshletNormalConeDataBufferBinding = CreateDescriptorBinding(8, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_TASK_BIT_EXT);
+		const auto meshletVertexDataBufferBinding = CreateDescriptorBinding(6, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_MESH_BIT_EXT | taskFlagBit);
+		const auto meshletTriangleDataBufferBinding = CreateDescriptorBinding(7, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_MESH_BIT_EXT | taskFlagBit);
+		const auto meshletNormalConeDataBufferBinding = CreateDescriptorBinding(8, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, taskFlagBit);
 
 		std::array<VkDescriptorSetLayoutBinding, kComputeBindingCount> bindings = { drawCommandStagingBufferBinding, drawCommandBufferBinding, boundingVolumeBinding, drawCommandCountBufferBinding, meshletBufferBinding, msMeshDataBufferBinding, meshletVertexDataBufferBinding, meshletTriangleDataBufferBinding, meshletNormalConeDataBufferBinding };
 
-		static constexpr VkDescriptorBindingFlags nonVariableBindingFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT;
+		static constexpr VkDescriptorBindingFlags nonVariableBindingFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;// | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT;
 
 		std::array<VkDescriptorBindingFlags, kComputeBindingCount> multipleFlags = { nonVariableBindingFlags, nonVariableBindingFlags, nonVariableBindingFlags, nonVariableBindingFlags, nonVariableBindingFlags, nonVariableBindingFlags, nonVariableBindingFlags, nonVariableBindingFlags, nonVariableBindingFlags };
 
@@ -400,7 +448,7 @@ namespace imp
 		return descriptorSetLayoutBinding;
 	}
 
-	void VulkanShaderManager::WriteUpdateDescriptorSets(VkDevice device, VkDescriptorSet* dSets, VkDescriptorType type, std::array<VulkanBuffer, kEngineSwapchainExclusiveMax - 1>& buffers, size_t descriptorDataSize, uint32_t bindSlot, uint32_t descriptorCount, uint32_t dSetCount)
+	void VulkanShaderManager::WriteUpdateDescriptorSets(VkDevice device, VkDescriptorSet* dSets, VkDescriptorType type, std::array<VulkanBuffer, kEngineSwapchainDoubleBuffering>& buffers, size_t descriptorDataSize, uint32_t bindSlot, uint32_t descriptorCount, uint32_t dSetCount)
 	{
 		// I'm almost certain we should just vkUpdateDescriptorSets upfront for the whole buffer
 		for (auto i = 0; i < dSetCount; i++)
@@ -466,17 +514,7 @@ namespace imp
 
 	void VulkanShaderManager::CreateDefaultMaterial(VkDevice device)
 	{
-		// Create material should probably only ask to add stuff to material data and not global data.
-		//
-		// What can go wrong?
-		// 1. Buffer can run out of memory
-		// 1.1 VulkanBuffer needs implementation for managing memory
-		// 1.2 Should be able to track what part of the memory is used by a descriptor
-		// 1.3 What happen when memory is fragmented or we need more?
-		// 2. DescriptorPool can run out of descriptors
-		// -- For now simple enough to add and add more stuff, remove and leave hole?
-
-		for (auto i = 0; i < kEngineSwapchainExclusiveMax - 1; i++)
+		for (auto i = 0; i < kEngineSwapchainDoubleBuffering; i++)
 		{
 			// example data for material
 			const MaterialData data = { glm::vec4(0.75f, 0.99f, 0.99f, 1.0f) };
