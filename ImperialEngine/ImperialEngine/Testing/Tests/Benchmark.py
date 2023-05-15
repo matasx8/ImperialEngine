@@ -7,9 +7,7 @@ import csv
 # Like the application, scripts should be configured to run from ImperialEngine/ImperialEngine/
 
 #  -- Static Settings --
-use_premade_results = True
 engine_path = "../bin/x64/Release/ImperialEngine.exe"
-#TODO: make this local path
 msbuild_path = "\"C:/Program Files/Microsoft Visual Studio/2022/Community/Msbuild/Current/Bin/MSBuild.exe\""
 vulkan_info_path = os.environ.get("VK_SDK_PATH") + "\\Bin\\vulkaninfoSDK.exe"
 smooth_data = True
@@ -407,22 +405,21 @@ def test_suite1():
         return
 
     #  -- regular sponza --
-    #result = run_test("--file-count=1 --load-files Scene/sponza.glb" + run_count)
-    #test_results.append(TestResult(result, "'Sponza' scena, visos optimizacijos, kamera statine"))
+    result = run_test("--file-count=1 --load-files Scene/sponza.glb" + run_count)
+    test_results.append(TestResult(result, "'Sponza' scena, visos optimizacijos, kamera statine"))
 
-    #result = run_test("--file-count=1  --camera-movement=rotate --load-files Scene/sponza.glb" + run_count)
-    #test_results.append(TestResult(result, "'Sponza' scena, visos optimizacijos, kamera sukasi"))
+    result = run_test("--file-count=1  --camera-movement=rotate --load-files Scene/sponza.glb" + run_count)
+    test_results.append(TestResult(result, "'Sponza' scena, visos optimizacijos, kamera sukasi"))
 
 
     # -- sponza with curtains --
-    #result = run_test("--file-count=1 --load-files Scene/sponza_wc.glb" + run_count)
-    #test_results.append(TestResult(result, "'Sponza' scena, visos optimizacijos"))
+    result = run_test("--file-count=1 --load-files Scene/sponza_wc.glb" + run_count)
+    test_results.append(TestResult(result, "'Sponza' scena, visos optimizacijos"))
 
 
     # -- sponza with curtains and vines --
-    #result = run_test("--file-count=1 --load-files Scene/sponza_wc_v_cameranear.glb" + run_count)
-    #test_results.append(TestResult(result, "'Sponza' scena, visos optimizacijos"))
-
+    result = run_test("--file-count=1 --load-files Scene/sponza_wc_v_cameranear.glb" + run_count)
+    test_results.append(TestResult(result, "'Sponza' scena, visos optimizacijos"))
 
     # -- donut and monkey --
     result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=10000" + run_count)
@@ -436,60 +433,45 @@ def test_suite1():
 
 def test_suite_performance():
     results = []
-    if use_premade_results == False:
-        run_count = " --run-for=250"
+    run_count = " --run-for=250"
 
-        defines = "BENCHMARK_MODE#1;"
-        # get the test environment ready
-        compile_shaders("DEBUG_MESH=0")
-        res = compile_engine(defines)
-        if res > 0:
-            print("Failed to successfully compile engine")
-            return
+    defines = "BENCHMARK_MODE#1;"
+    # get the test environment ready
+    compile_shaders("DEBUG_MESH=0")
+    res = compile_engine(defines)
+    if res > 0:
+        print("Failed to successfully compile engine")
+        return
 
-        result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max" + run_count)
-        results.append(TestResult(result, "Atsitiktinai sugeneruotos scenos greitaveika su 1M obj."))
-    
-        result = run_test("--file-count=2 --camera-movement=rotate --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max" + run_count)
-        results.append(TestResult(result, "Atsitiktinai sugeneruotos scenos greitaveika su 1M obj., kai kamera sukasi aplink Y ašį"))
-    
-        result = run_test("--file-count=1 --load-files Scene/sponza_wc_v_flat.glb" + run_count)
-        results.append(TestResult(result, "Sponza scenos greitaveika"))
-    
-        result = run_test("--file-count=1 --camera-movement=rotate --load-files Scene/sponza_wc_v_flat.glb" + run_count)
-        results.append(TestResult(result, "Sponza scenos greitaveika, kai kamera sukasi aplink Y ašį"))
-    
-        result = run_test("--file-count=1 --load-files Scene/sponza_wc_v_cameranear.glb" + run_count)
-        results.append(TestResult(result, "Sponza scenos, kai kamera scenos pakraštyje greitaveika"))
-    
-        result = run_test("--file-count=1 --camera-movement=rotate --load-files Scene/sponza_wc_v_cameranear.glb" + run_count)
-        results.append(TestResult(result, "Sponza scenos, kai kamera scenos pakraštyje greitaveika ir sukasi aplink Y ašį"))
-    
-        result = run_test("--file-count=1 --load-files Scene/Sponza_Custom.glb" + run_count)
-        results.append(TestResult(result, "Koreguotos Sponza scenos greitaveika"))
-    
-        result = run_test("--file-count=1 --camera-movement=rotate --load-files Scene/Sponza_Custom.glb" + run_count)
-        results.append(TestResult(result, "Koreguotos Sponza scenos greitaveika, kai kamera sukasi aplink Y ašį"))
+    result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max" + run_count)
+    results.append(TestResult(result, "Atsitiktinai sugeneruotos scenos greitaveika su 1M obj."))
 
-        result = run_test("--file-count=1 --load-files Scene/BigDragons.glb" + run_count)
-        results.append(TestResult(result, "Koreguotos Sponza scenos greitaveika"))
+    result = run_test("--file-count=2 --camera-movement=rotate --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max" + run_count)
+    results.append(TestResult(result, "Atsitiktinai sugeneruotos scenos greitaveika su 1M obj., kai kamera sukasi aplink Y ašį"))
 
-        result = run_test("--file-count=1 --camera-movement=rotate --load-files Scene/BigDragons.glb" + run_count)
-        results.append(TestResult(result, "Koreguotos Sponza scenos greitaveika, kai kamera sukasi aplink Y ašį"))
+    result = run_test("--file-count=1 --load-files Scene/sponza_wc_v_flat.glb" + run_count)
+    results.append(TestResult(result, "Sponza scenos greitaveika"))
 
-    else:
-        fake_test_results = [ TestResult(426110245, 'Atsitiktinai sugeneruotos scenos greitaveika su 1M obj.')
-                            , TestResult(426110313, 'Atsitiktinai sugeneruotos scenos greitaveika su 1M obj., kai kamera sukasi aplink Y ašį')
-                            , TestResult(426110347, 'Sponza scenos greitaveika')
-                            , TestResult(426110421, 'Sponza scenos greitaveika, kai kamera sukasi aplink Y ašį')
-                            , TestResult(426110454, 'Sponza scenos, kai kamera scenos pakraštyje greitaveika')
-                            , TestResult(426110528, 'Sponza scenos, kai kamera scenos pakraštyje greitaveika ir sukasi aplink Y ašį')
-                            , TestResult(426110607, 'Koreguotos Sponza scenos greitaveika')
-                            , TestResult(426110646, 'Koreguotos Sponza scenos greitaveika, kai kamera sukasi aplink Y ašį')
-                            , TestResult(426111420, 'Koreguotos Sponza scenos greitaveika')
-                            , TestResult(426111440, 'Koreguotos Sponza scenos greitaveika, kai kamera sukasi aplink Y ašį')]
+    result = run_test("--file-count=1 --camera-movement=rotate --load-files Scene/sponza_wc_v_flat.glb" + run_count)
+    results.append(TestResult(result, "Sponza scenos greitaveika, kai kamera sukasi aplink Y ašį"))
 
-        results = fake_test_results
+    result = run_test("--file-count=1 --load-files Scene/sponza_wc_v_cameranear.glb" + run_count)
+    results.append(TestResult(result, "Sponza scenos, kai kamera scenos pakraštyje greitaveika"))
+
+    result = run_test("--file-count=1 --camera-movement=rotate --load-files Scene/sponza_wc_v_cameranear.glb" + run_count)
+    results.append(TestResult(result, "Sponza scenos, kai kamera scenos pakraštyje greitaveika ir sukasi aplink Y ašį"))
+
+    result = run_test("--file-count=1 --load-files Scene/Sponza_Custom.glb" + run_count)
+    results.append(TestResult(result, "Koreguotos Sponza scenos greitaveika"))
+
+    result = run_test("--file-count=1 --camera-movement=rotate --load-files Scene/Sponza_Custom.glb" + run_count)
+    results.append(TestResult(result, "Koreguotos Sponza scenos greitaveika, kai kamera sukasi aplink Y ašį"))
+
+    result = run_test("--file-count=1 --load-files Scene/BigDragons.glb" + run_count)
+    results.append(TestResult(result, "Koreguotos Sponza scenos greitaveika"))
+
+    result = run_test("--file-count=1 --camera-movement=rotate --load-files Scene/BigDragons.glb" + run_count)
+    results.append(TestResult(result, "Koreguotos Sponza scenos greitaveika, kai kamera sukasi aplink Y ašį"))
 
     for result in results:
         print(result.test_id)
@@ -498,82 +480,10 @@ def test_suite_performance():
     process_results_into_table(results)
 
 def test_suite_optimization(args):
-    if use_premade_results == False:
-        for arg in args:
-            run_count = " --run-for=250"
+    for arg in args:
+        run_count = " --run-for=250"
 
-            results = []
-
-            # prepare environment with all optimizations
-            defines = "BENCHMARK_MODE#1"
-            compile_shaders("DEBUG_MESH=0")
-            result = compile_engine(defines)
-            if result > 0:
-                print("Failed to successfully compile engine")
-                return
-            
-            result = run_test(arg + run_count)
-            results.append(TestResult(result, "Visos optimizacijos"))
-
-            if supports_mesh_shading:
-                universal_defines = "CONE_CULLING_ENABLED#0"
-                defines = "BENCHMARK_MODE#1;" + universal_defines
-                compile_shaders("DEBUG_MESH=0;" + universal_defines)
-                result = compile_engine(defines)
-                if result > 0:
-                    print("Failed to successfully compile engine")
-                    return
-                #"--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=100000"
-                result = run_test(arg + run_count)
-                results.append(TestResult(result, "Be klast. atm."))
-
-            # prepare environment without LOD and without cone culling
-            universal_defines = "LOD_ENABLED#0;CONE_CULLING_ENABLED#0"
-            defines = "BENCHMARK_MODE#1;" + universal_defines
-            compile_shaders("DEBUG_MESH=0;" + universal_defines)
-            result = compile_engine(defines)
-            if result > 0:
-                print("Failed to successfully compile engine")
-                return
-            
-            result = run_test(arg + run_count)
-            if supports_mesh_shading:
-                results.append(TestResult(result, "Be klast. atm. ir be LOD"))
-            else:
-                results.append(TestResult(result, "Be LOD"))
-
-            # prepare environment without LOD and without cone culling and without VF culling
-            universal_defines = "LOD_ENABLED#0;CONE_CULLING_ENABLED#0;CULLING_ENABLED#0"
-            defines = "BENCHMARK_MODE#1;" + universal_defines
-            compile_shaders("DEBUG_MESH=0;" + universal_defines)
-            result = compile_engine(defines)
-            if result > 0:
-                print("Failed to successfully compile engine")
-                return
-            
-            result = run_test(arg + run_count)
-            if supports_mesh_shading:
-                results.append(TestResult(result, "Be klast. atm. ir be LOD ir be nem. obj. atm."))
-            else:
-                results.append(TestResult(result, "Be LOD ir be nem. obj. atm."))
-
-    else:
-        fake_test_results = [ TestResult(425093655, 'Visos optimizacijos')
-                            , TestResult(425093736, 'Be klast. atm.')
-                            , TestResult(425093759, 'Be klast. atm. ir be LOD')
-                            , TestResult(425093856, 'Be klast. atm. ir be LOD ir be nem. obj. atm.')
-                            , TestResult(425104239, 'Visos optimizacijos')
-                            , TestResult(425104315, 'Be klast. atm.')
-                            , TestResult(425104354, 'Be klast. atm. ir be LOD')
-                            , TestResult(425104435, 'Be klast. atm. ir be LOD ir be nem. obj. atm.')]
-
-        results = fake_test_results
-
-    process_combined_results(results, "Optimizacijų įtaka greitaveikai")
-
-def test_suite_object_count():
-    if use_premade_results == False:
-        run_count = " --run-for=1000"
+        results = []
 
         # prepare environment with all optimizations
         defines = "BENCHMARK_MODE#1"
@@ -583,71 +493,95 @@ def test_suite_object_count():
             print("Failed to successfully compile engine")
             return
         
-        result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj--distribute=random --growth-step=1000" + run_count)
-        results = TestResult(result, "Augantis objektų skaičius")
+        result = run_test(arg + run_count)
+        results.append(TestResult(result, "Visos optimizacijos"))
 
-        process_results_obj_count(results)
-    else:
-        process_results_obj_count(TestResult(427064906, "Augantis objektų skaičius"))
-
-def test_suite_mesh():
-    if supports_mesh_shading == False:
-        return
-    if use_premade_results == False:
-        run_count = " --run-for=100"
-
-        results_random = []
-        results_dragons= []
-        results_sponza = []
-        combinations = [(64, 64), (64, 84), (64, 124), (48, 124), (48, 84), (48, 64), (32, 32), (32, 64), (32, 84)]
-        for combo in combinations:
-            universal_defines = "MESHLET_MAX_VERTS#{};MESHLET_MAX_PRIMS#{}".format(combo[0], combo[1])
+        if supports_mesh_shading:
+            universal_defines = "CONE_CULLING_ENABLED#0"
             defines = "BENCHMARK_MODE#1;" + universal_defines
             compile_shaders("DEBUG_MESH=0;" + universal_defines)
             result = compile_engine(defines)
             if result > 0:
                 print("Failed to successfully compile engine")
                 return
-            
-            #result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max" + run_count)
-            #results_random.append(TestResult(result, "Random su max vir: {} ir max tri: {}". format(combo[0], combo[1])))
-            #
-            #result = run_test("--file-count=1 --load-files Scene/BigDragons.glb" + run_count)
-            #results_dragons.append(TestResult(result, "Random su max vir: {} ir max tri: {}". format(combo[0], combo[1])))
+            #"--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=100000"
+            result = run_test(arg + run_count)
+            results.append(TestResult(result, "Be klast. atm."))
 
-            result = run_test("--file-count=1 --load-files Scene/sponza_wc_v_flat.glb" + run_count)
-            results_sponza.append(TestResult(result, "max vir: {} ir max tri: {}". format(combo[0], combo[1])))
+        # prepare environment without LOD and without cone culling
+        universal_defines = "LOD_ENABLED#0;CONE_CULLING_ENABLED#0"
+        defines = "BENCHMARK_MODE#1;" + universal_defines
+        compile_shaders("DEBUG_MESH=0;" + universal_defines)
+        result = compile_engine(defines)
+        if result > 0:
+            print("Failed to successfully compile engine")
+            return
+        
+        result = run_test(arg + run_count)
+        if supports_mesh_shading:
+            results.append(TestResult(result, "Be klast. atm. ir be LOD"))
+        else:
+            results.append(TestResult(result, "Be LOD"))
 
+        # prepare environment without LOD and without cone culling and without VF culling
+        universal_defines = "LOD_ENABLED#0;CONE_CULLING_ENABLED#0;CULLING_ENABLED#0"
+        defines = "BENCHMARK_MODE#1;" + universal_defines
+        compile_shaders("DEBUG_MESH=0;" + universal_defines)
+        result = compile_engine(defines)
+        if result > 0:
+            print("Failed to successfully compile engine")
+            return
+        
+        result = run_test(arg + run_count)
+        if supports_mesh_shading:
+            results.append(TestResult(result, "Be klast. atm. ir be LOD ir be nem. obj. atm."))
+        else:
+            results.append(TestResult(result, "Be LOD ir be nem. obj. atm."))
 
-    else:
-        results_random = [TestResult(423164443, "max vir: 64 ir max tri: 64"),
-                   TestResult(423164528, "max vir: 64 ir max tri: 84"),
-                   TestResult(423164614, "max vir: 64 ir max tri: 124"),
-                   TestResult(423164659, "max vir: 48 ir max tri: 124"),
-                   TestResult(423164744, "max vir: 48 ir max tri: 84"),
-                   TestResult(423164828, "max vir: 48 ir max tri: 64"),
-                   TestResult(423164912, "max vir: 32 ir max tri: 32"),
-                   TestResult(423164956, "max vir: 32 ir max tri: 64"),
-                   TestResult(423165040, "max vir: 32 ir max tri: 84")]
+    process_combined_results(results, "Optimizacijų įtaka greitaveikai")
 
-        results_dragons = [TestResult(423164501, "max vir: 64 ir max tri: 64"),
-                   TestResult(423164546, "max vir: 64 ir max tri: 84"),
-                   TestResult(423164631, "max vir: 64 ir max tri: 124"),
-                   TestResult(423164716, "max vir: 48 ir max tri: 124"),
-                   TestResult(423164801, "max vir: 48 ir max tri: 84"),
-                   TestResult(423164846, "max vir: 48 ir max tri: 64"),
-                   TestResult(423164929, "max vir: 32 ir max tri: 32"),
-                   TestResult(423165013, "max vir: 32 ir max tri: 64"),
-                   TestResult(423165058, "max vir: 32 ir max tri: 84")]
-        results_sponza = [TestResult(425120641, "max vir: 64 ir max tri: 64"),
-                   TestResult(425120729, "max vir: 64 ir max tri: 84"),
-                   TestResult(425120818, "max vir: 64 ir max tri: 124"),
-                   TestResult(425120906, "max vir: 48 ir max tri: 124"),
-                   TestResult(425120954, "max vir: 48 ir max tri: 84"),
-                   TestResult(425121042, "max vir: 48 ir max tri: 64"),
-                   TestResult(425121127, "max vir: 32 ir max tri: 32"),
-                   TestResult(425121213, "max vir: 32 ir max tri: 64"),
-                   TestResult(425121258, "max vir: 32 ir max tri: 84")]
+def test_suite_object_count():
+    run_count = " --run-for=1000"
+
+    # prepare environment with all optimizations
+    defines = "BENCHMARK_MODE#1"
+    compile_shaders("DEBUG_MESH=0")
+    result = compile_engine(defines)
+    if result > 0:
+        print("Failed to successfully compile engine")
+        return
+    
+    result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj--distribute=random --growth-step=1000" + run_count)
+    results = TestResult(result, "Augantis objektų skaičius")
+
+    process_results_obj_count(results)
+
+def test_suite_mesh():
+    if supports_mesh_shading == False:
+        return
+    run_count = " --run-for=100"
+
+    results_random = []
+    results_dragons= []
+    results_sponza = []
+    combinations = [(64, 64), (64, 84), (64, 124), (48, 124), (48, 84), (48, 64), (32, 32), (32, 64), (32, 84)]
+    for combo in combinations:
+        universal_defines = "MESHLET_MAX_VERTS#{};MESHLET_MAX_PRIMS#{}".format(combo[0], combo[1])
+        defines = "BENCHMARK_MODE#1;" + universal_defines
+        compile_shaders("DEBUG_MESH=0;" + universal_defines)
+        result = compile_engine(defines)
+        if result > 0:
+            print("Failed to successfully compile engine")
+            return
+        
+        result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=max" + run_count)
+        results_random.append(TestResult(result, "Random su max vir: {} ir max tri: {}". format(combo[0], combo[1])))
+        
+        result = run_test("--file-count=1 --load-files Scene/BigDragons.glb" + run_count)
+        results_dragons.append(TestResult(result, "Random su max vir: {} ir max tri: {}". format(combo[0], combo[1])))
+
+        result = run_test("--file-count=1 --load-files Scene/sponza_wc_v_flat.glb" + run_count)
+        results_sponza.append(TestResult(result, "max vir: {} ir max tri: {}". format(combo[0], combo[1])))
         
     process_mesh_results(results_random, "Atsitiktinai sugeneruotos scenos su 1M objektų vidutinė greitaveika")
     process_mesh_results(results_dragons, 'Drakonų scenos vidutinė greitaveika')
@@ -660,14 +594,14 @@ def main():
     global supports_mesh_shading
     supports_mesh_shading = check_mesh_shader_support()
     test_suite1()
-    #test_suite_performance()
+    test_suite_performance()
     args = ["--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --entity-count=100000",
      "--file-count=1 --load-files Scene/BigDragons.glb",
      "--file-count=3 --load-files Scene/Donut.obj Scene/Suzanne.obj Scene/Dragon.obj --distribute=random --entity-count=5000",
      "--file-count=1 --load-files Scene/sponza_wc_v_cameranear.glb"]
-    #test_suite_optimization(args)
-    #test_suite_object_count()
-    #test_suite_mesh()
+    test_suite_optimization(args)
+    test_suite_object_count()
+    test_suite_mesh()
 
     for result in test_results:
         process_results(result)
