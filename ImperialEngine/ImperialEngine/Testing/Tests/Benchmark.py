@@ -551,7 +551,7 @@ def test_suite_object_count():
         print("Failed to successfully compile engine")
         return
     
-    result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj--distribute=random --growth-step=1000" + run_count)
+    result = run_test("--file-count=2 --load-files Scene/Donut.obj Scene/Suzanne.obj --distribute=random --growth-step=1000" + run_count)
     results = TestResult(result, "Augantis objektų skaičius")
 
     process_results_obj_count(results)
