@@ -1,4 +1,5 @@
 #version 450 //glsl 4.5
+#extension GL_GOOGLE_include_directive: require
 #include "prefix.h"
 #include "pipeline_compatibility.h"
 

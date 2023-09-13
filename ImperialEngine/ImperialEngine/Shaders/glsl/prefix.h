@@ -1,5 +1,3 @@
-#extension GL_GOOGLE_include_directive : require
-
 #ifndef DEBUG_MESH
 #define DEBUG_MESH 1
 #endif
