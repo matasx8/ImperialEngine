@@ -17,16 +17,29 @@ def CompileDir(directory):
     #compile them all
     for root, dirs, files in os.walk(directory):
         for names in files:
-            pos = max(names.rfind(".frag"), names.rfind(".vert"), names.rfind(".mesh"), names.rfind(".comp"), names.rfind(".task"))
+            pos = max(names.rfind(".frag"), names.rfind(".vert"), names.rfind(".comp"), names.rfind(".task"))
 
             if names.find(".spv") != -1 or names.find(".bak") != -1:
               continue
             if pos > 0:
-                fn = names[:pos]
-                ft = names[pos + 1:]
+              fn = names[:pos]
+              ft = names[pos + 1:]
+              if ft == "vert":
+                renamed = directory + "\\spir-v\\" + fn + "." + ft + ".spv" # regular vertex shader variant
+                args = COMPILER_PATH + " -V --target-env vulkan1.2" + " " + additional_args + " -DTRADITIONAL_PIPELINE=1" + " -o" + " " + renamed + " " + directory + "\\glsl\\" + names
+                os.system(args)
+
+                renamed = directory + "\\spir-v\\" + fn + ".ind." + ft + ".spv" # indirect vertex shader variant
+                args = COMPILER_PATH + " -V --target-env vulkan1.2" + " " + additional_args + " -DINDIRECT_PIPELINE=1" + " -o" + " " + renamed + " " + directory + "\\glsl\\" + names
+                os.system(args)
+
+                # probably need to check for mesh shader variant support?
+                renamed = directory + "\\spir-v\\" + fn + "." + "mesh" + ".spv" # mesh shader variant
+                args = COMPILER_PATH + " -S mesh -V --target-env vulkan1.2" + " " + additional_args + " -DMESH_PIPELINE=1" + " -o" + " " + renamed + " " + directory + "\\glsl\\" + names
+                os.system(args)
+              else:
                 renamed = directory + "\\spir-v\\" + fn + "." + ft + ".spv"
                 args = COMPILER_PATH + " -V --target-env vulkan1.2" + " " + additional_args + " -o" + " " + renamed + " " + directory + "\\glsl\\" + names
-                #print(args)
                 os.system(args)
 
 

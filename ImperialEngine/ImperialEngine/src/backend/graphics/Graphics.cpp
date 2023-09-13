@@ -184,7 +184,7 @@ namespace imp
         // TODO nice-to-have: make the interface for getting shaders better. At least make
         // shader manager return the configs immediately
         const auto updateDrawCS = m_ShaderManager.GetShader(renderMode == kEngineRenderModeGPUDriven ? "drawGen.comp" : "ms_drawGen.comp");
-        ComputePipelineConfig config = { updateDrawCS.GetShaderModule(), m_ShaderManager.GetDescriptorSetLayout(),m_ShaderManager.GetComputeDescriptorSetLayout() };
+        ComputePipelineConfig config = { updateDrawCS.GetShaderModule(), m_ShaderManager.GetDescriptorSetLayout(), m_ShaderManager.GetComputeDescriptorSetLayout() };
         const auto updateDrawsProgram = m_PipelineManager.GetComputePipeline(config);
         const auto dset1 = m_ShaderManager.GetDescriptorSet(m_Swapchain.GetFrameClock());
         const auto dset2 = m_ShaderManager.GetComputeDescriptorSet(m_Swapchain.GetFrameClock());

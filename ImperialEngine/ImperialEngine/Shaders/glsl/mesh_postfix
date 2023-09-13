@@ -1,0 +1,11 @@
+#if MESH_PIPELINE
+}
+
+for (uint i = ti; i < (indexCount + 3 ) / 4; i += MESH_WGROUP)
+{
+	writePackedPrimitiveIndices4x8NV(i * 4, triangleData[i + triangleOffset / 4]);
+}
+
+if (ti == 0)
+	gl_PrimitiveCountNV = uint(meshlets[mi].triangleCount);
+#endif

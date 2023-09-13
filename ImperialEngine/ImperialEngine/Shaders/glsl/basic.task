@@ -8,7 +8,7 @@
 #extension GL_EXT_nonuniform_qualifier : require
 #extension GL_KHR_shader_subgroup_ballot: require
 
-#define MESH_PIPELINE
+#define MESH_PIPELINE 1
 #include "prefix.h"
 #include "DescriptorSet0.h"
 #include "DescriptorSet1.h"

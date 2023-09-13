@@ -6,7 +6,7 @@
 
 layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
 
-#define MESH_PIPELINE
+#define MESH_PIPELINE 1
 #include "prefix.h"
 #include "DescriptorSet0.h"
 #include "DescriptorSet1.h"

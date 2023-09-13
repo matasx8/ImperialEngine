@@ -1,0 +1,26 @@
+#if MESH_PIPELINE
+	#if CONE_CULLING_ENABLED
+	uint mi = meshletIndices[gl_WorkGroupID.x];
+	#else
+	uint drawIdx = DRAW_ID
+	uint meshletBufferOffset = ms_DrawDst[gl_DrawIDARB].meshletBufferOffset;
+	uint mi = gl_WorkGroupID.x + meshletBufferOffset;
+	#endif
+	uint ti = gl_LocalInvocationID.x;
+
+	uint vertexCount = uint(meshlets[mi].vertexCount);
+	uint triangleCount = uint(meshlets[mi].triangleCount);
+	uint vertexOffset = meshlets[mi].vertexOffset;
+	uint triangleOffset = meshlets[mi].triangleOffset;
+	uint indexCount = triangleCount * 3;
+
+	#if MESHLET_MAX_VERTS <= MESH_WGROUP
+	if (ti < vertexCount)
+	{
+		uint i = ti;
+	#else
+	for (uint i = ti; i < vertexCount; i += MESH_WGROUP)
+	{
+	#endif
+		uint vi = vertexData[i + vertexOffset];
+#endif

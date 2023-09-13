@@ -74,7 +74,7 @@ layout(set = 1, binding = 0) readonly buffer Draws
     IndirectDraw drawsSrc[];
 };
 
-#ifndef MESH_PIPELINE
+#if !MESH_PIPELINE
 layout(set = 1, binding = 1) writeonly buffer DrawCommands
 {
     IndirectDrawCommand drawsDst[];

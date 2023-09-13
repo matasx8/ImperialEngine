@@ -36,7 +36,7 @@ int imp::Window::Initialize(const std::string& name, int width, int height)
 
 	m_WindowPtr = glfwCreateWindow(width, height, name.c_str(), nullptr, nullptr);
 
-#if !BENCHMARK_MODE
+#if MAXIMIZE_WINDOW
     glfwMaximizeWindow(m_WindowPtr);
 #endif
 

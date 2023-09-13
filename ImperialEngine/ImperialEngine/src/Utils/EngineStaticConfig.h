@@ -11,6 +11,10 @@
 #define BENCHMARK_MODE 0
 #endif
 
+#ifndef MAXIMIZE_WINDOW
+#define MAXIMIZE_WINDOW 0
+#endif
+
 #ifndef USE_AFTERMATH
 #define USE_AFTERMATH 0
 #endif
