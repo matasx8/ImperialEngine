@@ -32,6 +32,12 @@ namespace Comp
 		bool isRenderCamera;
 	};
 
+	struct MaterialInfo
+	{
+		std::string name;
+
+	};
+
 	struct Material
 	{
 		uint32_t materialId;
@@ -46,6 +52,7 @@ namespace Comp
 	{
 		Transform transform;
 		Mesh mesh;
+		Material material;
 	};
 
 	struct GLTFCamera

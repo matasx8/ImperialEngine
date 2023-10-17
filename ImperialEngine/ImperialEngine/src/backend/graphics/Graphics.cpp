@@ -37,6 +37,7 @@ namespace imp
         m_PipelineManager(),
         m_RenderPassManager(&m_VulkanGarbageCollector),
         m_TimestampQueryManager(),
+        m_ImageManager(m_MemoryManager),
 #if BENCHMARK_MODE
         m_FrameTimeTables(),
 #else
@@ -63,6 +64,8 @@ namespace imp
         m_GlobalBuffers(),
         m_DescriptorSets(),
         m_AfterMathTracker(),
+        m_Images(),
+        m_Textures(),
         m_VertexBuffers(),
         m_DrawData(),
         m_MainCamera(),
@@ -543,6 +546,36 @@ namespace imp
             m_ShaderManager.CreateVulkanShaderSet(m_LogicalDevice, req);
     }
 
+    void Graphics::CreateAndUploadImages(const std::vector<ImageCreationRequest>& imageCreationData)
+    {
+        auto cb = m_CbManager.AquireCommandBuffer(m_LogicalDevice);
+        cb.Begin();
+
+        // TODO optimization: batch this to avoid many many pipeline stalls
+        for (const auto& req : imageCreationData)
+        {
+            auto image = m_ImageManager.GetImage(m_LogicalDevice, req, m_DeviceMemoryProps);
+
+            TransitionImageLayout(cb, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+            UploadVulkanImage(image, cb, req.image.size(), req.image.data());
+            TransitionImageLayout(cb, image, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+
+            m_CbManager.AddQueueDependencies(image.GetTimeline());
+            image.MarkUsedInQueue();
+            m_Images.push_back(image);
+        }
+
+        cb.End();
+        m_CbManager.SubmitInternal(cb);
+        m_CbManager.SubmitToQueue(m_GfxQueue, m_LogicalDevice, kSubmitDontCare, m_CurrentFrame);
+    }
+
+    void Graphics::CreateAndUploadTextures(const std::vector<TextureCreationRequest>& textureCreationData)
+    {
+        for (const auto& req : textureCreationData)
+            m_Textures.push_back(CreateVulkanTexture(req));
+    }
+
     void Graphics::CreateComputePrograms(const std::vector<ComputeProgramCreationRequest>& computeProgramRequests)
     {
         for (const auto& req : computeProgramRequests)
@@ -920,6 +953,38 @@ namespace imp
         printf("[Gfx Memory] Successfully allocated %2.f MB of host domain memory and %.2f MB of device domain memory\n", (stagingDrawSize) * m_Settings.swapchainImageCount / 1024.0f / 1024.0f, (allocSize + idxBuffAllocSize + drawAllocSize) / 1024.0f / 1024.0f);
     }
 
+    VulkanTexture Graphics::CreateVulkanTexture(const TextureCreationRequest& req)
+    {
+        const auto& img = m_Images[req.imageId];
+        VkImageViewCreateInfo ivci = {};
+        ivci.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        ivci.image = img.GetImage();
+        ivci.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        ivci.format = img.GetFormat();
+        ivci.subresourceRange.aspectMask = req.imageAspect;
+        ivci.subresourceRange.levelCount = 1;
+        ivci.subresourceRange.layerCount = 1;
+
+        VkImageView view = VK_NULL_HANDLE;
+        const auto result = vkCreateImageView(m_LogicalDevice, &ivci, nullptr, &view);
+        assert(result == VK_SUCCESS);
+
+        VkSamplerCreateInfo sci = {};
+        sci.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        sci.magFilter = req.magFilter;
+        sci.minFilter = req.minFilter;
+        sci.addressModeU = req.addressModeU;
+        sci.addressModeV = req.addressModeV;
+        sci.anisotropyEnable = true;
+        sci.maxAnisotropy = 1.0f;
+
+        VkSampler sampler = VK_NULL_HANDLE;
+        vkCreateSampler(m_LogicalDevice, &sci, nullptr, &sampler);
+
+        VulkanTexture texture { req, view, sampler };
+        return texture;
+    }
+
     VulkanBuffer Graphics::UploadVulkanBuffer(VkBufferUsageFlags usageFlags, VkBufferUsageFlags dstUsageFlags, VkMemoryPropertyFlags memoryFlags, VkMemoryPropertyFlags dstMemoryFlags, const CommandBuffer& cb, uint32_t allocSize, const void* dataToUpload)
     {
         auto uploadedBuffer = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, dstUsageFlags, dstMemoryFlags, m_DeviceMemoryProps);
@@ -954,7 +1019,7 @@ namespace imp
     {
         assert(src.GetSize());
         assert(dst.GetSize() >= src.GetSize());
-        if (src.GetSize() >= dst.GetSize())
+        if (src.GetSize() > dst.GetSize())
         {
             printf("[Graphics Memory]: Trying to copy a buffer of size %u to a buffer of size %u\n", src.GetSize(), dst.GetSize());
             throw std::runtime_error("[Graphics Memory]: Fatal Error! CpyVulkanBuffer overflow");
@@ -968,6 +1033,53 @@ namespace imp
         vkCmdCopyBuffer(cb.cmb, src.GetBuffer(), dst.GetBuffer(), 1, &bufferCopyRegion);
 
         dst.RegisterNewUpload(src.GetSize());
+    }
+
+    void Graphics::CopyVulkanBufferToImage(const VulkanBuffer& src, VulkanImage& dst, const CommandBuffer& cb)
+    {
+        assert(src.GetSize());
+        assert(dst.GetSize() >= src.GetSize());
+        if (src.GetSize() > dst.GetSize())
+        {
+            printf("[Graphics Memory]: Trying to copy a buffer of size %u to an image buffer of size %u\n", src.GetSize(), dst.GetSize());
+            throw std::runtime_error("[Graphics Memory]: Fatal Error! CopyVulkanBufferToImage overflow");
+        }
+
+        VkBufferImageCopy bufferImageCopyRegion = {};
+        bufferImageCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        bufferImageCopyRegion.imageSubresource.layerCount = 1;
+        bufferImageCopyRegion.imageExtent = dst.GetExtent();
+
+        vkCmdCopyBufferToImage(cb.cmb, src.GetBuffer(), dst.GetImage(), dst.GetLayout(), 1, &bufferImageCopyRegion);
+    }
+
+    void Graphics::UploadVulkanImage(VulkanImage& dst, CommandBuffer& cb, uint32_t allocSize, const void* dataToUpload)
+    {
+        const auto usageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        const auto memoryFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        auto stagingBuffer = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, usageFlags, memoryFlags, m_DeviceMemoryProps);
+        stagingBuffer.UpdateLastUsed(m_CurrentFrame);
+        dst.UpdateLastUsed(m_CurrentFrame);
+
+        // copy cpu data to host visible buffer
+        void* data;
+        const VkMemoryMapFlags flags = 0;   // don't exist yet
+        const VkDeviceSize offset = 0;      // so far we have whole buffers
+        const auto res = vkMapMemory(m_LogicalDevice, stagingBuffer.GetMemory(), offset, stagingBuffer.GetSize(), flags, &data);
+        assert(res == VK_SUCCESS);
+        memcpy(data, dataToUpload, stagingBuffer.GetSize());
+        vkUnmapMemory(m_LogicalDevice, stagingBuffer.GetMemory());
+
+        CopyVulkanBufferToImage(stagingBuffer, dst, cb);
+
+        m_VulkanGarbageCollector.AddGarbageResource(std::make_shared<VulkanBuffer>(stagingBuffer));
+    }
+
+    void Graphics::TransitionImageLayout(CommandBuffer& cb, VulkanImage& image, VkImageLayout newLayout, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage)
+    {
+        const auto barrier = utils::CreateImageMemoryBarrier(srcAccess, dstAccess, image.GetImage(), image.GetLayout(), newLayout);
+        utils::InsertImageBarrier(cb, srcStage, dstStage, &barrier, 1);
+        image.SetLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     }
 
     void Graphics::AcquireDrawCommandBuffer(CommandBuffer& cb)

@@ -4,6 +4,7 @@ layout(set = 0, binding = 0) uniform Globals
 	mat4 View;
 	mat4 cameraModel;
 	vec4 frustum[6];
+	vec4 lightPositon;
 } globals;
 
 struct Vertex
@@ -20,8 +21,8 @@ layout(set = 0, binding = 1) readonly buffer Vertices
 
 layout(set = 0, binding = 2) buffer MaterialData
 {
-	vec4 color;
-} materialData[128];
+	uint albedoIdx;
+} materialData[MAX_MATERIALS];
 
 // use gl_DrawIDARB to find this draw index into DrawData.
 // This is needed because after culling there isn't a 1:1 ratio to IndirectDrawCommands and DrawData

@@ -13,15 +13,23 @@
 #include "extern/ASSIMP/postprocess.h"
 #include "GLM/gtc/type_ptr.hpp"
 #include "extern/GLM/mat4x4.hpp"
+#include "extern/STB/stb_image.h"
 #include "MESHOPTIMIZER/meshoptimizer.h"
 #include <unordered_map>
 
 namespace imp
 {
-	static std::atomic_uint32_t temporaryMeshCounter = 0;
+	static inline std::atomic_uint32_t temporaryMeshCounter = 0;
+	static inline std::atomic_uint32_t temporaryMaterialCounter = 0;
 
 	AssetImporter::AssetImporter(Engine& engine)
 		: m_Engine(engine), m_Loader(new tinygltf::TinyGLTF())
+		, m_MaterialCounter()
+		, m_TextureCounter()
+		, m_ImageCounter()
+		, m_MaterialCounterOffset()
+		, m_TextureCounterOffset()
+		, m_ImageCounterOffset()
 	{
 	}
 
@@ -109,6 +117,19 @@ namespace imp
 		if (err.size()) printf("[Asset Importer] Error: %s\n", err.c_str());
 		if (warn.size()) printf("[Asset Importer] Warning: %s\n", warn.c_str());
 
+
+		std::vector<ImageCreationRequest> imageReqs;
+		LoadGLTFImages(model, imageReqs);
+		m_Engine.m_Q->add(std::mem_fn(&Engine::Cmd_UploadImages), std::make_shared<std::vector<imp::ImageCreationRequest>>(imageReqs));
+
+		std::vector<MatCreationRequest> materialCreationRequests;
+		std::vector<TextureCreationRequest> textureReqs;
+		LoadGLTFMaterials(model, materialCreationRequests, textureReqs);
+		m_Engine.m_Q->add(std::mem_fn(&Engine::Cmd_UploadTextures), std::make_shared<std::vector<imp::TextureCreationRequest>>(textureReqs));
+
+		m_ImageCounterOffset = m_ImageCounter;
+		m_ImageCounter = 0;
+
 		assert(model.scenes.size() == 1);
 		// large potential for parallel for
 		std::vector<MeshCreationRequest> reqs;
@@ -152,7 +173,7 @@ namespace imp
 
 			const auto childEntity = reg.create();
 			reg.emplace<Comp::Mesh>(childEntity, ent.mesh.meshId);
-			reg.emplace<Comp::Material>(childEntity, kDefaultMaterialIndex);
+			reg.emplace<Comp::Material>(childEntity, ent.material);
 			reg.emplace<Comp::ChildComponent>(childEntity, mainEntity);
 		}
 
@@ -173,7 +194,7 @@ namespace imp
 			if (node.rotation.size())
 				transform *= glm::mat4((glm::quat)glm::make_quat(node.rotation.data()));
 
-			if (node.scale.size()) // TODO: probably VF culling wont work since I don't scale diameter
+			if (node.scale.size())
 				transform = glm::scale(transform, glm::vec3(glm::make_vec3(node.scale.data())));
 		}
 
@@ -187,15 +208,18 @@ namespace imp
 		for (const auto child : node.children)
 			LoadGLTFNode(model.nodes[child], model, reqs, entities, meshIdMap, camera);
 
+		// Need to rework this, doesn't seem to make sense
 		if (meshIdMap.find(node.mesh) != meshIdMap.end())
 		{
 			MeshCreationRequest req;
 			req.id = meshIdMap[node.mesh];
+			req.materialId = model.meshes[node.mesh].primitives.front().material;
 			reqs.push_back(req);
 
 			Comp::GLTFEntity ent;
 			ent.transform = { transform };
 			ent.mesh = { req.id };
+			ent.material = { req.materialId };
 			entities.push_back(ent);
 
 			return;
@@ -203,13 +227,19 @@ namespace imp
 
 		if (node.mesh > -1)
 		{
-
 			const auto& mesh = model.meshes[node.mesh];
+			assert(mesh.primitives.size() <= 1); // The meshIdMap won't work
 
 			for (const auto& prim : mesh.primitives)
 			{
 				MeshCreationRequest req;
 				req.id = temporaryMeshCounter.fetch_add(1);
+				req.materialId = prim.material >= 0 ? prim.material : kDefaultMaterialIndex;
+				if (req.materialId >= kMaxMaterialIndex) // last one is reserved for default
+				{
+					req.materialId = kDefaultMaterialIndex;
+					printf("[Asset Importer] Error: Trying to assign material with ID '%u' when max is '%u'. Will assign default material.\n", prim.material, kMaxMaterialIndex);
+				}
 
 				meshIdMap[node.mesh] = req.id; // can keep rewriting this
 
@@ -308,6 +338,135 @@ namespace imp
 		if (node.camera >= 0)
 		{
 			camera.transform.transform *= transform;
+		}
+	}
+
+	MatCreationRequest AssetImporter::CreateInitialMaterial() const
+	{
+		MatCreationRequest req = {};
+		req.id = kDefaultMaterialIndex;
+		req.name = "Default Material";
+		return req;
+	}
+
+	static bool ValidateMaterialID(uint32_t id, const std::string& materialName)
+	{
+		if (id >= kMaxMaterialIndex) // last one is reserved for default material
+		{
+			printf("[Asset Importer] Error: Trying to load material '%s' with ID '%u' when max is '%u'. Will skip loading this and the following materials.\n", materialName.c_str(), id, kMaxMaterialIndex);
+			return false;
+		}
+		return true;
+	}
+
+
+	static VkFilter GLTFFilterToVkFilter(int filter)
+	{
+		switch (filter)
+		{
+		case TINYGLTF_TEXTURE_FILTER_NEAREST:
+		case TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_NEAREST:
+		case TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_LINEAR:
+			return VK_FILTER_NEAREST;
+		case TINYGLTF_TEXTURE_FILTER_LINEAR:
+		case TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_NEAREST:
+		case TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_LINEAR:
+			return VK_FILTER_LINEAR;
+		default:
+			return VK_FILTER_NEAREST;
+		}
+	}
+
+	static VkSamplerAddressMode GLTFWrapToVkSamplerAddressMode(int wrap)
+	{
+		switch (wrap)
+		{
+		case TINYGLTF_TEXTURE_WRAP_REPEAT:
+			return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		case TINYGLTF_TEXTURE_WRAP_CLAMP_TO_EDGE:
+			return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		case TINYGLTF_TEXTURE_WRAP_MIRRORED_REPEAT:
+			return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+		default:
+			return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		}
+	}
+
+	void AssetImporter::LoadGLTFMaterials(const tinygltf::Model& model, std::vector<MatCreationRequest>& matReqs, std::vector<TextureCreationRequest>& texReqs)
+	{
+		matReqs.push_back(CreateInitialMaterial());
+
+		std::unordered_set<int> encounteredTextureIds;
+
+		for (const auto& material : model.materials)
+		{
+			MatCreationRequest req;
+			req.id = m_MaterialCounter++;
+			req.id += m_MaterialCounterOffset;
+			req.name = material.name.empty() ? "Unnamed Material" : material.name;
+
+			if (!ValidateMaterialID(req.id, material.name))
+				break;
+
+			assert(material.pbrMetallicRoughness.baseColorTexture.index >= 0);
+			req.textureIDs.push_back(material.pbrMetallicRoughness.baseColorTexture.index + m_TextureCounterOffset);
+
+			// Check if this is a new texture and we need to create it
+			if (encounteredTextureIds.find(material.pbrMetallicRoughness.baseColorTexture.index) == encounteredTextureIds.end())
+			{
+				encounteredTextureIds.insert(material.pbrMetallicRoughness.baseColorTexture.index);
+
+				texReqs.push_back(LoadGLTFTexture(model, material.pbrMetallicRoughness.baseColorTexture, VK_IMAGE_ASPECT_COLOR_BIT));
+			}
+
+			matReqs.push_back(req);
+		}
+
+		std::sort(texReqs.begin(), texReqs.end(), [](const auto& lhs, const auto& rhs) { return lhs.id < rhs.id; });
+		assert(texReqs.front().id <= texReqs.back().id);
+
+		m_MaterialCounterOffset = m_MaterialCounter;
+		m_MaterialCounter = 0;
+		m_TextureCounterOffset = m_TextureCounter;
+		m_TextureCounter = 0;
+	}
+
+	TextureCreationRequest AssetImporter::LoadGLTFTexture(const tinygltf::Model& model, const tinygltf::TextureInfo& ti, VkImageAspectFlags aspect)
+	{
+		const auto& texture = model.textures[ti.index];
+		const auto& sampler = model.samplers[texture.sampler];
+		assert(texture.source >= 0);
+		const auto imageID = static_cast<uint32_t>(texture.source) + m_ImageCounterOffset;
+
+		TextureCreationRequest req;
+		req.id = m_TextureCounter++;
+		req.imageId = imageID;
+		req.magFilter = GLTFFilterToVkFilter(sampler.magFilter);
+		req.minFilter = GLTFFilterToVkFilter(sampler.minFilter);
+		req.addressModeU = GLTFWrapToVkSamplerAddressMode(sampler.wrapS);
+		req.addressModeV = GLTFWrapToVkSamplerAddressMode(sampler.wrapT);
+		req.imageAspect = aspect;
+
+		return req;
+	}
+
+	void AssetImporter::LoadGLTFImages(tinygltf::Model& model, std::vector<ImageCreationRequest>& imageReqs)
+	{
+		for (auto& image : model.images)
+		{
+			// If this happens read as_is comments and provide fallback
+			assert(image.as_is == false);
+
+			ImageCreationRequest req;
+			req.id = m_ImageCounter++;
+			req.id += m_ImageCounterOffset;
+			req.width = image.width;
+			req.height = image.height;
+
+			assert(!image.name.empty()); // images should have names
+			req.name = std::move(image.name);
+			req.image = std::move(image.image);
+			imageReqs.push_back(req);
 		}
 	}
 

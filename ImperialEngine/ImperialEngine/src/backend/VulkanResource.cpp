@@ -4,7 +4,7 @@
 #include <cassert>
 
 imp::VulkanResource::VulkanResource()
-	: CountedResource(), m_Semaphore(VK_NULL_HANDLE), m_TimelineSemaphore(VK_NULL_HANDLE)
+	: CountedResource(), m_Semaphore(VK_NULL_HANDLE), m_TimelineSemaphore(VK_NULL_HANDLE), m_UsedInTimeline()
 {
 }
 
@@ -42,6 +42,7 @@ void imp::VulkanResource::MarkUsedInQueue()
 
 imp::TimelineSemaphore imp::VulkanResource::GetTimeline() const
 {
+	assert(m_TimelineSemaphore);
 	return TimelineSemaphore(m_TimelineSemaphore, m_UsedInTimeline);
 }
 

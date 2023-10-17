@@ -32,3 +32,11 @@
 #ifndef MESH_WGROUP
 #define MESH_WGROUP 32
 #endif
+
+#ifndef MAX_MATERIALS
+#define MAX_MATERIALS 128
+#endif
+
+#ifndef DEFAULT_COLOR
+#define DEFAULT_COLOR 1.0, 0.0, 1.0, 1.0
+#endif

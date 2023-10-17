@@ -5,6 +5,8 @@
 #include "backend/graphics/PipelineManager.h"
 #include "backend/graphics/SurfaceManager.h"
 #include "backend/graphics/RenderPassImGUI.h"
+#include "backend/graphics/VulkanTexture.h"
+#include "backend/graphics/ImageManager.h"
 #include "backend/graphics/Semaphore.h"
 #include "backend/graphics/Swapchain.h"
 #include "backend/graphics/VkDebug.h"
@@ -28,6 +30,7 @@ namespace imp
 {
 	class Window;
 	namespace CmdRsc { struct MeshCreationRequest; }
+	struct ImageCreationRequest;
 
 	class Graphics : NonCopyable
 	{
@@ -54,6 +57,8 @@ namespace imp
 
 		void CreateAndUploadMeshes(std::vector<MeshCreationRequest>& meshCreationData);
 		void CreateAndUploadMaterials(const std::vector<MaterialCreationRequest>& materialCreationData);
+		void CreateAndUploadImages(const std::vector<ImageCreationRequest>& imageCreationData);
+		void CreateAndUploadTextures(const std::vector<TextureCreationRequest>& textureCreationData);
 		void CreateComputePrograms(const std::vector<ComputeProgramCreationRequest>& computeProgramRequests);
 
 		// Will return ref to VulkanBuffer used for uploading new draw commands.
@@ -85,10 +90,15 @@ namespace imp
 		
 		void InitializeVulkanMemory();
 
+		VulkanTexture CreateVulkanTexture(const TextureCreationRequest& req);
+
 		// transfer commands
 		VulkanBuffer UploadVulkanBuffer(VkBufferUsageFlags usageFlags, VkBufferUsageFlags dstUsageFlags, VkMemoryPropertyFlags memoryFlags, VkMemoryPropertyFlags dstMemoryFlags, const CommandBuffer& cb, uint32_t allocSize, const void* dataToUpload);
 		void UploadVulkanBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags, VulkanBuffer& dst, const CommandBuffer& cb, uint32_t allocSize, const void* dataToUpload);
 		void CopyVulkanBuffer(const VulkanBuffer& src, VulkanBuffer& dst, const CommandBuffer& cb);
+		void CopyVulkanBufferToImage(const VulkanBuffer& src, VulkanImage& dst, const CommandBuffer& cb);
+		void UploadVulkanImage(VulkanImage& dst, CommandBuffer& cb, uint32_t allocSize, const void* dataToUpload);
+		void TransitionImageLayout(CommandBuffer& cb, VulkanImage& image, VkImageLayout newLayout, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage);
 
 		void AcquireDrawCommandBuffer(CommandBuffer& cb);
 
@@ -126,6 +136,7 @@ namespace imp
 		PipelineManager m_PipelineManager;
 		RenderPassGenerator m_RenderPassManager;
 		QueryManager m_TimestampQueryManager;
+		ImageManager m_ImageManager;
 
 		void CollectFrameCPUResults();
 #if BENCHMARK_MODE
@@ -164,6 +175,9 @@ namespace imp
 		std::array<VkDescriptorSet, kEngineSwapchainDoubleBuffering> m_DescriptorSets;
 
 		GpuCrashTracker m_AfterMathTracker;
+
+		std::vector<VulkanImage> m_Images;
+		std::vector<VulkanTexture> m_Textures;
 
 	public:
 		std::unordered_map<uint32_t, Comp::MeshGeometry> m_VertexBuffers;

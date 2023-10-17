@@ -25,14 +25,17 @@ namespace imp
 	{
 		m_Gfx.EndFrame();
 	}
+
 	void Engine::Cmd_SyncRenderThread(std::shared_ptr<void> rsc)
 	{
 		m_SyncPoint->arrive_and_wait();
 	}
+
 	void Engine::Cmd_RenderImGUI(std::shared_ptr<void> rsc)
 	{
 		m_Gfx.RenderImGUI();
 	}
+
 	void Engine::Cmd_UploadMeshes(std::shared_ptr<void> rsc)
 	{
 		auto re = (std::vector<imp::MeshCreationRequest>*)rsc.get();
@@ -46,6 +49,18 @@ namespace imp
 	{
 		auto re = (std::vector<imp::MaterialCreationRequest>*)rsc.get();
 		m_Gfx.CreateAndUploadMaterials(*re);
+	}
+
+	void Engine::Cmd_UploadImages(std::shared_ptr<void> rsc)
+	{
+		auto re = (std::vector<imp::ImageCreationRequest>*)rsc.get();
+		m_Gfx.CreateAndUploadImages(*re);
+	}
+
+	void Engine::Cmd_UploadTextures(std::shared_ptr<void> rsc)
+	{
+		auto re = (std::vector<imp::TextureCreationRequest>*)rsc.get();
+		m_Gfx.CreateAndUploadTextures(*re);
 	}
 
 	void Engine::Cmd_UploadComputePrograms(std::shared_ptr<void> rsc)

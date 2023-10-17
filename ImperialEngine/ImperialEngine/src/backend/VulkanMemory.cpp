@@ -1,5 +1,6 @@
 #include "VulkanMemory.h"
 #include "backend/graphics/GraphicsCaps.h"
+#include "Utils/GfxUtilities.h"
 
 namespace imp
 {
@@ -37,22 +38,8 @@ namespace imp
 		const auto mem = AllocateMemory(device, memRequirements.size, memRequirements, buffMemPropFlags, memoryProps);
 		res = vkBindBufferMemory(device, buffer, mem, 0);
 		assert(res == VK_SUCCESS);
-
-		VkSemaphoreTypeCreateInfo timelineCreateInfo;
-		timelineCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
-		timelineCreateInfo.pNext = NULL;
-		timelineCreateInfo.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
-		timelineCreateInfo.initialValue = 0ull;
-
-		VkSemaphoreCreateInfo createInfo;
-		createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-		createInfo.pNext = &timelineCreateInfo;
-		createInfo.flags = 0;
-
-		VkSemaphore timelineSemaphore;
-		vkCreateSemaphore(device, &createInfo, NULL, &timelineSemaphore);
-
-		VulkanBuffer buff(bufferSize, buffer, mem, timelineSemaphore);
+		
+		VulkanBuffer buff(bufferSize, buffer, mem, utils::CreateTimelineSemaphore(device));
 		return buff;
 	}
 

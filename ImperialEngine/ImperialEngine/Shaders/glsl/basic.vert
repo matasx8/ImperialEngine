@@ -55,7 +55,7 @@ void main()
     vec3 norm = vec3(vertices[VERTEX_INDEX].nx, vertices[VERTEX_INDEX].ny, vertices[VERTEX_INDEX].nz);
     vec2 tex = vec2(vertices[VERTEX_INDEX].tu, vertices[VERTEX_INDEX].tv);
 
-	vec3 color = vec3(materialData[drawData[DRAW_ID].materialIdx].color);
+	vec3 color = vec4(DEFAULT_COLOR).rgb;//vec3(materialData[drawData[DRAW_ID].materialIdx].color);
 	mat4 model = drawData[DRAW_ID].Transform;
     vec3 ecPos      = vec3(model * vec4(pos, 1.0));
     vec3 tnorm      = norm;

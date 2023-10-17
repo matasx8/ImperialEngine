@@ -87,7 +87,7 @@ namespace imp
             signalValues[i] = sem.lastUsedInQueue + 1ull;
             waitSemaphores[i] = sem.semaphore;
             signalSemaphores[i] = sem.semaphore;
-            waitStages[i] = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+            waitStages[i] = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT; // is this good? Won't this miss if the stage is not bottom
             i++;
         }
 
@@ -143,6 +143,7 @@ namespace imp
         m_CurrentFence.UpdateLastUsed(currFrame);
         m_CommandsBuffersToSubmit.resize(0ull);
         m_SemaphoresToWaitOnSubmit.resize(0ull);
+        m_QueueDependencies.resize(0ull);
 
         return primitives;
     }
@@ -152,8 +153,6 @@ namespace imp
         m_FrameClock++;
         m_FrameClock %= m_BufferingMode;
         m_IsNewFrame = true;
-
-        m_QueueDependencies.resize(0);
     }
 
     std::vector<CommandBuffer> CommandBufferManager::AquireCommandBuffers(VkDevice device, uint32_t count)
@@ -237,6 +236,7 @@ namespace imp
 
         m_CurrentFence = m_FencePool.Get(device, currFrame);
         m_CurrentFence.UpdateLastUsed(currFrame);
+        m_QueueDependencies.resize(0ull);
     }
 
     void CommandBufferManager::AddQueueDependencies(const TimelineSemaphore& semahpore)

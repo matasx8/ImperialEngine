@@ -1,0 +1,1 @@
+#define GET_POSITION(transform) (transform[3])

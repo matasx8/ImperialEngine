@@ -84,6 +84,12 @@ namespace imp
 			vkCmdPipelineBarrier(cb.cmb, srcFlags, dstFlags, 0, 0, 0, bmbCount, bmbs, 0, 0);
 		}
 
+		void InsertImageBarrier(CommandBuffer& cb, VkPipelineStageFlags srcFlags, VkPipelineStageFlags dstFlags, const VkImageMemoryBarrier* imbs, uint32_t imbCount)
+		{
+			assert(imbs);
+			vkCmdPipelineBarrier(cb.cmb, srcFlags, dstFlags, 0, 0, 0, 0, 0, imbCount, imbs);
+		}
+
 		VkBufferMemoryBarrier CreateBufferMemoryBarrier(VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkBuffer buffer, VkDeviceSize offset, VkDeviceSize size)
 		{
 			return CreateBufferMemoryBarrier(srcAccessMask, dstAccessMask, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, buffer, offset, size);
@@ -102,6 +108,45 @@ namespace imp
 			bmb.offset = offset;
 			bmb.size = size;
 			return bmb;
+		}
+
+		VkImageMemoryBarrier CreateImageMemoryBarrier(VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout)
+		{
+			VkImageMemoryBarrier imb = {};
+			imb.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+			imb.srcAccessMask = srcAccessMask;
+			imb.dstAccessMask = dstAccessMask;
+			imb.oldLayout = oldLayout;
+			imb.newLayout = newLayout;
+			imb.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			imb.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			imb.image = image;
+			imb.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			imb.subresourceRange.baseMipLevel = 0;
+			imb.subresourceRange.levelCount = 1;
+			imb.subresourceRange.baseArrayLayer = 0;
+			imb.subresourceRange.layerCount = 1;
+			return imb;
+		}
+
+		VkSemaphore CreateTimelineSemaphore(VkDevice device)
+		{
+			VkSemaphoreTypeCreateInfo timelineCreateInfo;
+			timelineCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
+			timelineCreateInfo.pNext = nullptr;
+			timelineCreateInfo.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
+			timelineCreateInfo.initialValue = 0ull;
+
+			VkSemaphoreCreateInfo createInfo;
+			createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+			createInfo.pNext = &timelineCreateInfo;
+			createInfo.flags = 0;
+
+			VkSemaphore timelineSemaphore;
+			const auto result = vkCreateSemaphore(device, &createInfo, nullptr, &timelineSemaphore);
+			assert(result == VK_SUCCESS);
+
+			return timelineSemaphore;
 		}
 
 		uint32_t ChooseMeshLODByNearPlaneDistance(float distFromCamera)

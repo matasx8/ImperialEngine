@@ -1,4 +1,6 @@
 #pragma once
+#include "volk.h"
+#include "backend/VariousTypeDefinitions.h"
 #include "Utils/NonCopyable.h"
 #include <string>
 #include <filesystem>
@@ -14,6 +16,7 @@ namespace tinygltf
 	class TinyGLTF;
 	class Node;
 	class Model;
+	struct TextureInfo;
 }
 
 namespace Comp
@@ -24,8 +27,6 @@ namespace Comp
 
 namespace imp
 {
-	struct MeshCreationRequest;
-	struct MaterialCreationRequest;
 	class Engine;
 
 	class AssetImporter : NonCopyable
@@ -42,6 +43,12 @@ namespace imp
 
 		void LoadGLTFScene(const std::filesystem::path& path);
 		void LoadGLTFNode(const tinygltf::Node& node, const tinygltf::Model& model, std::vector<MeshCreationRequest>& reqs, std::vector<Comp::GLTFEntity>& entities, std::unordered_map<uint32_t, uint32_t>& meshIdMap, Comp::GLTFCamera& camera);
+		void LoadGLTFMaterials(const tinygltf::Model& model, std::vector<MatCreationRequest>& matReqs, std::vector<TextureCreationRequest>& texReqs);
+		TextureCreationRequest LoadGLTFTexture(const tinygltf::Model& model, const tinygltf::TextureInfo& ti, VkImageAspectFlags aspect);
+		void LoadGLTFImages(tinygltf::Model& model, std::vector<ImageCreationRequest>& imageReqs);
+
+		MatCreationRequest CreateInitialMaterial() const;
+		
 		void LoadFile(Assimp::Importer& imp, const std::filesystem::path& path);
 		void LoadModel(std::vector<imp::MeshCreationRequest>& reqs, Assimp::Importer& imp, const std::filesystem::path& path);
 		std::vector<MaterialCreationRequest> LoadShaders(const std::vector<std::filesystem::path>& shaders);
@@ -49,5 +56,12 @@ namespace imp
 
 		Engine& m_Engine;
 		tinygltf::TinyGLTF* m_Loader;
+
+		uint32_t m_MaterialCounter;
+		uint32_t m_TextureCounter;
+		uint32_t m_ImageCounter;
+		uint32_t m_MaterialCounterOffset;
+		uint32_t m_TextureCounterOffset;
+		uint32_t m_ImageCounterOffset;
 	};
 }
