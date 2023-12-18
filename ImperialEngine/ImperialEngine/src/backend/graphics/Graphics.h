@@ -59,6 +59,7 @@ namespace imp
 		void CreateAndUploadMaterials(const std::vector<MaterialCreationRequest>& materialCreationData);
 		void CreateAndUploadImages(const std::vector<ImageCreationRequest>& imageCreationData);
 		void CreateAndUploadTextures(const std::vector<TextureCreationRequest>& textureCreationData);
+		void CreateAndUploadActualMaterials(const std::vector<imp::MatCreationRequest>& materialCreationData);
 		void CreateComputePrograms(const std::vector<ComputeProgramCreationRequest>& computeProgramRequests);
 
 		// Will return ref to VulkanBuffer used for uploading new draw commands.
@@ -162,7 +163,6 @@ namespace imp
 
 		VkWindow m_Window;
 		VulkanMemory m_MemoryManager;
-		MemoryProps m_DeviceMemoryProps;
 
 		VulkanBuffer m_VertexBuffer;
 		VulkanBuffer m_IndexBuffer;

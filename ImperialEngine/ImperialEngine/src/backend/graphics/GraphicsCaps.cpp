@@ -3,7 +3,9 @@
 #include <vector>
 
 imp::GraphicsCaps::GraphicsCaps() 
-    : m_DeviceSurfaceCaps(),
+    : m_PhysicalDeviceProps(),
+    m_DeviceMemoryProps(),
+    m_DeviceSurfaceCaps(),
     m_QueueFamilyIndices(),
     m_MeshShadingSupported(true)
 {
@@ -77,11 +79,30 @@ imp::QueueFamilyIndices imp::GraphicsCaps::GetQueueFamilies() const
     return m_QueueFamilyIndices;
 }
 
+void imp::GraphicsCaps::CollectPhysicalDeviceProps(VkPhysicalDevice device)
+{
+    VkPhysicalDeviceMemoryProperties memoryProperties;
+    vkGetPhysicalDeviceMemoryProperties(device, &memoryProperties);
+    m_DeviceMemoryProps.memoryProperties = memoryProperties;
+
+    vkGetPhysicalDeviceProperties(device, &m_PhysicalDeviceProps);
+}
+
 void imp::GraphicsCaps::CollectSupportedFeatures(VkPhysicalDevice device, const std::vector<const char*>& extensionsUsed)
 {
     m_MeshShadingSupported = std::find_if(extensionsUsed.begin(), extensionsUsed.end(), [](auto ex) { return strcmp(ex, VK_NV_MESH_SHADER_EXTENSION_NAME) == 0; }) != extensionsUsed.end();
 
     // TODO nice-to-have: find support for other stuff like bindless and nvidia nsight extensions..
+}
+
+const VkPhysicalDeviceLimits& imp::GraphicsCaps::GetPhysicalDeviceLimits() const
+{
+    return m_PhysicalDeviceProps.limits;
+}
+
+const imp::MemoryProps& imp::GraphicsCaps::GetDeviceMemoryProps() const
+{
+    return m_DeviceMemoryProps;
 }
 
 void imp::GraphicsCaps::SetQueueFamilies(QueueFamilyIndices& fams)

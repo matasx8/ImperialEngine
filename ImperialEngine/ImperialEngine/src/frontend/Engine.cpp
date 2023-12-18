@@ -534,6 +534,7 @@ namespace imp
 			{
 				const auto& mesh = renderableChildren.get<Comp::Mesh>(ent);
 				const auto& parent = renderableChildren.get<Comp::ChildComponent>(ent).parent;
+				const auto& material = renderableChildren.get<Comp::Material>(ent);
 			    const auto& transform = transforms.get<Comp::Transform>(parent);
 
 				const auto& meshData = m_Gfx.GetMeshData(mesh.meshId);
@@ -546,7 +547,7 @@ namespace imp
 				// Also update shader draw data. Also contains mesh id, that CPU-driven can use to generate draw commands
 				ShaderDrawData sdd;
 				sdd.transform = transform.transform;
-				sdd.materialIndex = kDefaultMaterialIndex;
+				sdd.materialIndex = material.materialId;
 				sdd.vertexOffset = 0;
 				// This seems to be quite slow, might be faster if I'd templatize the VulkanBuffer container
 				drawDataBuffer.push_back(&sdd, sizeof(sdd));

@@ -46,7 +46,11 @@ namespace imp
 		const PhysicalDeviceSurfaceCaps& GetPhysicalDeviceSurfaceCaps() const;
 		QueueFamilyIndices GetQueueFamilies() const;
 
+		void CollectPhysicalDeviceProps(VkPhysicalDevice device);
 		void CollectSupportedFeatures(VkPhysicalDevice device, const std::vector<const char*>& extensionsUsed);
+
+		const VkPhysicalDeviceLimits& GetPhysicalDeviceLimits() const;
+		const MemoryProps& GetDeviceMemoryProps() const;
 
 		void SetQueueFamilies(QueueFamilyIndices& fams);
 
@@ -60,6 +64,9 @@ namespace imp
 
 		const char* validationLayerName = "VK_LAYER_KHRONOS_validation";
 	private:
+
+		VkPhysicalDeviceProperties m_PhysicalDeviceProps;
+		MemoryProps m_DeviceMemoryProps;
 
 		PhysicalDeviceSurfaceCaps m_DeviceSurfaceCaps;
 		QueueFamilyIndices m_QueueFamilyIndices;

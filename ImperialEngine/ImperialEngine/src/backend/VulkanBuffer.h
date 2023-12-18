@@ -23,7 +23,7 @@ namespace imp
 		void RegisterNewUpload(uint32_t size);
 
 		// These are used for descriptors
-		VkDescriptorBufferInfo RegisterSubBuffer(size_t size);
+		VkDescriptorBufferInfo RegisterSubBuffer(size_t size, size_t minAlignment = 0);
 		uint32_t FindNewSubBufferIndex(size_t size);
 
 		void GiveFence(const Fence& fence) { m_Fence = fence; };

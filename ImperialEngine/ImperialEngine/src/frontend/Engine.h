@@ -143,6 +143,7 @@ namespace imp
 		void Cmd_UploadMaterials(std::shared_ptr<void> rsc);
 		void Cmd_UploadImages(std::shared_ptr<void> rsc);
 		void Cmd_UploadTextures(std::shared_ptr<void> rsc);
+		void Cmd_UploadActualMaterials(std::shared_ptr<void> rsc);
 		void Cmd_UploadComputePrograms(std::shared_ptr<void> rsc);
 		void Cmd_ChangeRenderMode(std::shared_ptr<void> rsc);
 		void Cmd_UpdateDraws(std::shared_ptr<void> rsc);

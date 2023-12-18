@@ -20,7 +20,9 @@ namespace imp
         nameInfo.objectHandle = (uint64_t)(image);
         nameInfo.pObjectName = name;
 
+#if _DEBUG
         vkSetDebugUtilsObjectNameEXT(device, &nameInfo);
+#endif
     }
 
     VulkanImage ImageManager::GetImage(VkDevice device, const ImageCreationRequest& req, const MemoryProps& memProps)

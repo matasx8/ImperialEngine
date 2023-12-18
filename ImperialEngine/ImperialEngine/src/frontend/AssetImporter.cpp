@@ -126,6 +126,7 @@ namespace imp
 		std::vector<TextureCreationRequest> textureReqs;
 		LoadGLTFMaterials(model, materialCreationRequests, textureReqs);
 		m_Engine.m_Q->add(std::mem_fn(&Engine::Cmd_UploadTextures), std::make_shared<std::vector<imp::TextureCreationRequest>>(textureReqs));
+		m_Engine.m_Q->add(std::mem_fn(&Engine::Cmd_UploadActualMaterials), std::make_shared<std::vector<imp::MatCreationRequest>>(materialCreationRequests));
 
 		m_ImageCounterOffset = m_ImageCounter;
 		m_ImageCounter = 0;
@@ -208,19 +209,28 @@ namespace imp
 		for (const auto child : node.children)
 			LoadGLTFNode(model.nodes[child], model, reqs, entities, meshIdMap, camera);
 
-		// Need to rework this, doesn't seem to make sense
+		// This is so we don't load geometry for linked/duplicate meshes.
 		if (meshIdMap.find(node.mesh) != meshIdMap.end())
 		{
-			MeshCreationRequest req;
-			req.id = meshIdMap[node.mesh];
-			req.materialId = model.meshes[node.mesh].primitives.front().material;
-			reqs.push_back(req);
+			const auto& mesh = model.meshes[node.mesh];
 
-			Comp::GLTFEntity ent;
-			ent.transform = { transform };
-			ent.mesh = { req.id };
-			ent.material = { req.materialId };
-			entities.push_back(ent);
+			int primIndex = 0;
+			for (const auto& prim : mesh.primitives)
+			{
+				MeshCreationRequest req;
+				// Adds primIndex so it maps to the temporary mesh IDs generated below. 
+				req.id = meshIdMap[node.mesh] + primIndex;
+				req.materialId = model.meshes[node.mesh].primitives.front().material;
+				reqs.push_back(req);
+
+				Comp::GLTFEntity ent;
+				ent.transform = { transform };
+				ent.mesh = { req.id };
+				ent.material = { req.materialId };
+				entities.push_back(ent);
+
+				primIndex++;
+			}
 
 			return;
 		}
@@ -228,7 +238,6 @@ namespace imp
 		if (node.mesh > -1)
 		{
 			const auto& mesh = model.meshes[node.mesh];
-			assert(mesh.primitives.size() <= 1); // The meshIdMap won't work
 
 			for (const auto& prim : mesh.primitives)
 			{
@@ -327,6 +336,7 @@ namespace imp
 				Comp::GLTFEntity ent;
 				ent.transform = { transform };
 				ent.mesh = { req.id };
+				ent.material = { req.materialId };
 
 				entities.push_back(ent);
 				reqs.push_back(req);
@@ -396,7 +406,7 @@ namespace imp
 	{
 		matReqs.push_back(CreateInitialMaterial());
 
-		std::unordered_set<int> encounteredTextureIds;
+		std::unordered_map<int, uint32_t> encounteredTextureIds;
 
 		for (const auto& material : model.materials)
 		{
@@ -408,15 +418,25 @@ namespace imp
 			if (!ValidateMaterialID(req.id, material.name))
 				break;
 
-			assert(material.pbrMetallicRoughness.baseColorTexture.index >= 0);
-			req.textureIDs.push_back(material.pbrMetallicRoughness.baseColorTexture.index + m_TextureCounterOffset);
+			int index = 0;
+			// Doesn't work if material doesn't have texture. For now assign first texture
+			//assert(material.pbrMetallicRoughness.baseColorTexture.index >= 0);
+			if (material.pbrMetallicRoughness.baseColorTexture.index >= 0)
+				index = material.pbrMetallicRoughness.baseColorTexture.index;
 
 			// Check if this is a new texture and we need to create it
-			if (encounteredTextureIds.find(material.pbrMetallicRoughness.baseColorTexture.index) == encounteredTextureIds.end())
+			if (encounteredTextureIds.find(index) == encounteredTextureIds.end() && material.pbrMetallicRoughness.baseColorTexture.index >= 0)
 			{
-				encounteredTextureIds.insert(material.pbrMetallicRoughness.baseColorTexture.index);
 
-				texReqs.push_back(LoadGLTFTexture(model, material.pbrMetallicRoughness.baseColorTexture, VK_IMAGE_ASPECT_COLOR_BIT));
+				const auto textureReq = LoadGLTFTexture(model, material.pbrMetallicRoughness.baseColorTexture, VK_IMAGE_ASPECT_COLOR_BIT);
+				texReqs.push_back(textureReq);
+
+				req.textureIDs.push_back(textureReq.id + m_TextureCounterOffset);
+				encounteredTextureIds[index] = textureReq.id + m_TextureCounterOffset;
+			}
+			else
+			{
+				req.textureIDs.push_back(encounteredTextureIds[index]);
 			}
 
 			matReqs.push_back(req);
@@ -606,7 +626,7 @@ namespace imp
 		{
 			// skip compute
 			if (shader.string().find(".comp") != std::string::npos)
-				break;
+				continue;
 
 			shaderSet.insert(shader.parent_path().string() + "/" + shader.stem().stem().stem().string()); //TODO: fix this nonsense
 		}
@@ -643,7 +663,7 @@ namespace imp
 		assert(req.vertexIndSpv.get());
 		assert(req.meshSpv.get());
 #if CONE_CULLING_ENABLED
-		assert(req.taskSpv.get());
+		//assert(req.taskSpv.get());
 #endif
 		assert(req.fragmentSpv.get());
 		return req;

@@ -10,6 +10,10 @@ namespace imp
 	public:
 		VulkanTexture(const TextureCreationRequest& info, VkImageView view, VkSampler sampler);
 
+		uint32_t GetImageId() const;
+		VkImageView GetImageView() const;
+		VkSampler GetSampler() const;
+
 	private:
 		uint32_t m_ID;
 		uint32_t m_ImageId;

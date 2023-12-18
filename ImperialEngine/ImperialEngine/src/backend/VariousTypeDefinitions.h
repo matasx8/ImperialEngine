@@ -13,9 +13,10 @@ namespace imp
 	inline constexpr size_t kMaxMeshletVertices = MESHLET_MAX_VERTS;
 	inline constexpr size_t kMaxMeshletTriangles = MESHLET_MAX_PRIMS;
 
-	inline constexpr uint32_t kBindingCount = 5;
+	inline constexpr uint32_t kBindingCount = 6;
 	inline constexpr uint32_t kMaxMaterialCount = 128;
-	inline constexpr uint32_t kMaxDrawCount = 1'048'000; //Should be upper bound, lets see what happens with 2
+	inline constexpr uint32_t kMaxTextureCount = 128;
+	inline constexpr uint32_t kMaxDrawCount = 1'000'000; //Should be upper bound, lets see what happens with 2
 	inline constexpr uint32_t kMaxMeshCount = kMaxDrawCount / 2;
 	inline constexpr uint32_t kGlobalBufferBindingSlot = 0;
 	inline constexpr uint32_t kGlobalBufferBindCount = 1;
@@ -23,7 +24,9 @@ namespace imp
 	inline constexpr uint32_t kVertexBufferBindingCount = 1;
 	inline constexpr uint32_t kMaterialBufferBindingSlot = kVertexBufferBindingSlot + kVertexBufferBindingCount;
 	inline constexpr uint32_t kMaterialBufferBindCount = kMaxMaterialCount;
-	inline constexpr uint32_t kDrawDataIndicesBindingSlot = kMaterialBufferBindingSlot + kMaterialBufferBindCount;
+	inline constexpr uint32_t kTextureBufferBindingSlot = kMaterialBufferBindingSlot + kMaxMaterialCount;
+	inline constexpr uint32_t kTextureBufferBindCount = kMaxTextureCount;
+	inline constexpr uint32_t kDrawDataIndicesBindingSlot = kTextureBufferBindingSlot + kTextureBufferBindCount;
 	inline constexpr uint32_t kDrawDataIndicesBindCount = 1;
 	inline constexpr uint32_t kDrawDataBufferBindingSlot = kDrawDataIndicesBindingSlot + kDrawDataIndicesBindCount;
 
@@ -83,6 +86,7 @@ namespace imp
 		glm::mat4x4 Transform;
 		uint32_t VertexBufferId;
 		uint32_t LodIdx;
+		uint32_t materialId;
 	};
 
 	struct CameraData

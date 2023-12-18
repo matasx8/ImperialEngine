@@ -24,14 +24,16 @@ layout(set = 0, binding = 2) buffer MaterialData
 	uint albedoIdx;
 } materialData[MAX_MATERIALS];
 
+layout(set = 0, binding = 130) uniform sampler2D samplerData[];
+
 // use gl_DrawIDARB to find this draw index into DrawData.
 // This is needed because after culling there isn't a 1:1 ratio to IndirectDrawCommands and DrawData
-layout(set = 0, binding = 130) buffer DrawDataIndices
+layout(set = 0, binding = 258) buffer DrawDataIndices
 {
 	uint drawDataIndices[];
 };
 
-layout(set = 0, binding = 131) buffer DrawData
+layout(set = 0, binding = 259) buffer DrawData
 {
 	mat4 Transform;
 	uint materialIdx;

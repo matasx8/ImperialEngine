@@ -63,6 +63,12 @@ namespace imp
 		m_Gfx.CreateAndUploadTextures(*re);
 	}
 
+	void Engine::Cmd_UploadActualMaterials(std::shared_ptr<void> rsc)
+	{
+		auto re = (std::vector<imp::MatCreationRequest>*)rsc.get();
+		m_Gfx.CreateAndUploadActualMaterials(*re);
+	}
+
 	void Engine::Cmd_UploadComputePrograms(std::shared_ptr<void> rsc)
 	{
 		auto re = (std::vector<imp::ComputeProgramCreationRequest>*)rsc.get();

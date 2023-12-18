@@ -149,6 +149,28 @@ namespace imp
 			return timelineSemaphore;
 		}
 
+		uint32_t FindMinDecriptorAlignment(VkDescriptorType type, const VkPhysicalDeviceLimits& limits)
+		{
+			switch (type)
+			{	
+			case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+			case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+				return limits.minTexelBufferOffsetAlignment;
+				
+			case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+			case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+				return limits.minUniformBufferOffsetAlignment;
+
+			case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+			case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+				return limits.minStorageBufferOffsetAlignment;
+
+			default:
+				assert(false); // figure out what to do with this descriptor type
+				return 0;
+			}
+		}
+
 		uint32_t ChooseMeshLODByNearPlaneDistance(float distFromCamera)
 		{
 			uint32_t idx = 0;
@@ -343,6 +365,7 @@ namespace imp
 			{
 				const auto& mesh = group.get<Comp::Mesh>(ent);
 				const auto& parent = group.get<Comp::ChildComponent>(ent).parent;
+				const auto& material = group.get<Comp::Material>(ent);
 				const auto& transform = transforms.get<Comp::Transform>(parent);
 				const auto& BV = gfx.m_BVs.at(mesh.meshId);
 
@@ -382,6 +405,7 @@ namespace imp
 					dds.Transform = transform.transform;
 					dds.VertexBufferId = mesh.meshId;
 					dds.LodIdx = lodIdx;
+					dds.materialId = material.materialId;
 
 					visibleData.push_back(dds);
 				}

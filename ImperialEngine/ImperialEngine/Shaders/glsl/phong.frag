@@ -23,10 +23,10 @@ void main()
 	vec4 colorRGBA = texture(samplerData[nonuniformEXT(samplerID)], FragUV);
 
 	// Calculate ambient lighting
-	vec3 ambient = 0.05 * colorRGBA.rgb;
+	vec3 ambient = 0.2 * colorRGBA.rgb;
 
 	// Calculate diffuse lighting
-	vec3 lightDir = normalize(globals.lightPositon.xyz - FragPosition);
+	vec3 lightDir = normalize(vec3(10.0, 10.0, 10.0) - FragPosition);
 	vec3 normal = normalize(FragNormal); 	// Why do we normalize here when we could do it in VS? Do normalized stuff not interpolate well?
 	float diff = max(dot(lightDir, normal), 0.0);
 	vec3 diffuse = diff * colorRGBA.rgb;

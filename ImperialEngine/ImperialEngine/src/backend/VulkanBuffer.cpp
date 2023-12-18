@@ -43,15 +43,18 @@ namespace imp
 		m_WriteOffset += size;
 	}
 
-	VkDescriptorBufferInfo VulkanBuffer::RegisterSubBuffer(size_t size)
+	VkDescriptorBufferInfo VulkanBuffer::RegisterSubBuffer(size_t size, size_t minAlignment)
 	{
-		// currently no misalignment protection - be safe
 		VkDescriptorBufferInfo bi;
 		bi.buffer = m_Buffer;
 		bi.range = size;
 		bi.offset = m_TempOffset;
 
-		m_TempOffset += size;
+		if (minAlignment > size)
+			m_TempOffset += minAlignment;
+		else
+			m_TempOffset += size + (size % minAlignment);
+
 		return bi;
 	}
 

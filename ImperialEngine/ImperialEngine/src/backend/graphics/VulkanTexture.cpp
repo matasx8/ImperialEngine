@@ -15,4 +15,19 @@ namespace imp
 	, m_Sampler(sampler)
 	{
 	}
+
+	uint32_t VulkanTexture::GetImageId() const
+	{
+		return m_ImageId;
+	}
+
+	VkImageView VulkanTexture::GetImageView() const
+	{
+		return m_View;
+	}
+
+	VkSampler VulkanTexture::GetSampler() const
+	{
+		return m_Sampler;
+	}
 }

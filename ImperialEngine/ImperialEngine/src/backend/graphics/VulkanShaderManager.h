@@ -31,9 +31,9 @@ namespace imp
 		glm::vec4 FrustumPlanes[6];
 	};
 
-	struct MaterialData
+	struct alignas(16) MaterialData
 	{
-		glm::vec4 color;
+		uint32_t albedoIdx;
 	};
 
 	struct alignas(16) ShaderDrawData
@@ -47,11 +47,13 @@ namespace imp
 	class PipelineManager;
 	struct MemoryProps;
 	struct DrawDataSingle;
+	class VulkanTexture;
+	class GraphicsCaps;
 
 	class VulkanShaderManager : NonCopyable
 	{
 	public:
-		VulkanShaderManager();
+		VulkanShaderManager(const GraphicsCaps& caps);
 
 		void Initialize(VkDevice device, VulkanMemory& memory, const EngineGraphicsSettings& settings, BS::thread_pool* jobSystem, const MemoryProps& memProps, VulkanBuffer& drawCommands, VulkanBuffer& vertices);
 
@@ -76,6 +78,7 @@ namespace imp
 		void CreateComputePrograms(VkDevice device, PipelineManager& pipeManager, const ComputeProgramCreationRequest& req);
 		void UpdateGlobalData(VkDevice device, uint32_t descriptorSetIdx, const GlobalData& data);
 		void UpdateDrawData(VkDevice device, uint32_t descriptorSetIdx, const std::vector<DrawDataSingle>& drawData, std::unordered_map<uint32_t, Comp::MeshGeometry>& geometryData);
+		void UpdateMaterialData(VkDevice device, uint32_t descriptorSetIdx, const std::vector<imp::MatCreationRequest>& materialData);
 
 		void Destroy(VkDevice device);
 
@@ -92,8 +95,7 @@ namespace imp
 		void WriteUpdateDescriptorSetsSingleBuffer(VkDevice device, VkDescriptorSet* dSets, VkDescriptorType type, VulkanBuffer& buffer, size_t descriptorDataSize, uint32_t bindSlot, uint32_t descriptorCount, uint32_t dSetCount);
 		void UpdateDescriptorData(VkDevice device, VulkanBuffer& buffer, size_t size, uint32_t offset, const void* data);
 
-		void CreateDefaultMaterial(VkDevice device);
-
+		const GraphicsCaps& m_GraphicsCaps;
 
 		std::unordered_map<std::string, VulkanShader> m_ShaderMap;
 		VkDescriptorPool m_DescriptorPool;

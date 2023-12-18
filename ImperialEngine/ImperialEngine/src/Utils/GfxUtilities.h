@@ -15,6 +15,7 @@ namespace imp
 		VkBufferMemoryBarrier CreateBufferMemoryBarrier(VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, uint32_t srcQFIndex, uint32_t dstQFIndex, VkBuffer buffer, VkDeviceSize offset = 0, VkDeviceSize size = VK_WHOLE_SIZE);
 		VkImageMemoryBarrier CreateImageMemoryBarrier(VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout);
 		VkSemaphore CreateTimelineSemaphore(VkDevice device);
+		uint32_t FindMinDecriptorAlignment(VkDescriptorType type, const VkPhysicalDeviceLimits& limits);
 
 		uint32_t ChooseMeshLODByNearPlaneDistance(float distFromCamera);
 		void GenerateMeshLODS(const std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, VulkanSubBuffer* dstSubBuffers, uint32_t numLODs, double factor, float error);

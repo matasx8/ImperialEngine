@@ -37,6 +37,10 @@
 #define MAX_MATERIALS 128
 #endif
 
+#ifndef MAX_TEXTURES
+#define MAX_TEXTURES 128
+#endif
+
 #ifndef DEFAULT_COLOR
 #define DEFAULT_COLOR 1.0, 0.0, 1.0, 1.0
 #endif

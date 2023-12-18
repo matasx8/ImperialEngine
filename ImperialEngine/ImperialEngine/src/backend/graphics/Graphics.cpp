@@ -33,7 +33,7 @@ namespace imp
         m_CbManager(m_SemaphorePool, m_FencePool),
         m_TransferCbManager(m_SemaphorePool, m_FencePool),
         m_SurfaceManager(),
-        m_ShaderManager(),
+        m_ShaderManager(m_GfxCaps),
         m_PipelineManager(),
         m_RenderPassManager(&m_VulkanGarbageCollector),
         m_TimestampQueryManager(),
@@ -54,7 +54,6 @@ namespace imp
         m_JobSystem(),
         m_Window(),
         m_MemoryManager(),
-        m_DeviceMemoryProps(),
         m_VertexBuffer(),
         m_IndexBuffer(),
         m_DrawBuffer(),
@@ -99,7 +98,7 @@ namespace imp
         m_JobSystem = new BS::thread_pool(std::thread::hardware_concurrency() / 2);
 
         InitializeVulkanMemory();
-        m_ShaderManager.Initialize(m_LogicalDevice, m_MemoryManager, m_Settings, m_JobSystem, m_DeviceMemoryProps, m_DrawBuffer, m_VertexBuffer);
+        m_ShaderManager.Initialize(m_LogicalDevice, m_MemoryManager, m_Settings, m_JobSystem, m_GfxCaps.GetDeviceMemoryProps(), m_DrawBuffer, m_VertexBuffer);
 
 #if !BENCHMARK_MODE
         // Until we haven't made custom vulkan backend for imgui we can't fully have dynamic RenderPassGenerator
@@ -133,7 +132,7 @@ namespace imp
 
         auto& cb = m_TransferCbManager.GetCurrentCB(m_LogicalDevice);
         utils::InsertBufferBarrier(cb, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, bmbs.data(), bmbs.size());
-        
+
         cb.End();
         m_TransferCbManager.ReturnCommandBufferToPool(cb, 0, m_TransferCbManager.GetCurrentFence().fence);
 
@@ -209,12 +208,12 @@ namespace imp
         vkCmdBindPipeline(cb.cmb, VK_PIPELINE_BIND_POINT_COMPUTE, updateDrawsProgram.GetPipeline());
         vkCmdPushConstants(cb.cmb, updateDrawsProgram.GetPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(push), &push);
         vkCmdBindDescriptorSets(cb.cmb, VK_PIPELINE_BIND_POINT_COMPUTE, updateDrawsProgram.GetPipelineLayout(), 0, dsets.size(), dsets.data(), 0, nullptr);
-        
+
         const auto fillMemBar = utils::CreateBufferMemoryBarrier(VK_ACCESS_INDIRECT_COMMAND_READ_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, m_ShaderManager.GetDrawCommandCountBuffer().GetBuffer());
         utils::InsertBufferBarrier(cb, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, &fillMemBar, 1);
 
         vkCmdFillBuffer(cb.cmb, m_ShaderManager.GetDrawCommandCountBuffer().GetBuffer(), 0, VK_WHOLE_SIZE, 0);
-        
+
         std::array<VkBufferMemoryBarrier, 3> memBars2;
         // make sure CS has populated draw buffer
         memBars2[0] = utils::CreateBufferMemoryBarrier(VK_ACCESS_INDIRECT_COMMAND_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, m_DrawBuffer.GetBuffer());
@@ -233,7 +232,7 @@ namespace imp
         memBars[1] = utils::CreateBufferMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, m_ShaderManager.GetDrawDataIndicesBuffer().GetBuffer());
         // make sure new draw command count is visible to vkCmdDrawIndirectIndexedCount
         memBars[2] = utils::CreateBufferMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_INDIRECT_COMMAND_READ_BIT, m_ShaderManager.GetDrawCommandCountBuffer().GetBuffer());
-        
+
         // I wonder what happens when you have multiple pipeline stage flag bits like I do here
         utils::InsertBufferBarrier(cb, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, memBars.data(), static_cast<uint32_t>(memBars.size()));
         m_TimestampQueryManager.WriteTimestamp(cb.cmb, kQueryCullEnd, m_Swapchain.GetFrameClock());
@@ -303,7 +302,7 @@ namespace imp
     {
         AUTO_TIMER("[RenderCameras]: ");
 #if CULLING_ENABLED
-        if(m_Settings.renderMode == kEngineRenderModeGPUDriven || m_Settings.renderMode == kEngineRenderModeGPUDrivenMeshShading)
+        if (m_Settings.renderMode == kEngineRenderModeGPUDriven || m_Settings.renderMode == kEngineRenderModeGPUDrivenMeshShading)
             Cull();
 #endif
 
@@ -440,7 +439,7 @@ namespace imp
             ms_md.firstTask = 0;
 
             m_BVs[req.id] = req.boundingVolume;
-            
+
             for (auto i = 0; i < kMaxLODCount; i++)
                 ms_md.LODData[i].meshletBufferOffset += mOffset;
 
@@ -491,7 +490,7 @@ namespace imp
 
             mdAllocSize += static_cast<uint32_t>(sizeof(MeshData));
             ms_mdAllocSize += static_cast<uint32_t>(sizeof(ms_MeshData));
-   
+
             m_VertexBuffers[req.id] = ivb;
         }
 
@@ -554,7 +553,7 @@ namespace imp
         // TODO optimization: batch this to avoid many many pipeline stalls
         for (const auto& req : imageCreationData)
         {
-            auto image = m_ImageManager.GetImage(m_LogicalDevice, req, m_DeviceMemoryProps);
+            auto image = m_ImageManager.GetImage(m_LogicalDevice, req, m_GfxCaps.GetDeviceMemoryProps());
 
             TransitionImageLayout(cb, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
             UploadVulkanImage(image, cb, req.image.size(), req.image.data());
@@ -567,13 +566,44 @@ namespace imp
 
         cb.End();
         m_CbManager.SubmitInternal(cb);
+        // TODO: not waiting for upload to finish
         m_CbManager.SubmitToQueue(m_GfxQueue, m_LogicalDevice, kSubmitDontCare, m_CurrentFrame);
     }
 
     void Graphics::CreateAndUploadTextures(const std::vector<TextureCreationRequest>& textureCreationData)
     {
+        const auto offset = m_Textures.size();
         for (const auto& req : textureCreationData)
             m_Textures.push_back(CreateVulkanTexture(req));
+
+        const auto descriptorCount = m_Textures.size() - offset;
+        std::vector<VkDescriptorImageInfo> iis(descriptorCount);
+        for (auto i = offset; i < m_Textures.size(); i++)
+        {
+            const auto& tex = m_Textures[i];
+            iis[i].imageView = tex.GetImageView();
+            iis[i].sampler = tex.GetSampler();
+            iis[i].imageLayout = m_Images[tex.GetImageId()].GetLayout();
+        }
+
+        std::array<VkWriteDescriptorSet, kEngineSwapchainDoubleBuffering> writes{};
+        for (auto i = 0; i < kEngineSwapchainDoubleBuffering; i++)
+        {
+            writes[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writes[i].dstSet = m_ShaderManager.GetDescriptorSet(i);
+            writes[i].dstBinding = kTextureBufferBindingSlot;
+            writes[i].dstArrayElement = offset;
+            writes[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            writes[i].descriptorCount = descriptorCount;
+            writes[i].pImageInfo = iis.data();
+        }
+        vkUpdateDescriptorSets(m_LogicalDevice, kEngineSwapchainDoubleBuffering, writes.data(), 0, nullptr);
+    }
+
+    void Graphics::CreateAndUploadActualMaterials(const std::vector<imp::MatCreationRequest>& materialCreationData)
+    {
+        for (auto i = 0; i < kEngineSwapchainDoubleBuffering; i++)
+            m_ShaderManager.UpdateMaterialData(m_LogicalDevice, i, materialCreationData);
     }
 
     void Graphics::CreateComputePrograms(const std::vector<ComputeProgramCreationRequest>& computeProgramRequests)
@@ -636,7 +666,7 @@ namespace imp
         m_VertexBuffer.Destroy(device);
         m_IndexBuffer.Destroy(device);
         m_DrawBuffer.Destroy(device);
-        std::for_each(m_StagingDrawBuffer.begin(), m_StagingDrawBuffer.end(), [device] (auto& buff) { buff.Destroy(device); });
+        std::for_each(m_StagingDrawBuffer.begin(), m_StagingDrawBuffer.end(), [device](auto& buff) { buff.Destroy(device); });
 
         m_RenderPassManager.Destroy(device);
         m_PipelineManager.Destroy(device);
@@ -658,7 +688,7 @@ namespace imp
         m_Settings.validationLayersEnabled = validationLayersRequested ? m_GfxCaps.ValidationLayersSupported() : false;
         if (m_Settings.validationLayersEnabled)
             m_Settings.requiredExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-        
+
         if (validationLayersRequested && !m_Settings.validationLayersEnabled)
             printf("[VK INSTANCE INIT]: Validation Layers requested, but is not supported on this device\n");
 
@@ -725,6 +755,7 @@ namespace imp
             }
         }
 
+        m_GfxCaps.CollectPhysicalDeviceProps(m_PhysicalDevice);
         m_GfxCaps.CollectSupportedFeatures(m_PhysicalDevice, m_Settings.requiredDeviceExtensions);
 
         if (!foundSuitableDevice)
@@ -784,6 +815,8 @@ namespace imp
         features12.drawIndirectCount = true;
         features12.descriptorBindingPartiallyBound = true;
         features12.runtimeDescriptorArray = true;
+        features12.shaderStorageBufferArrayNonUniformIndexing = true;
+        features12.shaderSampledImageArrayNonUniformIndexing = true;
         // Currently we're not using these so avoid enabling these features.
         // e.g. my laptop does not support these.
         // TODO nice-to-have: provide at least some basic errors for when features are not supported 
@@ -795,7 +828,7 @@ namespace imp
         //features12.descriptorBindingVariableDescriptorCount = true;
         features12.timelineSemaphore = true;
         features12.storageBuffer8BitAccess = true;
-        
+
         VkPhysicalDeviceMeshShaderFeaturesNV featuresMesh = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV };
         featuresMesh.meshShader = m_GfxCaps.IsMeshShadingSupported();
 #if CONE_CULLING_ENABLED
@@ -843,13 +876,9 @@ namespace imp
 
     void Graphics::CreateSurfaceManager()
     {
-        VkPhysicalDeviceMemoryProperties memoryProperties;
-        vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &memoryProperties);
-        m_DeviceMemoryProps.memoryProperties = memoryProperties;
-        
-        // TODO: in vulkan memory manager I approached this by giving m_DeviceMemoryProps to where it's needed. Maybe that's better
+        // TODO: in vulkan memory manager I approached this by giving m_GfxCaps.GetDeviceMemoryProps() to where it's needed. Maybe that's better
         // and probably it is. This is needed here because we allocate an image but without our memory manager. So would be good to use it later for all allocations
-        m_SurfaceManager.Initialize(m_LogicalDevice, m_DeviceMemoryProps);
+        m_SurfaceManager.Initialize(m_LogicalDevice, m_GfxCaps.GetDeviceMemoryProps());
     }
 
     void Graphics::CreateGarbageCollector()
@@ -940,13 +969,15 @@ namespace imp
         static constexpr VkDeviceSize drawAllocSize = (kMaxDrawCount + 31) * sizeof(VkDrawIndexedIndirectCommand);
         static constexpr VkDeviceSize stagingDrawSize = CULLING_ENABLED ? sizeof(IndirectDrawCmd) * (kMaxDrawCount + 31) : drawAllocSize;
 
-        m_VertexBuffer          = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
-        m_IndexBuffer           = m_MemoryManager.GetBuffer(m_LogicalDevice, idxBuffAllocSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
-        m_DrawBuffer            = m_MemoryManager.GetBuffer(m_LogicalDevice, drawAllocSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DeviceMemoryProps);
+        const auto& memProps = m_GfxCaps.GetDeviceMemoryProps();
+
+        m_VertexBuffer          = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memProps);
+        m_IndexBuffer = m_MemoryManager.GetBuffer(m_LogicalDevice, idxBuffAllocSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memProps);
+        m_DrawBuffer = m_MemoryManager.GetBuffer(m_LogicalDevice, drawAllocSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memProps);
 
         for (auto i = 0; i < m_Settings.swapchainImageCount; i++)
         {
-            m_StagingDrawBuffer[i] = m_MemoryManager.GetBuffer(m_LogicalDevice, stagingDrawSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_DeviceMemoryProps);
+            m_StagingDrawBuffer[i] = m_MemoryManager.GetBuffer(m_LogicalDevice, stagingDrawSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, memProps);
             m_StagingDrawBuffer[i].MapWholeBuffer(m_LogicalDevice);
         }
 
@@ -987,7 +1018,7 @@ namespace imp
 
     VulkanBuffer Graphics::UploadVulkanBuffer(VkBufferUsageFlags usageFlags, VkBufferUsageFlags dstUsageFlags, VkMemoryPropertyFlags memoryFlags, VkMemoryPropertyFlags dstMemoryFlags, const CommandBuffer& cb, uint32_t allocSize, const void* dataToUpload)
     {
-        auto uploadedBuffer = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, dstUsageFlags, dstMemoryFlags, m_DeviceMemoryProps);
+        auto uploadedBuffer = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, dstUsageFlags, dstMemoryFlags, m_GfxCaps.GetDeviceMemoryProps());
         UploadVulkanBuffer(usageFlags, memoryFlags, uploadedBuffer, cb, allocSize, dataToUpload);
         return uploadedBuffer;
     }
@@ -995,7 +1026,7 @@ namespace imp
     void Graphics::UploadVulkanBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryFlags, VulkanBuffer& dst, const CommandBuffer& cb, uint32_t allocSize, const void* dataToUpload)
     {
         // TODO nice-to-have: use scratch memory
-        auto stagingBuffer = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, usageFlags, memoryFlags, m_DeviceMemoryProps);
+        auto stagingBuffer = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, usageFlags, memoryFlags, m_GfxCaps.GetDeviceMemoryProps());
         // then as a vulkan resource we can override the destruction so it doesn't try to deallocate a sub-buffer and just notifies the scratch there's a spot open
         stagingBuffer.UpdateLastUsed(m_CurrentFrame);
         dst.UpdateLastUsed(m_CurrentFrame);
@@ -1057,7 +1088,7 @@ namespace imp
     {
         const auto usageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
         const auto memoryFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-        auto stagingBuffer = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, usageFlags, memoryFlags, m_DeviceMemoryProps);
+        auto stagingBuffer = m_MemoryManager.GetBuffer(m_LogicalDevice, allocSize, usageFlags, memoryFlags, m_GfxCaps.GetDeviceMemoryProps());
         stagingBuffer.UpdateLastUsed(m_CurrentFrame);
         dst.UpdateLastUsed(m_CurrentFrame);
 
@@ -1079,7 +1110,7 @@ namespace imp
     {
         const auto barrier = utils::CreateImageMemoryBarrier(srcAccess, dstAccess, image.GetImage(), image.GetLayout(), newLayout);
         utils::InsertImageBarrier(cb, srcStage, dstStage, &barrier, 1);
-        image.SetLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        image.SetLayout(newLayout);
     }
 
     void Graphics::AcquireDrawCommandBuffer(CommandBuffer& cb)
@@ -1116,20 +1147,20 @@ namespace imp
         switch (m_Settings.renderMode)
         {
         case kEngineRenderModeTraditional:
-            tempConfig.vertModule = m_ShaderManager.GetShader("basic.vert").GetShaderModule();
+            tempConfig.vertModule = m_ShaderManager.GetShader("phong.vert").GetShaderModule();
             break;
         case kEngineRenderModeGPUDriven:
-            tempConfig.vertModule = m_ShaderManager.GetShader("basic.ind.vert").GetShaderModule();
+            tempConfig.vertModule = m_ShaderManager.GetShader("phong.ind.vert").GetShaderModule();
             break;
         case kEngineRenderModeGPUDrivenMeshShading:
-            tempConfig.meshModule = m_ShaderManager.GetShader("basic.mesh").GetShaderModule();
+            tempConfig.meshModule = m_ShaderManager.GetShader("phong.mesh").GetShaderModule();
 #if CONE_CULLING_ENABLED
             tempConfig.taskModule = m_ShaderManager.GetShader("basic.task").GetShaderModule();
 #endif
             break;
         }
 
-        tempConfig.fragModule = m_ShaderManager.GetShader("basic.frag").GetShaderModule();
+        tempConfig.fragModule = m_ShaderManager.GetShader("phong.frag").GetShaderModule();
 
         tempConfig.descriptorSetLayout = m_ShaderManager.GetDescriptorSetLayout();
         // may not be needed if non-mesh pipeline
